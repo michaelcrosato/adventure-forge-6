@@ -6,7 +6,7 @@ The first playable arc is **The Split Tide**. A forged water order and a stolen 
 
 ## Current state
 
-The project is in Milestone 0 with a playable CLI slice. It is not yet a public release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
+Milestone 0 evidence passes, and the project is building out Milestone 1 from a playable CLI slice. It is not yet a public release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
 
 ## Play and verify
 
@@ -32,9 +32,12 @@ The checked Milestone 0 witnesses are independently regenerated and replayed in 
 
 ```bash
 cargo run -p forge-verify -- scenarios
+cargo run -p forge-verify -- crawl
 cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
 cargo run -p forge-verify -- check evidence/witnesses/m0-rook.json
 ```
+
+The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 47 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
 
 ## Core promises
 

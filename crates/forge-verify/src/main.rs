@@ -1,4 +1,6 @@
-use forge_verify::{EvidenceWitness, SCENARIO_IDS, check_witness, generate_witness};
+use forge_verify::{
+    EvidenceWitness, SCENARIO_IDS, check_witness, generate_crawl_report, generate_witness,
+};
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
@@ -23,6 +25,9 @@ fn run(args: Vec<String>) -> Result<String, String> {
     match args.as_slice() {
         [command, scenario] if command == "emit" => generate_witness(scenario)
             .and_then(|witness| witness.to_pretty_json())
+            .map_err(|error| error.to_string()),
+        [command] if command == "crawl" => generate_crawl_report()
+            .and_then(|report| report.to_pretty_json())
             .map_err(|error| error.to_string()),
         [command, path] if command == "check" => {
             let witness = read_witness(Path::new(path))?;
@@ -56,5 +61,5 @@ fn read_witness(path: &Path) -> Result<EvidenceWitness, String> {
 }
 
 fn usage() -> String {
-    "usage: forge-verify emit SCENARIO | check PATH | scenarios".to_owned()
+    "usage: forge-verify crawl | emit SCENARIO | check PATH | scenarios".to_owned()
 }

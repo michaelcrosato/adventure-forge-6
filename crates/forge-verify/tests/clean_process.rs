@@ -15,6 +15,10 @@ fn witness_path(scenario: &str) -> PathBuf {
         .join(format!("{scenario}.json"))
 }
 
+fn crawl_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/split-tide.json")
+}
+
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
     for scenario in SCENARIO_IDS {
@@ -35,4 +39,24 @@ fn clean_process_outputs_match_each_other_and_checked_witnesses() {
             String::from_utf8_lossy(&verified.stderr)
         );
     }
+}
+
+#[test]
+fn clean_process_crawls_match_each_other_and_checked_report() {
+    let first = verifier(&["crawl"]);
+    let second = verifier(&["crawl"]);
+    assert!(first.status.success(), "first crawl failed");
+    assert!(second.status.success(), "second crawl failed");
+    assert_eq!(first.stdout, second.stdout, "clean-process crawls diverged");
+
+    let checked = std::fs::read(crawl_path()).expect("checked crawl report exists");
+    assert_eq!(first.stdout, checked, "checked crawl report is stale");
+
+    let report: serde_json::Value =
+        serde_json::from_slice(&first.stdout).expect("crawl report is valid JSON");
+    assert_eq!(
+        report["covered_definitions"],
+        report["advertised_definitions"]
+    );
+    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 6);
 }

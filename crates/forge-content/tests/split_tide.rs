@@ -248,14 +248,31 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     let content = content();
     let mut state = new_game(&content, "ilyan");
     state = apply(state, &content, "checkpoint.audit_order");
+    state = apply(state, &content, "checkpoint.show_charter");
     state = travel_to(state, &content, "lowsail.levee");
     state = travel_to(state, &content, "red_sluice.floor");
     state = apply(state, &content, "floor.read_harmonics");
     state = travel_to(state, &content, "red_sluice.top");
     state = apply(state, &content, "top.check_wheels");
+    let available_outcomes = definitions(&state, &content);
+    assert!(available_outcomes.contains("top.split_flow"));
+    assert!(available_outcomes.contains("top.hold_market"));
     state = apply(state, &content, "top.split_flow");
 
+    assert!(state.world.flags.contains("sluice_outcome_chosen"));
     assert!(state.world.flags.contains("flow_split"));
+    for outcome in [
+        "top.split_flow",
+        "top.hold_market",
+        "top.divert_relief",
+        "top.break_toll",
+        "top.overload",
+    ] {
+        assert!(
+            !definitions(&state, &content).contains(outcome),
+            "contradictory outcome remained legal: {outcome}"
+        );
+    }
     assert!(
         state.world.locations["lowsail.return"]
             .flags
@@ -282,6 +299,72 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     state = apply(state, &content, "return.share_water");
     assert!(state.world.flags.contains("ending_accord"));
     assert!(state.character.deeds.contains("returned_for_accord"));
+}
+
+#[test]
+fn every_sluice_outcome_excludes_the_other_four() {
+    const OUTCOMES: [&str; 5] = [
+        "top.split_flow",
+        "top.hold_market",
+        "top.divert_relief",
+        "top.break_toll",
+        "top.overload",
+    ];
+
+    let content = content();
+
+    let mut split = new_game(&content, "ilyan");
+    split = travel_to(split, &content, "lowsail.levee");
+    split = travel_to(split, &content, "red_sluice.floor");
+    split = apply(split, &content, "floor.read_harmonics");
+    split = travel_to(split, &content, "red_sluice.top");
+    split = apply(split, &content, "top.check_wheels");
+
+    let mut hold = apply(
+        new_game(&content, "ilyan"),
+        &content,
+        "checkpoint.show_charter",
+    );
+    hold = travel_to(hold, &content, "lowsail.levee");
+    hold = travel_to(hold, &content, "red_sluice.floor");
+    hold = travel_to(hold, &content, "red_sluice.top");
+
+    let mut relief = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
+    relief = apply(relief, &content, "docks.ring_warning");
+    relief = travel_to(relief, &content, "lowsail.levee");
+    relief = travel_to(relief, &content, "red_sluice.floor");
+    relief = apply(relief, &content, "floor.open_relief");
+    relief = travel_to(relief, &content, "red_sluice.top");
+
+    let mut freedom = new_game(&content, "rook");
+    freedom = travel_to(freedom, &content, "lowsail.levee");
+    freedom = travel_to(freedom, &content, "red_sluice.floor");
+    freedom = travel_to(freedom, &content, "red_sluice.top");
+
+    let mut disaster = new_game(&content, "rook");
+    disaster = travel_to(disaster, &content, "lowsail.levee");
+    disaster = travel_to(disaster, &content, "red_sluice.floor");
+    disaster = apply(disaster, &content, "floor.climb_hot_face");
+    disaster = travel_to(disaster, &content, "red_sluice.top");
+
+    for (state, selected) in [
+        (split, "top.split_flow"),
+        (hold, "top.hold_market"),
+        (relief, "top.divert_relief"),
+        (freedom, "top.break_toll"),
+        (disaster, "top.overload"),
+    ] {
+        assert!(definitions(&state, &content).contains(selected));
+        let resolved = apply(state, &content, selected);
+        assert!(resolved.world.flags.contains("sluice_outcome_chosen"));
+        let legal_after = definitions(&resolved, &content);
+        assert!(
+            OUTCOMES
+                .iter()
+                .all(|outcome| !legal_after.contains(*outcome)),
+            "an outcome remained legal after {selected}"
+        );
+    }
 }
 
 #[test]

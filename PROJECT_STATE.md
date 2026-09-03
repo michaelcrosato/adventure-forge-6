@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 4
+Manager cycle: 5
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -16,6 +16,8 @@ Active milestone: 1 — Complete Split Tide slice
 - Players can start as Ilyan or Rook, page or search every current legal action, save atomically, resume, and render a verified replay.
 - Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from canonical action identities.
 - Checked Ilyan and Rook witnesses expose distinct public choices and reactions; fresh verifier processes reproduce their legal-set, event, entropy, state, observation, and receipt fingerprints byte for byte.
+- A checked, clean-process crawl expands 44 states from both presets, reaches all 6 locations, executes 283 advertised canonical actions, and covers all 47 authored definitions within explicit depth, state, frontier, and action budgets.
+- Choosing one of the five Sluice outcomes now closes the other four, preventing contradictory persistent results in one playthrough while preserving branch coverage across separate states.
 - Milestone 0 exit evidence now passes. Milestone 1 remains incomplete until every advertised Split Tide outcome and area contract has a checked witness.
 - This is a playable tested slice, not a public release or evidence of final scale.
 
@@ -25,12 +27,12 @@ Active milestone: 1 — Complete Split Tide slice
 | --- | --- | --- | --- |
 | Deep character customization | Partial | Production `new_game` presets for Ilyan/Rook expose different same-scene action sets and contextual reactions | Creation UI, broader reactions, risks, prices, and outcomes |
 | Concise language | Partial | Compiler enforces category, label, sentence, result, variant, and routine-observation budgets | Dialogue, readability, active-voice, and reading tests |
-| One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return | Long-session and broader cross-region continuity |
+| One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return; consequential outcomes are mutually exclusive | Long-session and broader cross-region continuity |
 | Skyrim breadth | Not built | Honest expansion strategy only | 500-node capacity fixture, then authored comparative evidence |
 | BG3-like area depth | Not built | Two-area contract only | Blindly sampled Split Tide approaches and outcomes |
 | Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
 | No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog | Larger scale fixture and independent union witness |
-| Deterministic authority | Partial | Fresh processes independently emit byte-identical Ilyan/Rook witnesses binding legal sets, events, entropy, states, observations, and receipts | Bounded state exploration and nondeterminism mutants |
+| Deterministic authority | Partial | Fresh processes independently emit byte-identical Ilyan/Rook witnesses and a bounded crawl covering all 47 definitions across 44 expanded states | Nondeterminism mutants and broader outcome witnesses |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
 | Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and checked clean-process replay pass | Broader corruption corpus and outcome witnesses |
 | Blind play | Partial | CLI output tests expose only observations and public commitments; persisted player traces omit verifier state and events | Locked environment, process boundary, and canary probes |
@@ -38,11 +40,11 @@ Active milestone: 1 — Complete Split Tide slice
 
 ## Active queue
 
-1. Prove all current Split Tide actions execute from every state where they are advertised.
-2. Add a bounded crawler and the first persistent-outcome witnesses.
-3. Expand checked witnesses to all five advertised Split Tide outcomes and both area contracts.
-4. Add the 500-location scale fixture and its performance budget.
-5. Run the first locked blind-player session with canary probes.
+1. Expand checked witnesses to all five advertised Split Tide outcomes and both area contracts.
+2. Add the 500-location scale fixture and its performance budget.
+3. Run the first locked blind-player session with canary probes.
+4. Add nondeterminism mutants against the verifier and crawler.
+5. Add a creation flow beyond the two authored proof presets.
 
 ## Delegation ledger
 
@@ -111,6 +113,14 @@ The detailed verifier trace contains authoritative state, events, entropy, and o
 
 The game build identity covers authoritative behavior and content. A separate verifier identity covers the evidence generator/checker source, manifest, build script, dependency lock, and toolchain. Checked witnesses bind both identities, a named scenario, the player-safe replay recipe, public observations, selected canonical definitions, and opaque fingerprints for legal sets, events, entropy, states, and receipts. This lets verifier-only improvements invalidate evidence without pretending they changed game behavior.
 
+### D-011: Bounded crawl evidence is coverage, not exhaustiveness
+
+The production crawler starts independently from every authored preset and follows deterministic, coverage-guided frontiers. At each expanded state it reconstructs the complete paged catalog, compares public action views to kernel enumeration, executes every advertised canonical action through the reducer, renders the resulting observation, and validates the resulting state. Depth, expanded-state, discovered-frontier, and action-execution budgets are serialized into the checked report. Success requires every authored definition, but does not claim every reachable world state was explored.
+
+### D-012: A Sluice outcome is a one-way world decision
+
+All five authored Sluice outcomes share one authoritative `sluice_outcome_chosen` gate. Selecting any outcome sets that flag before its branch-specific consequences, so later play cannot combine incompatible water states. The crawler must still reach and execute every outcome on separate branches.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -124,7 +134,7 @@ The game build identity covers authoritative behavior and content. A separate ve
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 6 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 3 evidence-verifier unit tests, and 1 clean-process integration test: 60 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, and byte-identical checked evidence from separate processes. It does not yet cover blind isolation, crawler exploration, every advertised outcome, full text policy, or final game scale.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 6 evidence-verifier unit tests, and 2 clean-process integration tests: 65 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, and byte-identical checked witness and crawl evidence from separate processes. The crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states; it does not claim exhaustive state-space coverage. The project does not yet cover blind isolation, checked witnesses for every advertised outcome, full text policy, or final game scale.
 
 ## Next reassessment trigger
 

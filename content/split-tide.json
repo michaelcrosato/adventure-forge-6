@@ -1031,10 +1031,12 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "sluice_calibrated"},
-          {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"}
+          {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
         {"kind": "set_world_flag", "flag": "flow_split", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_stable", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_shared_flow", "subject": "The player split the flow between both communities.", "provenance": {"kind": "witnessed"}},
@@ -1052,13 +1054,20 @@
       "result": "The market stays dry while the upland works lose water.",
       "locations": ["red_sluice.top"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "council_route"},
-          {"kind": "location_flag", "location": "lowsail_market", "flag": "market_permit"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "council_route"},
+              {"kind": "location_flag", "location": "lowsail_market", "flag": "market_permit"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
         {"kind": "set_world_flag", "flag": "flow_locked_market", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_stable", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "upland_dry", "value": true},
@@ -1076,8 +1085,15 @@
       "category": "Outcome",
       "result": "The relief channel takes the surge away from the market.",
       "locations": ["red_sluice.top"],
-      "condition": {"kind": "world_flag", "flag": "relief_channel_open"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "relief_channel_open"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
+      },
       "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
         {"kind": "set_world_flag", "flag": "flow_relief", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_moved", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_relief_flow", "subject": "The player sent the surge through the relief channel.", "provenance": {"kind": "witnessed"}},
@@ -1095,13 +1111,20 @@
       "result": "The old channel opens and tolls lose their grip.",
       "locations": ["red_sluice.top"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "culvert_revealed"},
-          {"kind": "has_tag", "tag": "freedom"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "culvert_revealed"},
+              {"kind": "has_tag", "tag": "freedom"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
         {"kind": "set_world_flag", "flag": "old_channel_open", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "ferry_free", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_witnessed_free_route", "subject": "The player opened the old ferry channel.", "provenance": {"kind": "told", "by": "mira_kett"}},
@@ -1119,13 +1142,20 @@
       "result": "The gates fail and flood water reaches the market.",
       "locations": ["red_sluice.top"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "sluice_breached"},
-          {"kind": "world_flag", "flag": "high_route_open"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "sluice_breached"},
+              {"kind": "world_flag", "flag": "high_route_open"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
         {"kind": "set_world_flag", "flag": "sluice_failure", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_flooded", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_flood", "subject": "The player overloaded the gates and flooded the market.", "provenance": {"kind": "witnessed"}},

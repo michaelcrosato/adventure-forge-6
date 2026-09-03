@@ -11,6 +11,10 @@ use forge_replay::{PlayerTrace, ReplayError, Session, resume_player_trace, verif
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
+mod crawler;
+
+pub use crawler::{CrawlBudget, CrawlReport, crawl_production};
+
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v1";
 pub const SCENARIO_IDS: [&str; 2] = ["m0-ilyan", "m0-rook"];
@@ -91,6 +95,11 @@ pub fn generate_witness(scenario_id: &str) -> Result<EvidenceWitness, VerifyErro
     let session = run_scenario(scenario_id, &content)?;
     verify(session.trace(), &content).map_err(replay_error)?;
     witness_from_session(scenario_id, &session)
+}
+
+pub fn generate_crawl_report() -> Result<CrawlReport, VerifyError> {
+    let content = load_content()?;
+    crawl_production(&content, CrawlBudget::default())
 }
 
 pub fn check_witness(witness: &EvidenceWitness) -> Result<(), VerifyError> {
