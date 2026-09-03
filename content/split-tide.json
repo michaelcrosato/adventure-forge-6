@@ -1,0 +1,949 @@
+{
+  "schema_version": "forge-schema-v1",
+  "rules_version": "forge-rules-v1",
+  "world_id": "veyra-basin",
+  "locations": [
+    {
+      "id": "lowsail.checkpoint",
+      "name": "Lowsail Checkpoint",
+      "description": "A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
+      "exits": ["lowsail.docks", "lowsail.levee"],
+      "terminal": false
+    },
+    {
+      "id": "lowsail.docks",
+      "name": "Lowsail Docks",
+      "description": "Boats knock against the docks. Oren watches a courier skiff beside a locked tide chest.",
+      "exits": ["lowsail.checkpoint", "lowsail.levee", "lowsail.return"],
+      "terminal": false
+    },
+    {
+      "id": "lowsail.levee",
+      "name": "Lowsail Levee",
+      "description": "The levee road runs east to the Sluice. Flood marks show fresh damage.",
+      "exits": ["lowsail.checkpoint", "red_sluice.floor"],
+      "terminal": false
+    },
+    {
+      "id": "red_sluice.floor",
+      "name": "Red Sluice Floor",
+      "description": "Water pounds the lower gate. Edrik holds a broken gauge above the intake.",
+      "exits": ["lowsail.levee", "red_sluice.top"],
+      "terminal": false
+    },
+    {
+      "id": "red_sluice.top",
+      "name": "Red Sluice Top",
+      "description": "Mira waits beside the control wheels. A hot service ladder climbs into steam.",
+      "exits": ["red_sluice.floor", "lowsail.return"],
+      "terminal": false
+    },
+    {
+      "id": "lowsail.return",
+      "name": "Lowsail Return",
+      "description": "The water has changed the market. Stalls, prices, and guards show who controls the tide.",
+      "exits": ["lowsail.docks", "red_sluice.top"],
+      "terminal": false
+    }
+  ],
+  "npcs": [
+    {
+      "id": "sava_rusk",
+      "name": "Sava Rusk",
+      "location": "lowsail.checkpoint",
+      "goals": ["keep_order", "protect_council_charter"],
+      "values": ["order", "safety"],
+      "tags": ["council", "inspector"]
+    },
+    {
+      "id": "oren_pell",
+      "name": "Oren Pell",
+      "location": "lowsail.docks",
+      "goals": ["keep_routes_open", "clear_debt"],
+      "values": ["freedom", "profit"],
+      "tags": ["ferry", "broker"]
+    },
+    {
+      "id": "yara_dene",
+      "name": "Yara Dene",
+      "location": "lowsail.docks",
+      "goals": ["hide_the_key", "protect_couriers"],
+      "values": ["mercy", "freedom"],
+      "tags": ["courier", "witness"]
+    },
+    {
+      "id": "edrik_voss",
+      "name": "Edrik Voss",
+      "location": "red_sluice.floor",
+      "goals": ["stabilize_gate", "hide_old_fault"],
+      "values": ["craft", "duty"],
+      "tags": ["engineer", "sluice"]
+    },
+    {
+      "id": "mira_kett",
+      "name": "Mira Kett",
+      "location": "red_sluice.top",
+      "goals": ["pay_workers", "share_water"],
+      "values": ["mercy", "fairness"],
+      "tags": ["worker", "organizer"]
+    }
+  ],
+  "actions": [
+    {
+      "id": "travel_adjacent",
+      "label": "Travel",
+      "locations": [],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "move_character", "location": {"kind": "parameter", "value": "destination"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [
+        {"name": "destination", "domain": {"kind": "locations_adjacent"}}
+      ],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "wait_tide",
+      "label": "Wait Tide",
+      "locations": [],
+      "condition": {"kind": "always"},
+      "effects": [{"kind": "advance_time", "ticks": 1}],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+
+    {
+      "id": "checkpoint.read_flag",
+      "label": "Read Warning",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.checkpoint"}, "flag": "warning_seen", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.ask_sava",
+      "label": "Ask Sava",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "met_player_checkpoint", "subject": "The player asked at the checkpoint.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.audit_order",
+      "label": "Audit Order",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
+          {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
+          {"kind": "has_tag", "tag": "tide-ear"},
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "forged_order_found", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.checkpoint"}, "flag": "order_audited", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_witnessed_audit", "subject": "The player found a false water order.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "read_forged_order"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.show_charter",
+      "label": "Show Charter",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
+          {"kind": "has_tag", "tag": "order"},
+          {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
+          {"kind": "facet_at_least", "axis": "aptitude.presence", "value": 5}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.checkpoint"}, "flag": "market_permit", "value": true},
+        {"kind": "set_world_flag", "flag": "council_route", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": 2},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_trusts_charter", "subject": "The player showed a council charter.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.blend_workers",
+      "label": "Blend Workers",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "kilnborn"}},
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "has_tag", "tag": "freedom"},
+          {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.checkpoint"}, "flag": "worker_cover", "value": true},
+        {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_worker_cover", "subject": "The player slipped through with the workers.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "found_worker_cover"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.recall_worker",
+      "label": "Recall Saved Worker",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "character_has_deed", "deed_id": "saved_worker"},
+          {"kind": "has_tag", "tag": "order"},
+          {"kind": "facet_at_least", "axis": "affiliation.council", "value": 2}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "worker_credit", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_remembers_saved_worker", "subject": "Sava remembered the player's earlier rescue.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.pressure_guard",
+      "label": "Pressure Guard",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "has_tag", "tag": "wanted"},
+          {"kind": "facet_at_least", "axis": "aptitude.might", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "checkpoint_alert", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": -2},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_was_pressured", "subject": "The wanted player pressured the guard.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "checkpoint.use_stolen_permit",
+      "label": "Use Stolen Permit",
+      "locations": ["lowsail.checkpoint"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "character_has_deed", "deed_id": "stole_permit"},
+          {"kind": "facet_equals", "axis": "origin", "value": {"kind": "text", "value": "red-sluice"}},
+          {"kind": "facet_at_least", "axis": "reputation.notoriety", "value": 2}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "stolen_route", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": -1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_spotted_stolen_permit", "subject": "Sava saw a stolen permit at the checkpoint.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+
+    {
+      "id": "docks.search_crate",
+      "label": "Search Crate",
+      "locations": ["lowsail.docks"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "crate_searched", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.ring_warning",
+      "label": "Ring Warning",
+      "locations": ["lowsail.docks"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "market_warned", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_heard_warning", "subject": "The player rang the market warning bell.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.ask_oren",
+      "label": "Ask Oren",
+      "locations": ["lowsail.docks"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_met_player", "subject": "The player asked about the tide key.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.follow_yara",
+      "label": "Follow Yara",
+      "locations": ["lowsail.docks"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "has_tag", "tag": "night-eyes"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "courier_followed", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "culvert_route", "subject": "The player knows the submerged culvert route.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "yara_dene"}, "memory_id": "yara_followed", "subject": "The player followed Yara without raising an alarm.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "followed_courier"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.audit_ledger",
+      "label": "Audit Ledger",
+      "locations": ["lowsail.docks"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
+          {"kind": "has_tag", "tag": "tide-ear"},
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "forged_order_found", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "ledger_read", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "read", "source": "lowsail_tide_ledger"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_ledger", "subject": "The player read the tide ledger.", "provenance": {"kind": "told", "by": "oren_pell"}},
+        {"kind": "add_character_deed", "deed_id": "read_forged_order"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.press_yara",
+      "label": "Press Yara",
+      "locations": ["lowsail.docks"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "kilnborn"}},
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "has_tag", "tag": "freedom"},
+          {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "tide_key_offered", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "tide_key_safe", "subject": "The Tide Key is safe with the player.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "yara_dene"}, "memory_id": "yara_respected_rook", "subject": "The lock-runner earned Yara's respect.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "won_tide_key"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "docks.trade_warning",
+      "label": "Trade Warning",
+      "locations": ["lowsail.docks"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "has_tag", "tag": "freedom"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ferry_aid", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "market_warned", "subject": "The market has been warned of the surge.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_aided_warning", "subject": "The player helped Oren warn the ferries.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+
+    {
+      "id": "levee.inspect_damage",
+      "label": "Inspect Damage",
+      "locations": ["lowsail.levee"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.levee"}, "flag": "damage_seen", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "levee.help_worker",
+      "label": "Help Worker",
+      "locations": ["lowsail.levee"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "worker_helped", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "levee_worker_helped", "subject": "The player helped a worker on the levee.", "provenance": {"kind": "told", "by": "sava_rusk"}},
+        {"kind": "add_character_deed", "deed_id": "helped_worker"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "levee.send_report",
+      "label": "Send Report",
+      "locations": ["lowsail.levee"],
+      "condition": {"kind": "world_flag", "flag": "forged_order_found"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "report_sent", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "told", "by": "sava_rusk"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_received_report", "subject": "The engineer received Sava's report.", "provenance": {"kind": "told", "by": "sava_rusk"}},
+        {"kind": "add_character_deed", "deed_id": "sent_sluice_report"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "levee.relay_warning",
+      "label": "Relay Warning",
+      "locations": ["lowsail.levee"],
+      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "warning_received", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "market_warned", "subject": "Lowsail expects a surge.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_heard_warning", "subject": "A ferry rumor warned Edrik about the market.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "levee.authority_path",
+      "label": "Take Authority Path",
+      "locations": ["lowsail.levee"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "world_flag", "flag": "council_route"},
+          {"kind": "location_flag", "location": "lowsail.checkpoint", "flag": "market_permit"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "authorized_entry", "value": true},
+        {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.floor"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "levee.culvert_path",
+      "label": "Take Culvert Path",
+      "locations": ["lowsail.levee"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "world_flag", "flag": "culvert_revealed"},
+          {"kind": "location_flag", "location": "lowsail.checkpoint", "flag": "worker_cover"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "culvert_entry", "value": true},
+        {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.floor"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+
+    {
+      "id": "floor.test_pressure",
+      "label": "Test Pressure",
+      "locations": ["red_sluice.floor"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "pressure_read", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.stabilize_gauge",
+      "label": "Stabilize Gauge",
+      "locations": ["red_sluice.floor"],
+      "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "gauge_stable", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "edrik_voss"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_gauge_stable", "subject": "The player stabilized the broken gauge.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.read_harmonics",
+      "label": "Read Harmonics",
+      "locations": ["red_sluice.floor"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "fenborn"}},
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
+          {"kind": "has_tag", "tag": "tide-ear"},
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "harmonics_read", "value": true},
+        {"kind": "set_world_flag", "flag": "sluice_calibrated", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_harmonics", "subject": "The Fenborn clerk read the gate harmonics.", "provenance": {"kind": "witnessed"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "harmonics_read", "subject": "The gate harmonics reveal a safe split.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "tuned_sluice"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.dive_intake",
+      "label": "Dive Intake",
+      "locations": ["red_sluice.floor"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "fenborn"}},
+          {"kind": "has_tag", "tag": "tide-ear"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "intake_mapped", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_intake_map", "subject": "The Fenborn player mapped the flooded intake.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "mapped_intake"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.climb_hot_face",
+      "label": "Climb Hot Face",
+      "locations": ["red_sluice.floor"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "kilnborn"}},
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "has_tag", "tag": "heat-sense"},
+          {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+        ]
+      },
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "hot_face_climbed", "value": true},
+        {"kind": "set_world_flag", "flag": "high_route_open", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_hot_route", "subject": "The Kilnborn lock-runner climbed the hot service face.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "climbed_service_face"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.open_relief",
+      "label": "Open Relief",
+      "locations": ["red_sluice.floor"],
+      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "relief_channel_open", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "relief_ready", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "relief_plan", "subject": "A relief channel can spare the market.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_opened_relief", "subject": "The player opened a relief channel after the warning.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.force_wheel",
+      "label": "Force Wheel",
+      "locations": ["red_sluice.floor"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+          {"kind": "facet_at_least", "axis": "aptitude.might", "value": 7},
+          {"kind": "has_tag", "tag": "wanted"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_breached", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "worker_rescue_needed", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_forced_wheel", "subject": "The wanted lock-runner forced the gate wheel.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "forced_wheel"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.ack_report",
+      "label": "Acknowledge Report",
+      "locations": ["red_sluice.floor"],
+      "condition": {"kind": "world_flag", "flag": "report_sent"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "report_received", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "edrik_voss"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_acknowledged_report", "subject": "Edrik acknowledged the forged-order report.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+
+    {
+      "id": "top.check_wheels",
+      "label": "Check Wheels",
+      "locations": ["red_sluice.top"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "wheels_checked", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.rescue_worker",
+      "label": "Rescue Worker",
+      "locations": ["red_sluice.top"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "worker_rescued", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 2},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_player_rescued", "subject": "The player rescued a worker at the wheels.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "rescued_worker"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.split_flow",
+      "label": "Split Flow",
+      "locations": ["red_sluice.top"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "sluice_calibrated"},
+          {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "flow_split", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_stable", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_shared_flow", "subject": "The player split the flow between both communities.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "shared_water"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.hold_market",
+      "label": "Hold Market",
+      "locations": ["red_sluice.top"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "world_flag", "flag": "council_route"},
+          {"kind": "location_flag", "location": "lowsail.checkpoint", "flag": "market_permit"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "flow_locked_market", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_stable", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "upland_dry", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_water_locked", "subject": "The player locked water toward the market.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "add_character_deed", "deed_id": "backed_council"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.divert_relief",
+      "label": "Divert Relief",
+      "locations": ["red_sluice.top"],
+      "condition": {"kind": "world_flag", "flag": "relief_channel_open"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "flow_relief", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_moved", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_relief_flow", "subject": "The player sent the surge through the relief channel.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "opened_relief"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.break_toll",
+      "label": "Break Toll",
+      "locations": ["red_sluice.top"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "world_flag", "flag": "culvert_revealed"},
+          {"kind": "has_tag", "tag": "freedom"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "old_channel_open", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "ferry_free", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_witnessed_free_route", "subject": "The player opened the old ferry channel.", "provenance": {"kind": "told", "by": "mira_kett"}},
+        {"kind": "add_character_deed", "deed_id": "freed_ferry"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.overload",
+      "label": "Overload Gates",
+      "locations": ["red_sluice.top"],
+      "condition": {
+        "kind": "any",
+        "conditions": [
+          {"kind": "world_flag", "flag": "sluice_breached"},
+          {"kind": "world_flag", "flag": "high_route_open"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_failure", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_flooded", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_witnessed_flood", "subject": "The player overloaded the gates and flooded the market.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "overloaded_gates"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "top.signal_market",
+      "label": "Signal Market",
+      "locations": ["red_sluice.top"],
+      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "signal_sent", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "sluice_signal", "subject": "The Sluice sent a signal before the surge.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_received_signal", "subject": "Oren received a Sluice signal.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+
+    {
+      "id": "return.read_tide",
+      "label": "Read Tide",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "result_seen", "value": true},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.ask_oren",
+      "label": "Ask Oren",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "always"},
+      "effects": [
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_return", "subject": "Oren saw the player return after the surge.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.share_water",
+      "label": "Share Water",
+      "locations": ["lowsail.return"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
+          {"kind": "world_flag", "flag": "flow_split"}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ending_accord", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "mira_player_shared_water", "subject": "The player returned after sharing the water.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "returned_for_accord"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.count_dry_stalls",
+      "label": "Count Dry Stalls",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ending_council", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_saw_council_result", "subject": "The player returned with the market protected.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "accepted_council"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.move_inland",
+      "label": "Move Inland",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ending_relief", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 1},
+        {"kind": "add_character_deed", "deed_id": "accepted_relocation"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.open_ferry",
+      "label": "Open Ferry",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ending_freedom", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
+        {"kind": "add_character_deed", "deed_id": "opened_free_ferry"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.face_flood",
+      "label": "Face Flood",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
+      "effects": [
+        {"kind": "set_world_flag", "flag": "ending_disaster", "value": true},
+        {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": -2},
+        {"kind": "add_character_deed", "deed_id": "faced_flood"},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.acknowledge_report",
+      "label": "Acknowledge Report",
+      "locations": ["lowsail.return"],
+      "condition": {"kind": "world_flag", "flag": "report_sent"},
+      "effects": [
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_return_report", "subject": "The player returned after sending the Sluice report.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    }
+  ]
+}
