@@ -28,6 +28,14 @@ cargo run -p forge-cli -- resume rook.trace.json
 
 `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
+The checked Milestone 0 witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. You can inspect them directly:
+
+```bash
+cargo run -p forge-verify -- scenarios
+cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
+cargo run -p forge-verify -- check evidence/witnesses/m0-rook.json
+```
+
 ## Core promises
 
 - Plain words, fast turns, and meaningful actions.

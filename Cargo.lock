@@ -84,6 +84,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-verify"
+version = "0.1.0"
+dependencies = [
+ "forge-content",
+ "forge-kernel",
+ "forge-replay",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
