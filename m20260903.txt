@@ -1,0 +1,116 @@
+Here is the updated contest spec — same thesis, now with your game and orchestrator requirements as hard constraints.
+
+### ADVENTUREFORGE v2 — Thesis + Game + Orchestrator Spec
+
+**Thesis remains:** Text is infinite depth. Runtime is 100% deterministic, no LLM. All intelligence is offline: AI builds engine + content -> AI blind-tests -> logs + exit interviews -> synthesis -> better game. The loop is the product.
+
+Winning = you satisfy all hard constraints below AND you ship the best possible game.
+
+---
+
+#### A. GAME HARD REQUIREMENTS
+
+These are not flavor. They are implementation requirements.
+
+**G1 - Deep Customization, Deeply Reactive World**
+Main character must be deeply customizable and world must react uniquely to that build.
+
+Implementation requirements:
+* Character is a data object, not hardcoded class. Must support extensible facets: ancestry / background / traits / flaws / skills / reputation / appearance — at least 6 orthogonal axes. You can add more, but you must have at least that many.
+* Every piece of world content — room description, NPC dialogue, shop price, quest availability, combat opener — must be able to query any character facet via your condition DSL. `if has_trait: scarred, if background: urchin, if low charisma + high intimidation`. No hardcoded `if player == X`.
+* Reaction must be stateful. World must remember how it reacted. Faction standing, NPC memory, town gossip must persist in the single world state.
+* You must prove it: validator must witness at least 2 different playthroughs with different builds getting different observations / legal actions in same location.
+
+**G2 - Radical Simplicity of Language**
+UI, descriptions, and dialogue are simple, concise, quick to read, straight-forward. No purple prose.
+
+Implementation requirements:
+* Style guide enforced by a linter, not hope: Max 18 words per sentence, active voice, Grade 6-8 reading level, no adverb stacking.
+* Room description: 1-2 short sentences max. Not paragraphs.
+* NPC dialogue: speaks like a person, not a novelist. 1 line at a time.
+* UI labels: 1-3 words. `Take rope` not `You might consider attempting to acquire the hempen cord`.
+* This is a content validator. If content fails simplicity, it fails the build.
+
+**G3 - One World. Single Continuity.**
+Everything takes place in one persistent world.
+
+Implementation requirements:
+* One world ID namespace. No instanced quest worlds, no parallel dimensions that break continuity.
+* Travel, questing, time, inventory, reputation all live in same `GameState`. If you leave Albany with a stolen sword, the guard in next town knows.
+* Overworld graph + interiors are same graph. Quest is not a teleport to a separate arena, it's a subgraph of the world.
+
+**G4 - Skyrim Scale, BG3 Depth.**
+World as large as Skyrim, each area as deep and unique as BG3.
+
+Implementation requirements as targets, not exact numbers:
+* Scale: Engine must support 500+ distinct locations / nodes without performance collapse. You don't need to ship 500 on day 1, but you must prove architecture scales to it.
+* Depth: Depth != text length. Each region must have a *unique mechanic*, not reskin. One area: verticality + climbing, another: social stealth + disguise, another: crafting + heat, another: law + court. You must have at least 5 region-defining mechanics.
+* Density: At least 50% of locations must have 3+ meaningful interactables that change state, not just flavor text.
+
+**G5 - Action Over Reading. Fun is Doing.**
+Game is about taking action and adventuring, not reading exposition.
+
+Implementation requirements:
+* Action-to-text ratio: Legal actions list should often be longer than observation text. Observation < 100 words typical.
+* Every scene must have at least 2 non-movement meaningful actions. No empty hallway with only `go north`.
+* Turn must resolve fast. No 500-word cutscenes blocking action.
+
+**G6 - No Cap on Choices.**
+There is no limit to what can be done in a scene at any time if you programmed it, and no limit to number of choices.
+
+Implementation requirements:
+* Engine must support 2 to 200+ legal actions per scene. No hardcoded cap like `max 8 actions`.
+* UI must handle it: pagination / categories / search, but never truncate.
+* Tests must include a stress scene with 100+ legal actions to prove it doesn't break crawler, MCP, or UI.
+
+---
+
+#### B. REPO OPERATION HARD REQUIREMENTS
+
+**R1 - Orchestrator is the Manager.**
+Repo is run by one orchestrator agent. It owns progress.
+
+Responsibilities:
+* Monitor workflow health, fix broken CI, improve loop, delegate work to subagents (author, fixer, crawler, tester, analyst, researcher).
+* Decide what to build next based on intake hotspots + retention curves.
+
+**R2 - Absolute Authority Within Constraints.**
+Orchestrator has authority to make ANY changes to how repo works, at any time, as many times as needed — file structure, scripts, MCP server, validators, prompts, CI, docs, loop.sh, everything — EXCEPT it may never break Hard Requirements H1-H7 and G1-G6.
+
+It can rewrite the entire repo in another language tomorrow if it still passes determinism, blindness, verification, and game constraints. That's allowed. That's the point.
+
+**R3 - Subagent Delegation.**
+Orchestrator must not do all work itself. It must spin subagents with clear tasks and acceptance criteria. At minimum: code author, content author, blind tester, analyst interviewer, bug fixer.
+
+**R4 - Success Metric.**
+Success is measured purely on two axes:
+1. Are all hard constraints green? `health`, proofs, blindness, G1-G6 linters.
+2. Is the game getting better? Measured by: retention decision count, exit interview clarity/enjoyment, number of validated packs, world reactivity coverage.
+
+No points for clean code, beautiful docs, or velocity. Only constraints + best possible game.
+
+**R5 - Self-Improving Loop for the Loop Itself.**
+Orchestrator must log its own decisions and periodically self-audit: `Is my workflow slowing me down? Is my MCP too large? Is my validation too slow?` It must then patch its own workflow. The bash loop has no escape — it must keep improving until game is solved.
+
+---
+
+#### C. What is Fluid - Where You Can Innovate Maximally
+
+* Language, framework, DB, hosting.
+* How you implement determinism: pure reducer, ECS, Pydantic, etc.
+* How you implement reactivity: tag system, relationship graph, reputation matrix.
+* How you implement simplicity linter: regex, LLM judge, readability score.
+* How you achieve scale: proc-gen + authored pockets, hand-authored, hybrid.
+* How many MCP tools: 6 or 60, as long as blindness holds and no cap on choices.
+* How orchestrator delegates: codex subagents, claude tasks, local scripts.
+* UI: CLI, web, TUI — as long as dumb renderer.
+
+#### D. Minimal Proof You Built It
+
+1.  `zu-loop run --cycles 10` runs unattended and produces improving retention.
+2.  Create two characters with opposite builds, walk to same NPC, get observably different dialogue/actions, and traces replay byte-identical.
+3.  Show a scene with 100+ legal actions that is still playable and validated.
+4.  Show content failing simplicity linter blocks a PR.
+5.  Show orchestrator editing its own `loop.sh` / workflow to fix a failure and still passing all hard gates.
+
+Meet those and you won the contest, regardless of how you implemented it.
