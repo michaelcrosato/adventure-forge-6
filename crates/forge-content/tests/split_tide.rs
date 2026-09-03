@@ -1,126 +1,22 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
-use forge_content::{compile, parse, parse_and_compile};
+use forge_content::{compile, parse, parse_and_compile_production};
 use forge_kernel::{
-    Character, CompiledContent, EntropyState, GameState, KnowledgeProvenanceKind, NpcState,
-    WorldState, enumerate_legal_actions, step,
+    CanonicalAction, CompiledContent, ContentContract, GameState, KnowledgeProvenanceKind,
+    enumerate_legal_actions, legal_action_digest, step,
 };
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 
 fn content() -> CompiledContent {
-    parse_and_compile(SPLIT_TIDE)
+    parse_and_compile_production(SPLIT_TIDE)
         .unwrap_or_else(|error| panic!("split-tide compile failed: {error}"))
 }
 
-fn npc(id: &str, location: &str) -> NpcState {
-    NpcState {
-        id: id.to_owned(),
-        location: location.to_owned(),
-        goals: BTreeSet::new(),
-        values: BTreeSet::new(),
-        tags: BTreeSet::new(),
-        relationships: BTreeMap::from([("player".to_owned(), 0)]),
-        memories: BTreeMap::new(),
-        knowledge: BTreeMap::new(),
-        inventory: BTreeMap::new(),
-        suspicion: 0,
-    }
-}
-
-fn state(content: &CompiledContent, character: Character) -> GameState {
-    let npcs = BTreeMap::from([
-        (
-            "sava_rusk".to_owned(),
-            npc("sava_rusk", "lowsail.checkpoint"),
-        ),
-        ("oren_pell".to_owned(), npc("oren_pell", "lowsail.docks")),
-        ("yara_dene".to_owned(), npc("yara_dene", "lowsail.docks")),
-        (
-            "edrik_voss".to_owned(),
-            npc("edrik_voss", "red_sluice.floor"),
-        ),
-        ("mira_kett".to_owned(), npc("mira_kett", "red_sluice.top")),
-    ]);
-    let mut locations = content.empty_location_runtime();
-    for (id, inhabitant) in &npcs {
-        locations
-            .get_mut(&inhabitant.location)
-            .expect("NPC location must be in content")
-            .entities
-            .insert(id.clone());
-    }
-    let world = WorldState::new(content.world_id(), "lowsail.checkpoint", locations, npcs);
-    let state = GameState::new(
-        content.build_id().to_owned(),
-        world,
-        character,
-        EntropyState::new(71),
-    );
+fn new_game(content: &CompiledContent, preset_id: &str) -> GameState {
     content
-        .validate_state(&state)
-        .expect("fixture state must satisfy the public content contract");
-    state
-}
-
-fn ilyan() -> Character {
-    Character {
-        id: "ilyan".to_owned(),
-        lineage: "fenborn".to_owned(),
-        origin: "lowsail".to_owned(),
-        background: "ledger-clerk".to_owned(),
-        aptitudes: BTreeMap::from([
-            ("might".to_owned(), 3),
-            ("finesse".to_owned(), 4),
-            ("insight".to_owned(), 8),
-            ("presence".to_owned(), 7),
-        ]),
-        skills: BTreeSet::from(["audit".to_owned()]),
-        values: BTreeSet::from(["order".to_owned()]),
-        traits: BTreeSet::from(["tide-ear".to_owned()]),
-        flaws: BTreeSet::from(["indebted".to_owned()]),
-        appearance: BTreeMap::from([("marking".to_owned(), "council-ink".to_owned())]),
-        affiliations: BTreeMap::from([("council".to_owned(), 3)]),
-        reputation: BTreeMap::from([("lawful".to_owned(), 3)]),
-        knowledge: BTreeSet::new(),
-        inventory: BTreeMap::from([("rope".to_owned(), 1)]),
-        resources: BTreeMap::from([("coin".to_owned(), 10)]),
-        injuries: BTreeSet::new(),
-        deeds: BTreeSet::from(["saved_worker".to_owned()]),
-        promises: BTreeSet::new(),
-        discoveries: BTreeSet::new(),
-        facets: BTreeMap::new(),
-    }
-}
-
-fn rook() -> Character {
-    Character {
-        id: "rook".to_owned(),
-        lineage: "kilnborn".to_owned(),
-        origin: "red-sluice".to_owned(),
-        background: "lock-runner".to_owned(),
-        aptitudes: BTreeMap::from([
-            ("might".to_owned(), 8),
-            ("finesse".to_owned(), 8),
-            ("insight".to_owned(), 2),
-            ("presence".to_owned(), 3),
-        ]),
-        skills: BTreeSet::from(["climb".to_owned(), "pick".to_owned()]),
-        values: BTreeSet::from(["freedom".to_owned()]),
-        traits: BTreeSet::from(["heat-sense".to_owned()]),
-        flaws: BTreeSet::from(["wanted".to_owned()]),
-        appearance: BTreeMap::from([("marking".to_owned(), "kiln-scar".to_owned())]),
-        affiliations: BTreeMap::from([("workers".to_owned(), 2)]),
-        reputation: BTreeMap::from([("notoriety".to_owned(), 3)]),
-        knowledge: BTreeSet::new(),
-        inventory: BTreeMap::from([("rope".to_owned(), 1), ("wire".to_owned(), 1)]),
-        resources: BTreeMap::from([("coin".to_owned(), 5)]),
-        injuries: BTreeSet::new(),
-        deeds: BTreeSet::from(["stole_permit".to_owned()]),
-        promises: BTreeSet::new(),
-        discoveries: BTreeSet::new(),
-        facets: BTreeMap::new(),
-    }
+        .new_game(preset_id, 71)
+        .unwrap_or_else(|error| panic!("new game {preset_id} failed: {error}"))
 }
 
 fn definitions(state: &GameState, content: &CompiledContent) -> BTreeSet<String> {
@@ -131,8 +27,12 @@ fn definitions(state: &GameState, content: &CompiledContent) -> BTreeSet<String>
         .collect()
 }
 
-fn apply(state: GameState, content: &CompiledContent, definition_id: &str) -> GameState {
-    let action = enumerate_legal_actions(&state, content)
+fn action_for(
+    state: &GameState,
+    content: &CompiledContent,
+    definition_id: &str,
+) -> CanonicalAction {
+    enumerate_legal_actions(state, content)
         .expect("valid state must enumerate")
         .into_iter()
         .find(|action| action.definition_id == definition_id)
@@ -141,13 +41,17 @@ fn apply(state: GameState, content: &CompiledContent, definition_id: &str) -> Ga
                 "{definition_id} is not legal at {}",
                 state.world.current_location
             )
-        });
-    step(&state, &action, content, &state.entropy)
-        .unwrap_or_else(|error| panic!("{definition_id} failed: {error}"))
-        .state
+        })
 }
 
-fn travel_to(mut state: GameState, content: &CompiledContent, destination: &str) -> GameState {
+fn apply(state: GameState, content: &CompiledContent, definition_id: &str) -> GameState {
+    let action = action_for(&state, content, definition_id);
+    step(&state, &action, content, &state.entropy)
+        .unwrap_or_else(|error| panic!("{definition_id} failed: {error}"))
+        .into_state()
+}
+
+fn travel_to(state: GameState, content: &CompiledContent, destination: &str) -> GameState {
     let action = enumerate_legal_actions(&state, content)
         .expect("valid state must enumerate")
         .into_iter()
@@ -165,58 +69,85 @@ fn travel_to(mut state: GameState, content: &CompiledContent, destination: &str)
             )
         });
     let entropy = state.entropy.clone();
-    state = step(&state, &action, content, &entropy)
+    step(&state, &action, content, &entropy)
         .unwrap_or_else(|error| panic!("travel to {destination} failed: {error}"))
-        .state;
-    state
+        .into_state()
 }
 
 #[test]
-fn split_tide_loads_as_one_connected_world_with_five_npcs() {
+fn split_tide_is_a_production_pack_with_two_full_presets() {
     let content = content();
+
+    assert_eq!(content.contract(), ContentContract::Production);
+    assert_eq!(content.start_location(), "lowsail_market");
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 6);
     assert_eq!(content.npcs().count(), 5);
-    for location in [
-        "lowsail.checkpoint",
-        "lowsail.docks",
-        "lowsail.levee",
-        "red_sluice.floor",
-        "red_sluice.top",
-        "lowsail.return",
-    ] {
-        assert!(content.location(location).is_some(), "missing {location}");
-    }
-    for npc_id in [
-        "sava_rusk",
-        "oren_pell",
-        "yara_dene",
-        "edrik_voss",
-        "mira_kett",
-    ] {
-        assert!(content.npc(npc_id).is_some(), "missing {npc_id}");
-    }
-    assert!(content.actions().count() >= 35);
+    assert_eq!(content.actions().count(), 47);
+    assert_eq!(content.character_presets().count(), 2);
+
+    let ilyan = content.character_preset("ilyan").expect("Ilyan preset");
+    assert_eq!(ilyan.display_name, "Ilyan Vale");
+    assert_eq!(ilyan.character.id, "ilyan");
+    assert_eq!(ilyan.character.lineage, "fenborn");
+    assert_eq!(ilyan.character.background, "ledger-clerk");
+    assert_eq!(ilyan.character.aptitudes["insight"], 8);
+    assert!(ilyan.character.skills.contains("read-current"));
+    assert!(ilyan.character.values.contains("order"));
+    assert!(ilyan.character.traits.contains("tide-ear"));
+    assert!(ilyan.character.flaws.contains("indebted"));
+    assert_eq!(ilyan.character.appearance["marking"], "council-ink");
+    assert!(ilyan.character.knowledge.contains("forged_order_hint"));
+    assert_eq!(ilyan.character.inventory["rope"], 1);
+    assert_eq!(ilyan.character.resources["coin"], 10);
+    assert!(ilyan.character.deeds.contains("saved_worker"));
+
+    let rook = content.character_preset("rook").expect("Rook preset");
+    assert_eq!(rook.display_name, "Rook Ash");
+    assert_eq!(rook.character.id, "rook");
+    assert_eq!(rook.character.lineage, "kilnborn");
+    assert_eq!(rook.character.background, "lock-runner");
+    assert_eq!(rook.character.aptitudes["might"], 8);
+    assert!(rook.character.skills.contains("climb"));
+    assert!(rook.character.values.contains("freedom"));
+    assert!(rook.character.traits.contains("heat-sense"));
+    assert!(rook.character.flaws.contains("wanted"));
+    assert_eq!(rook.character.appearance["marking"], "kiln-scar");
+    assert!(rook.character.knowledge.contains("gate_fault"));
+    assert_eq!(rook.character.inventory["wire"], 1);
+    assert_eq!(rook.character.resources["coin"], 5);
+    assert!(rook.character.deeds.contains("stole_permit"));
 }
 
 #[test]
-fn ilyan_and_rook_have_materially_different_checkpoint_definitions() {
+fn presets_change_same_scene_observation_and_legal_action_definitions() {
     let content = content();
-    let ilyan_definitions = definitions(&state(&content, ilyan()), &content);
-    let rook_definitions = definitions(&state(&content, rook()), &content);
+    let ilyan = new_game(&content, "ilyan");
+    let rook = new_game(&content, "rook");
 
+    assert_eq!(ilyan.world.current_location, "lowsail_market");
+    assert_eq!(rook.world.current_location, "lowsail_market");
+    let ilyan_observation = content.observe(&ilyan).expect("Ilyan observation");
+    let rook_observation = content.observe(&rook).expect("Rook observation");
+    assert_eq!(ilyan_observation.location_id, "lowsail_market");
+    assert_ne!(
+        ilyan_observation.action_set_digest,
+        rook_observation.action_set_digest
+    );
+    assert_ne!(ilyan_observation.text, rook_observation.text);
+    assert!(ilyan_observation.text.contains("council mark"));
+    assert!(rook_observation.text.contains("wanted runner"));
+
+    let ilyan_definitions = definitions(&ilyan, &content);
+    let rook_definitions = definitions(&rook, &content);
     assert!(ilyan_definitions.contains("checkpoint.audit_order"));
     assert!(ilyan_definitions.contains("checkpoint.show_charter"));
     assert!(ilyan_definitions.contains("checkpoint.recall_worker"));
     assert!(!ilyan_definitions.contains("checkpoint.blend_workers"));
-    assert!(!ilyan_definitions.contains("checkpoint.pressure_guard"));
     assert!(rook_definitions.contains("checkpoint.blend_workers"));
     assert!(rook_definitions.contains("checkpoint.pressure_guard"));
     assert!(rook_definitions.contains("checkpoint.use_stolen_permit"));
     assert!(!rook_definitions.contains("checkpoint.audit_order"));
-    assert!(!rook_definitions.contains("checkpoint.show_charter"));
-    assert!(ilyan_definitions.contains("checkpoint.read_flag"));
-    assert!(rook_definitions.contains("checkpoint.read_flag"));
     assert!(
         ilyan_definitions
             .symmetric_difference(&rook_definitions)
@@ -226,15 +157,45 @@ fn ilyan_and_rook_have_materially_different_checkpoint_definitions() {
 }
 
 #[test]
-fn lowsail_warning_changes_sluice_legality_and_report_transfers_knowledge() {
+fn result_first_and_conditional_prose_show_character_and_npc_reactions() {
+    let content = content();
+    let ilyan = new_game(&content, "ilyan");
+    let audit = action_for(&ilyan, &content, "checkpoint.audit_order");
+    let audited = step(&ilyan, &audit, &content, &ilyan.entropy).expect("audit action");
+    let audit_observation = content
+        .observe_after_transition(&audited)
+        .expect("audit result observation");
+    assert_eq!(
+        audit_observation.result.as_deref(),
+        Some("Your council mark makes the forgery hard to deny.")
+    );
+    assert!(
+        audit_observation
+            .text
+            .starts_with("Your council mark makes the forgery hard to deny.")
+    );
+    assert!(audit_observation.text.split_whitespace().count() <= 100);
+
+    let pressured = apply(
+        new_game(&content, "rook"),
+        &content,
+        "checkpoint.pressure_guard",
+    );
+    assert_eq!(
+        content
+            .action_result(&pressured, "checkpoint.ask_sava")
+            .unwrap(),
+        "Sava answers with one hand near the alarm."
+    );
+    assert!(pressured.world.npcs["sava_rusk"].remembers("sava_was_pressured"));
+}
+
+#[test]
+fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
     let content = content();
 
     let baseline_floor = travel_to(
-        travel_to(
-            travel_to(state(&content, ilyan()), &content, "lowsail.docks"),
-            &content,
-            "lowsail.levee",
-        ),
+        travel_to(new_game(&content, "ilyan"), &content, "lowsail.levee"),
         &content,
         "red_sluice.floor",
     );
@@ -243,7 +204,7 @@ fn lowsail_warning_changes_sluice_legality_and_report_transfers_knowledge() {
     let warned_floor = travel_to(
         travel_to(
             apply(
-                travel_to(state(&content, ilyan()), &content, "lowsail.docks"),
+                travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks"),
                 &content,
                 "docks.ring_warning",
             ),
@@ -256,7 +217,11 @@ fn lowsail_warning_changes_sluice_legality_and_report_transfers_knowledge() {
     assert!(warned_floor.world.flags.contains("market_warned"));
     assert!(definitions(&warned_floor, &content).contains("floor.open_relief"));
 
-    let mut reported = apply(state(&content, ilyan()), &content, "checkpoint.audit_order");
+    let reported = apply(
+        new_game(&content, "ilyan"),
+        &content,
+        "checkpoint.audit_order",
+    );
     assert!(reported.world.npcs["sava_rusk"].knows("forged_order"));
     assert_eq!(
         reported.world.npcs["sava_rusk"].knowledge["forged_order"]
@@ -264,11 +229,10 @@ fn lowsail_warning_changes_sluice_legality_and_report_transfers_knowledge() {
             .kind(),
         KnowledgeProvenanceKind::Witnessed
     );
-    assert!(reported.world.npcs["sava_rusk"].remembers("sava_witnessed_audit"));
     assert!(!reported.world.npcs["edrik_voss"].knows("forged_order"));
 
-    reported = travel_to(reported, &content, "lowsail.levee");
-    reported = apply(reported, &content, "levee.send_report");
+    let reported = travel_to(reported, &content, "lowsail.levee");
+    let reported = apply(reported, &content, "levee.send_report");
     assert!(reported.world.npcs["edrik_voss"].knows("forged_order"));
     assert_eq!(
         reported.world.npcs["edrik_voss"].knowledge["forged_order"]
@@ -280,9 +244,9 @@ fn lowsail_warning_changes_sluice_legality_and_report_transfers_knowledge() {
 }
 
 #[test]
-fn sluice_split_persists_to_the_lowsail_return() {
+fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     let content = content();
-    let mut state = state(&content, ilyan());
+    let mut state = new_game(&content, "ilyan");
     state = apply(state, &content, "checkpoint.audit_order");
     state = travel_to(state, &content, "lowsail.levee");
     state = travel_to(state, &content, "red_sluice.floor");
@@ -290,14 +254,30 @@ fn sluice_split_persists_to_the_lowsail_return() {
     state = travel_to(state, &content, "red_sluice.top");
     state = apply(state, &content, "top.check_wheels");
     state = apply(state, &content, "top.split_flow");
+
+    assert!(state.world.flags.contains("flow_split"));
     assert!(
         state.world.locations["lowsail.return"]
             .flags
             .contains("market_stable")
     );
-    assert!(state.world.flags.contains("flow_split"));
-
     state = travel_to(state, &content, "lowsail.return");
+    assert_eq!(
+        content.location_description(&state).unwrap(),
+        "The market stands above calm water while both shores still receive a share."
+    );
+    let return_observation = content
+        .observe_action(&state, "return.read_tide")
+        .expect("return observation");
+    assert_eq!(
+        return_observation.result.as_deref(),
+        Some("Calm water leaves both shores with a fair share.")
+    );
+    assert!(
+        return_observation
+            .text
+            .starts_with("Calm water leaves both shores")
+    );
     assert!(definitions(&state, &content).contains("return.share_water"));
     state = apply(state, &content, "return.share_water");
     assert!(state.world.flags.contains("ending_accord"));
@@ -305,36 +285,92 @@ fn sluice_split_persists_to_the_lowsail_return() {
 }
 
 #[test]
-fn build_and_state_ids_are_stable_and_compiler_enforces_concise_text() {
+fn production_text_ids_and_action_pages_are_stable() {
     let first = content();
     let second = content();
     assert_eq!(first.build_id(), second.build_id());
     assert_eq!(first.build_id().len(), 64);
     assert_eq!(forge_kernel::compute_build_id(&first), first.build_id());
 
-    let first_state = state(&first, ilyan());
-    let second_state = state(&second, ilyan());
+    let first_state = new_game(&first, "ilyan");
+    let second_state = new_game(&second, "ilyan");
     assert_eq!(first_state.state_id(), second_state.state_id());
     assert_eq!(first_state.state_id().len(), 64);
 
     for (_, location) in first.locations() {
-        assert!(location.description.split_whitespace().count() <= 36);
-        assert!(location.description.matches('.').count() <= 2);
+        let sentences = location
+            .description
+            .split(['.', '!', '?'])
+            .filter(|sentence| !sentence.trim().is_empty())
+            .collect::<Vec<_>>();
+        assert!(sentences.len() <= 2);
+        assert!(
+            sentences
+                .iter()
+                .all(|sentence| sentence.split_whitespace().count() <= 18)
+        );
+        assert!(location.description_variants.iter().all(|variant| {
+            variant
+                .text
+                .split(['.', '!', '?'])
+                .filter(|sentence| !sentence.trim().is_empty())
+                .count()
+                == 1
+                && variant.text.split_whitespace().count() <= 18
+        }));
     }
     for (_, action) in first.actions() {
-        assert!(action.label.split_whitespace().count() <= 8);
+        assert!(!action.category.trim().is_empty());
+        assert!(action.category.split_whitespace().count() <= 3);
+        assert!(!action.result.trim().is_empty());
+        assert!(action.result.split_whitespace().count() <= 60);
+        assert!(
+            action
+                .result
+                .split(['.', '!', '?'])
+                .filter(|sentence| !sentence.trim().is_empty())
+                .all(|sentence| sentence.split_whitespace().count() <= 18)
+        );
+        assert!(action.result_variants.iter().all(|variant| {
+            variant
+                .text
+                .split(['.', '!', '?'])
+                .filter(|sentence| !sentence.trim().is_empty())
+                .count()
+                == 1
+                && variant.text.split_whitespace().count() <= 18
+        }));
     }
+
+    let mut offset = 0;
+    let mut page_ids = Vec::new();
+    let mut digest = None;
+    let full = enumerate_legal_actions(&first_state, &first).unwrap();
+    let expected_ids: Vec<_> = full.iter().map(|action| action.action_id.clone()).collect();
+    loop {
+        let page = first.action_page(&first_state, offset, 3).unwrap();
+        assert_eq!(page.build_id, first.build_id());
+        assert_eq!(page.state_id, first_state.state_id());
+        assert_eq!(page.total, full.len());
+        if let Some(expected) = &digest {
+            assert_eq!(expected, &page.digest);
+        } else {
+            digest = Some(page.digest.clone());
+        }
+        page_ids.extend(page.actions.iter().map(|action| action.action_id.clone()));
+        match page.next_offset {
+            Some(next) => offset = next,
+            None => break,
+        }
+    }
+    assert_eq!(page_ids, expected_ids);
+    assert_eq!(
+        digest.as_deref(),
+        Some(legal_action_digest(&full).unwrap().as_str())
+    );
 
     let mut draft = parse(SPLIT_TIDE).expect("real fixture must parse");
     draft.locations[0].description = "One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen.".to_owned();
     let error = compile(draft).expect_err("overlong location text must fail compilation");
     assert!(error.to_string().contains("exceeds 18 words"));
-
-    assert_eq!(
-        first
-            .location("lowsail.checkpoint")
-            .expect("checkpoint")
-            .description,
-        "A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market."
-    );
 }

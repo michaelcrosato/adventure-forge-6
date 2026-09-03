@@ -113,17 +113,54 @@ impl CanonicalAction {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(deny_unknown_fields)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct Transition {
-    pub pre_state_id: String,
-    pub action: CanonicalAction,
-    pub events: Vec<Event>,
-    pub entropy_before: EntropyState,
-    pub entropy_draws: Vec<EntropyDraw>,
-    pub entropy_after: EntropyState,
-    pub post_state_id: String,
-    pub state: GameState,
+    pre_state_id: String,
+    action: CanonicalAction,
+    events: Vec<Event>,
+    entropy_before: EntropyState,
+    entropy_draws: Vec<EntropyDraw>,
+    entropy_after: EntropyState,
+    post_state_id: String,
+    state: GameState,
+}
+
+impl Transition {
+    pub fn pre_state_id(&self) -> &str {
+        &self.pre_state_id
+    }
+
+    pub fn action(&self) -> &CanonicalAction {
+        &self.action
+    }
+
+    pub fn events(&self) -> &[Event] {
+        &self.events
+    }
+
+    pub fn entropy_before(&self) -> &EntropyState {
+        &self.entropy_before
+    }
+
+    pub fn entropy_draws(&self) -> &[EntropyDraw] {
+        &self.entropy_draws
+    }
+
+    pub fn entropy_after(&self) -> &EntropyState {
+        &self.entropy_after
+    }
+
+    pub fn post_state_id(&self) -> &str {
+        &self.post_state_id
+    }
+
+    pub fn state(&self) -> &GameState {
+        &self.state
+    }
+
+    pub fn into_state(self) -> GameState {
+        self.state
+    }
 }
 
 struct ActionCandidates<'a> {
@@ -779,14 +816,18 @@ mod tests {
 
     fn content(actions: Vec<ActionDefinition>) -> CompiledContent {
         CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v1".to_owned(),
+            schema_version: "forge-schema-v2".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world-1".to_owned(),
+            contract: crate::ContentContract::Fixture,
+            start_location: "gate".to_owned(),
+            character_presets: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
                     name: "Gate".to_owned(),
                     description: "A gate stands ahead.".to_owned(),
+                    description_variants: Vec::new(),
                     exits: vec!["yard".to_owned()],
                     terminal: true,
                 },
@@ -794,6 +835,7 @@ mod tests {
                     id: "yard".to_owned(),
                     name: "Yard".to_owned(),
                     description: "A quiet yard rests here.".to_owned(),
+                    description_variants: Vec::new(),
                     exits: vec!["gate".to_owned()],
                     terminal: true,
                 },
@@ -814,6 +856,11 @@ mod tests {
     fn state(content: &CompiledContent) -> GameState {
         let mut locations = content.empty_location_runtime();
         locations.insert("gate".to_owned(), LocationRuntime::default());
+        locations
+            .get_mut("gate")
+            .unwrap()
+            .entities
+            .insert("sava".to_owned());
         let npcs = BTreeMap::from([(
             "sava".to_owned(),
             NpcState {
@@ -841,6 +888,9 @@ mod tests {
         ActionDefinition {
             id: id.to_owned(),
             label: id.to_owned(),
+            category: "Action".to_owned(),
+            result: "The action is complete.".to_owned(),
+            result_variants: Vec::new(),
             locations: vec!["gate".to_owned()],
             condition,
             effects,
@@ -990,6 +1040,9 @@ mod tests {
         let action = ActionDefinition {
             id: "move-and-greet".to_owned(),
             label: "Move and greet".to_owned(),
+            category: "Social".to_owned(),
+            result: "The exchange is complete.".to_owned(),
+            result_variants: Vec::new(),
             locations: vec!["gate".to_owned()],
             condition: Condition::Always,
             effects: vec![
@@ -1109,6 +1162,9 @@ mod tests {
         let stress = ActionDefinition {
             id: "stress".to_owned(),
             label: "Stress".to_owned(),
+            category: "Travel".to_owned(),
+            result: "The route is open.".to_owned(),
+            result_variants: Vec::new(),
             locations: vec!["gate".to_owned()],
             condition: Condition::Always,
             effects: vec![Effect::MoveCharacter {
@@ -1125,6 +1181,7 @@ mod tests {
             id: "gate".to_owned(),
             name: "Gate".to_owned(),
             description: "Many roads start here.".to_owned(),
+            description_variants: Vec::new(),
             exits: destinations.clone(),
             terminal: true,
         }];
@@ -1132,13 +1189,17 @@ mod tests {
             id: id.clone(),
             name: id.clone(),
             description: "A marked test point waits here.".to_owned(),
+            description_variants: Vec::new(),
             exits: vec!["gate".to_owned()],
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v1".to_owned(),
+            schema_version: "forge-schema-v2".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world-1".to_owned(),
+            contract: crate::ContentContract::Fixture,
+            start_location: "gate".to_owned(),
+            character_presets: Vec::new(),
             locations,
             npcs: vec![NpcDefinition {
                 id: "sava".to_owned(),

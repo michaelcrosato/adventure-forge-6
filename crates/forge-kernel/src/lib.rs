@@ -14,8 +14,9 @@ mod reducer;
 
 pub use build_manifest::BuildManifest;
 pub use content::{
-    ActionDefinition, CompiledContent, Condition, ContentDraft, ContentValidationError, Effect,
-    LocationDefinition, NpcDefinition, ParameterDomain, ParameterSpec, StringRef,
+    ActionDefinition, ActionPage, ActionView, CharacterPreset, CompiledContent, Condition,
+    ContentContract, ContentDraft, ContentValidationError, Effect, LocationDefinition,
+    NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,

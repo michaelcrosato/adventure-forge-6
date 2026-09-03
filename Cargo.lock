@@ -65,6 +65,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-replay"
+version = "0.1.0"
+dependencies = [
+ "forge-content",
+ "forge-kernel",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

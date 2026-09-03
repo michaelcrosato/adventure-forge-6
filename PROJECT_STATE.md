@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 1  
+Manager cycle: 2
 Release state: no playable release  
 Active milestone: 0 — Honest kernel foundation
 
@@ -10,35 +10,35 @@ Active milestone: 0 — Honest kernel foundation
 - The local repository is a Git repository on branch `main`.
 - `origin` is the public HTTPS repository `https://github.com/michaelcrosato/adventure-forge-6`.
 - The four founding documents are preserved in commit `594183b`, consolidated into `PLAN.md`, and removed from the live tree.
-- The first authoritative kernel and strict content compiler pass the local mechanical gate.
-- The Split Tide fixture contains 6 connected locations, 5 named inhabitants, and 47 programmed action definitions.
+- The authoritative kernel, production content compiler, and in-memory replay layer pass the local mechanical gate.
+- The Split Tide production pack contains 6 connected locations, 5 named inhabitants, 2 complete starting presets, and 47 programmed action definitions.
+- Replay receipts bind authored preset genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
 - This is a tested foundation, not a playable release or evidence of final scale.
 
 ## Constraint evidence
 
 | Area | State | Direct evidence | Next proof |
 | --- | --- | --- | --- |
-| Deep character customization | Partial | Real Ilyan/Rook states expose different same-scene action sets through combined facets | Creation UI, broader reactions, risks, prices, and outcomes |
-| Concise language | Partial | Compiler rejects descriptions over two sentences, sentences over 18 words, and labels over 8 words | Runtime observation, dialogue, readability, active-voice, and reading tests |
+| Deep character customization | Partial | Production `new_game` presets for Ilyan/Rook expose different same-scene action sets and contextual reactions | Creation UI, broader reactions, risks, prices, and outcomes |
+| Concise language | Partial | Compiler enforces category, label, sentence, result, variant, and routine-observation budgets | Dialogue, readability, active-voice, and reading tests |
 | One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return | Long-session and broader cross-region continuity |
 | Skyrim breadth | Not built | Honest expansion strategy only | 500-node capacity fixture, then authored comparative evidence |
 | BG3-like area depth | Not built | Two-area contract only | Blindly sampled Split Tide approaches and outcomes |
-| Action-first play | Not built | Observation rules recorded | Play transcript and action/read measurements |
-| No fixed action cap | Partial | Kernel enumerates 256 executable actions with checked allocation and no fixed ceiling | Player catalog pagination/search union proof |
-| Deterministic authority | Partial | Pure immutable reducer, explicit versioned entropy, stable hashes, stale-action rejection | Cross-process trace equality and state exploration |
-| Build identity and validation | Partial | Trusted manifest binds kernel/compiler sources, lockfile, pinned toolchain, config, ABI, entropy, and content | Independent recomputation and mutation corpus |
-| Replay and persistence | Not built | Receipt design in `PLAN.md` | Tamper rejection and resume parity |
+| Action-first play | Partial | Result-first observations expose full legal-action count and digest under the text budget | Play transcript and action/read measurements |
+| No fixed action cap | Partial | Kernel and presentation pages cover all 256 executable stress actions with one digest and checked allocation | Search union proof and larger scale fixture |
+| Deterministic authority | Partial | Pure reducer plus deterministic multi-step record/replay/resume tests bind observations and explicit entropy | Clean-process trace equality and state exploration |
+| Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
+| Replay and persistence | Partial | JSON trace round-trip, receipt-chain tamper rejection, preset-genesis reconstruction, and resume parity pass in-process | CLI saves and independent clean-process replay |
 | Blind play | Not built | Firewall design recorded | Locked environment and canary probes |
 | Manager operation | Partial | Charter, plan, accepted delegated implementation, rejected first candidate, and task-splitting process change | Full verified-finding improvement cycle |
 
 ## Active queue
 
-1. Add presentation/start-state data so the real content pack can create and describe a game without hardcoded client rules.
-2. Add replay receipts, tamper checks, saves, and clean-process replay.
-3. Add the CLI player loop over the same observation and canonical-action protocol.
-4. Prove all current Split Tide actions execute from every state where they are advertised.
-5. Add a bounded crawler and first outcome witness traces.
-6. Run the first player-surface session and improve the weakest observed interaction.
+1. Add the CLI player loop with save, resume, trace export, replay, paging, and search over canonical actions.
+2. Add an independent clean-process replay verifier and checked witness files.
+3. Prove all current Split Tide actions execute from every state where they are advertised.
+4. Add a bounded crawler and first outcome witness traces.
+5. Run the first player-surface session and improve the weakest observed interaction.
 
 ## Delegation ledger
 
@@ -52,6 +52,11 @@ Active milestone: 0 — Honest kernel foundation
 | 1 | Enumeration hardening | `gpt-5.6-luna` / max | Make large action sets fallible, complete, stable, and tested | 256 executable actions; allocation failures explicit | Accepted |
 | 1 | Split Tide content | `gpt-5.6-luna` / max | Author real two-area data and counterfactual integration tests | Compiler green; character, knowledge, and remote consequence proofs | Accepted |
 | 1 | Whole-candidate audit | `gpt-5.6-luna` / max | Independent read-only review of the integrated foundation | Blocker list in a useful review window | Stopped after no timely result |
+| 2 | Presentation/start-state | `gpt-5.6-luna` / max | Add production presets, contextual observations, and complete action paging | Focused kernel tests and production migration path | Accepted after manager hardening |
+| 2 | Replay/session layer | `gpt-5.6-luna` / max | Add recording, receipts, JSON round-trip, verification, and resume | Determinism, field tampering, and parity tests | Accepted after binding genesis and observations |
+| 2 | Production content migration | `gpt-5.6-luna` / max | Migrate Split Tide and its tests without engine edits | Strict compile plus counterfactual, prose, paging, and return proofs | Accepted after restoring the temporarily removed test gate |
+| 2 | Presentation audit | `gpt-5.6-luna` / max | Review only start-state and presentation authority | Concrete severity-ranked findings | Accepted; manager closed production-boundary findings |
+| 2 | Replay audit | `gpt-5.6-luna` / max | Review only trace integrity, transactionality, and malformed inputs | Concrete severity-ranked findings | Rejected candidate; manager closed panic and transition-forgery paths |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -87,6 +92,10 @@ Every commit is pushed to `origin/main` immediately. A commit that exists only i
 
 The first hardening task became too broad and was interrupted during a file rewrite, briefly breaking the shared tree. The manager restored it, split the work by file and risk surface, and added smaller acceptance gates. Future delegated edits should preserve a compiling boundary or create cheap checkpoints before broad rewrites.
 
+### D-008: Production starts and observations are replay claims
+
+Production compilation is required by a trusted caller rather than selected only by the content document. A production trace reconstructs its named preset and seed, and every initial and post-action player observation is independently recomputed during replay. Raw structurally valid states remain useful kernel inputs, but they are not accepted as evidence without a verified trace lineage.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -96,10 +105,11 @@ The first hardening task became too broad and was interrupted during a file rewr
 - NPC knowledge can leak from global flags instead of credible transfer.
 - Region-oriented storage can accidentally weaken single-world continuity.
 - Verification could overstate bounded exploration or become editable theater.
+- Direct kernel calls can evaluate structurally valid states without proving their lineage; evidence claims must enter through verified sessions and traces.
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 23 kernel unit tests and 5 real-content integration tests. It does not yet cover replay, saves, cross-process execution, blind isolation, crawler exploration, full text policy, or final game scale.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 6 real-content integration tests, 8 replay unit tests, and 2 real Split Tide replay tests. It covers deterministic in-process recording, JSON round-trip, field-tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, resume parity, and one multi-area production trace. It does not yet cover file-backed CLI saves, independent cross-process execution, blind isolation, crawler exploration, full text policy, or final game scale.
 
 ## Next reassessment trigger
 

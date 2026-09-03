@@ -5,8 +5,9 @@
 //! from bypassing the kernel's trust boundary.
 
 pub use forge_kernel::{
-    ActionDefinition, Condition, ContentDraft, Effect, LocationDefinition, NpcDefinition,
-    ParameterDomain, ParameterSpec, StringRef,
+    ActionDefinition, ActionPage, ActionView, CharacterPreset, Condition, ContentContract,
+    ContentDraft, Effect, LocationDefinition, NpcDefinition, Observation, ParameterDomain,
+    ParameterSpec, StringRef, TextVariant,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -54,6 +55,47 @@ pub fn parse_and_compile(input: &str) -> Result<CompiledContent, ContentError> {
     compile(parse(input)?)
 }
 
+/// Parse a shippable content pack while requiring the production contract at
+/// this trusted application boundary. An untrusted document cannot opt into
+/// weaker fixture validation by omitting or changing its `contract` field.
+pub fn parse_and_compile_production(input: &str) -> Result<CompiledContent, ContentError> {
+    compile_production(parse(input)?)
+}
+
 pub fn compile(source: ContentSource) -> Result<CompiledContent, ContentError> {
     CompiledContent::try_compile(source).map_err(validation_error)
+}
+
+pub fn compile_production(source: ContentSource) -> Result<CompiledContent, ContentError> {
+    if source.contract != ContentContract::Production {
+        return Err(parse_error(
+            "production compilation requires contract=production",
+        ));
+    }
+    compile(source)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_compiler_rejects_fixture_opt_out_before_semantic_validation() {
+        let source = ContentSource {
+            schema_version: String::new(),
+            rules_version: String::new(),
+            world_id: String::new(),
+            contract: ContentContract::Fixture,
+            start_location: String::new(),
+            character_presets: Vec::new(),
+            locations: Vec::new(),
+            npcs: Vec::new(),
+            actions: Vec::new(),
+        };
+        let error = compile_production(source).unwrap_err();
+        assert_eq!(
+            error.issues,
+            vec!["production compilation requires contract=production"]
+        );
+    }
 }

@@ -1,7 +1,10 @@
 use crate::build_manifest::BuildManifest;
 use crate::hash::sha256_json;
-use crate::model::{FacetValue, KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, NpcId};
-use crate::{GameState, LocationRuntime};
+use crate::model::{
+    Character, FacetValue, GameState, KnowledgeProvenance, KnowledgeProvenanceKind, LocationId,
+    NpcId, NpcState,
+};
+use crate::{EntropyState, LocationRuntime};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::{Display, Formatter};
@@ -12,6 +15,8 @@ pub struct LocationDefinition {
     pub id: LocationId,
     pub name: String,
     pub description: String,
+    #[serde(default)]
+    pub description_variants: Vec<TextVariant>,
     #[serde(default)]
     pub exits: Vec<LocationId>,
     #[serde(default)]
@@ -32,6 +37,75 @@ pub struct NpcDefinition {
     pub tags: BTreeSet<String>,
 }
 
+/// A short, data-authored description selected against the authoritative
+/// state. Variants are ordered by descending priority and then ascending ID.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TextVariant {
+    pub id: String,
+    #[serde(default)]
+    pub priority: i32,
+    #[serde(default)]
+    pub condition: Condition,
+    pub text: String,
+}
+
+/// Whether this source is a complete production pack or a deliberately small
+/// fixture. Production packs must carry the character-selection contract;
+/// fixture is the serde default to keep focused kernel fixtures concise.
+#[derive(Clone, Copy, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContentContract {
+    #[default]
+    Fixture,
+    Production,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterPreset {
+    pub id: String,
+    pub display_name: String,
+    pub summary: String,
+    pub character: Character,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Observation {
+    pub build_id: String,
+    pub state_id: String,
+    pub location_id: LocationId,
+    pub title: String,
+    /// Result-first, then the current location description.
+    pub text: String,
+    pub result: Option<String>,
+    pub action_set_digest: String,
+    pub action_count: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ActionView {
+    pub action_id: String,
+    pub definition_id: String,
+    pub label: String,
+    pub category: String,
+    pub parameters: BTreeMap<String, String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ActionPage {
+    pub build_id: String,
+    pub state_id: String,
+    pub actions: Vec<ActionView>,
+    pub total: usize,
+    pub digest: String,
+    pub offset: usize,
+    pub next_offset: Option<usize>,
+}
+
 /// Untrusted authoring input. A `CompiledContent` can only be created by
 /// `try_compile`, which performs all semantic checks in the kernel.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -40,6 +114,12 @@ pub struct ContentDraft {
     pub schema_version: String,
     pub rules_version: String,
     pub world_id: String,
+    #[serde(default)]
+    pub contract: ContentContract,
+    #[serde(default)]
+    pub start_location: LocationId,
+    #[serde(default)]
+    pub character_presets: Vec<CharacterPreset>,
     #[serde(default)]
     pub locations: Vec<LocationDefinition>,
     #[serde(default)]
@@ -103,6 +183,12 @@ pub enum ParameterDomain {
 pub struct ActionDefinition {
     pub id: String,
     pub label: String,
+    #[serde(default)]
+    pub category: String,
+    #[serde(default)]
+    pub result: String,
+    #[serde(default)]
+    pub result_variants: Vec<TextVariant>,
     #[serde(default)]
     pub locations: Vec<LocationId>,
     #[serde(default)]
@@ -431,7 +517,10 @@ impl Effect {
 #[derive(Serialize)]
 struct ContentIdentity<'a> {
     manifest: &'a BuildManifest,
+    contract: ContentContract,
     world_id: &'a str,
+    start_location: &'a LocationId,
+    character_presets: &'a BTreeMap<String, CharacterPreset>,
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
     actions: &'a BTreeMap<String, ActionDefinition>,
@@ -442,7 +531,10 @@ struct ContentIdentity<'a> {
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct CompiledContent {
     manifest: BuildManifest,
+    contract: ContentContract,
     world_id: String,
+    start_location: LocationId,
+    character_presets: BTreeMap<String, CharacterPreset>,
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
     actions: BTreeMap<String, ActionDefinition>,
@@ -453,11 +545,28 @@ impl CompiledContent {
     pub fn try_compile(draft: ContentDraft) -> Result<Self, ContentValidationError> {
         let manifest = BuildManifest::generated();
         validate_draft(&draft, &manifest)?;
+        let start_location = if draft.start_location.trim().is_empty() {
+            draft
+                .locations
+                .iter()
+                .map(|location| location.id.clone())
+                .min()
+                .unwrap_or_default()
+        } else {
+            draft.start_location.clone()
+        };
+        let contract = draft.contract;
+        let character_presets = draft
+            .character_presets
+            .into_iter()
+            .map(|preset| (preset.id.clone(), preset))
+            .collect::<BTreeMap<_, _>>();
         let locations = draft
             .locations
             .into_iter()
             .map(|mut location| {
                 location.exits.sort();
+                sort_variants(&mut location.description_variants);
                 (location.id.clone(), location)
             })
             .collect::<BTreeMap<_, _>>();
@@ -470,6 +579,13 @@ impl CompiledContent {
             .actions
             .into_iter()
             .map(|mut action| {
+                if action.category.trim().is_empty() {
+                    action.category = "Action".to_owned();
+                }
+                if action.result.trim().is_empty() {
+                    action.result = "The action is complete.".to_owned();
+                }
+                sort_variants(&mut action.result_variants);
                 action.locations.sort();
                 action
                     .parameters
@@ -485,7 +601,10 @@ impl CompiledContent {
         let world_id = draft.world_id;
         let identity = ContentIdentity {
             manifest: &manifest,
+            contract,
             world_id: &world_id,
+            start_location: &start_location,
+            character_presets: &character_presets,
             locations: &locations,
             npcs: &npcs,
             actions: &actions,
@@ -493,7 +612,10 @@ impl CompiledContent {
         let build_id = sha256_json(&identity).expect("validated content must be serializable");
         Ok(Self {
             manifest,
+            contract,
             world_id,
+            start_location,
+            character_presets,
             locations,
             npcs,
             actions,
@@ -509,6 +631,14 @@ impl CompiledContent {
         &self.world_id
     }
 
+    pub fn contract(&self) -> ContentContract {
+        self.contract
+    }
+
+    pub fn start_location(&self) -> &LocationId {
+        &self.start_location
+    }
+
     pub fn schema_version(&self) -> &str {
         self.manifest.schema_abi_version()
     }
@@ -519,6 +649,14 @@ impl CompiledContent {
 
     pub fn manifest(&self) -> &BuildManifest {
         &self.manifest
+    }
+
+    pub fn character_preset(&self, id: &str) -> Option<&CharacterPreset> {
+        self.character_presets.get(id)
+    }
+
+    pub fn character_presets(&self) -> impl Iterator<Item = (&String, &CharacterPreset)> {
+        self.character_presets.iter()
     }
 
     pub fn location(&self, id: &str) -> Option<&LocationDefinition> {
@@ -556,7 +694,10 @@ impl CompiledContent {
     pub fn has_valid_build_id(&self) -> bool {
         let identity = ContentIdentity {
             manifest: &self.manifest,
+            contract: self.contract,
             world_id: &self.world_id,
+            start_location: &self.start_location,
+            character_presets: &self.character_presets,
             locations: &self.locations,
             npcs: &self.npcs,
             actions: &self.actions,
@@ -572,6 +713,230 @@ impl CompiledContent {
             .collect()
     }
 
+    /// Construct the authoritative starting state from content definitions.
+    /// NPC placement and location entity indexes are derived here so clients
+    /// cannot accidentally create a different world before the first action.
+    pub fn new_game(
+        &self,
+        character_id: &str,
+        seed: u64,
+    ) -> Result<GameState, ContentValidationError> {
+        let Some(preset) = self.character_preset(character_id) else {
+            return Err(single_validation_error(format!(
+                "unknown character preset {character_id}"
+            )));
+        };
+        let mut locations = self.empty_location_runtime();
+        let mut npcs = BTreeMap::new();
+        for (id, definition) in self.npcs() {
+            let npc = NpcState {
+                id: id.clone(),
+                location: definition.location.clone(),
+                goals: definition.goals.clone(),
+                values: definition.values.clone(),
+                tags: definition.tags.clone(),
+                relationships: BTreeMap::new(),
+                memories: BTreeMap::new(),
+                knowledge: BTreeMap::new(),
+                inventory: BTreeMap::new(),
+                suspicion: 0,
+            };
+            locations
+                .get_mut(&definition.location)
+                .expect("validated NPC location must be compiled")
+                .entities
+                .insert(id.clone());
+            npcs.insert(id.clone(), npc);
+        }
+        let state = GameState::new(
+            self.build_id().to_owned(),
+            crate::WorldState::new(
+                self.world_id().to_owned(),
+                self.start_location().clone(),
+                locations,
+                npcs,
+            ),
+            preset.character.clone(),
+            EntropyState::new(seed),
+        );
+        self.validate_state(&state)?;
+        Ok(state)
+    }
+
+    /// Build the concise player-facing observation for a valid state.
+    pub fn observe(&self, state: &GameState) -> Result<Observation, ContentValidationError> {
+        self.observe_with_result(state, None)
+    }
+
+    /// Preview authored result text for a definition against a valid state.
+    /// Authoritative play should use `observe_after_transition` so the result
+    /// is bound to a reducer-produced transition.
+    pub fn observe_action(
+        &self,
+        state: &GameState,
+        definition_id: &str,
+    ) -> Result<Observation, ContentValidationError> {
+        let action = self.action(definition_id).ok_or_else(|| {
+            single_validation_error(format!("unknown action definition {definition_id}"))
+        })?;
+        self.observe_with_result(state, Some(action))
+    }
+
+    /// Render a result-first observation bound to a reducer transition.
+    pub fn observe_after_transition(
+        &self,
+        transition: &crate::Transition,
+    ) -> Result<Observation, ContentValidationError> {
+        let action = transition.action();
+        if action.build_id != self.build_id {
+            return Err(single_validation_error(
+                "action build identity does not match compiled content",
+            ));
+        }
+        if action.action_id != action.recomputed_id() {
+            return Err(single_validation_error(
+                "action identity does not match its canonical fields",
+            ));
+        }
+        if transition.post_state_id() != transition.state().state_id() {
+            return Err(single_validation_error(
+                "transition post-state identity does not match its state",
+            ));
+        }
+        if transition.entropy_after() != &transition.state().entropy {
+            return Err(single_validation_error(
+                "transition entropy does not match its state",
+            ));
+        }
+        if !transition.state().event_log.ends_with(transition.events()) {
+            return Err(single_validation_error(
+                "transition events are not the state event-log suffix",
+            ));
+        }
+        self.observe_action(transition.state(), &action.definition_id)
+    }
+
+    pub fn location_description(
+        &self,
+        state: &GameState,
+    ) -> Result<String, ContentValidationError> {
+        self.validate_state(state)?;
+        let location = self
+            .location(&state.world.current_location)
+            .expect("validated current location must be compiled");
+        Ok(select_variant_text(
+            &location.description,
+            &location.description_variants,
+            state,
+        ))
+    }
+
+    pub fn action_result(
+        &self,
+        state: &GameState,
+        definition_id: &str,
+    ) -> Result<String, ContentValidationError> {
+        self.validate_state(state)?;
+        let action = self.action(definition_id).ok_or_else(|| {
+            single_validation_error(format!("unknown action definition {definition_id}"))
+        })?;
+        Ok(select_variant_text(
+            &action.result,
+            &action.result_variants,
+            state,
+        ))
+    }
+
+    /// Return a deterministic page of the complete legal action catalog.
+    /// `page_size` is presentation-only; legality and the digest come from
+    /// the full kernel enumeration before slicing.
+    pub fn action_page(
+        &self,
+        state: &GameState,
+        offset: usize,
+        page_size: usize,
+    ) -> Result<ActionPage, ContentValidationError> {
+        if page_size == 0 {
+            return Err(single_validation_error("action page size must be positive"));
+        }
+        let actions = crate::enumerate_legal_actions(state, self)
+            .map_err(|error| single_validation_error(error.to_string()))?;
+        let total = actions.len();
+        if offset > total {
+            return Err(single_validation_error(format!(
+                "action page offset {offset} exceeds total {total}"
+            )));
+        }
+        let digest = crate::legal_action_digest(&actions)
+            .map_err(|error| single_validation_error(error.to_string()))?;
+        let end = offset.saturating_add(page_size).min(total);
+        let page_actions = &actions[offset..end];
+        let mut views = Vec::new();
+        views
+            .try_reserve(page_actions.len())
+            .map_err(|error| single_validation_error(format!("action page: {error:?}")))?;
+        for action in page_actions {
+            let definition = self
+                .action(&action.definition_id)
+                .expect("enumerated action definition must be compiled");
+            views.push(ActionView {
+                action_id: action.action_id.clone(),
+                definition_id: action.definition_id.clone(),
+                label: definition.label.clone(),
+                category: definition.category.clone(),
+                parameters: action.parameters.clone(),
+            });
+        }
+        let next_offset = (end < total).then_some(end);
+        Ok(ActionPage {
+            build_id: self.build_id.clone(),
+            state_id: state.state_id(),
+            actions: views,
+            total,
+            digest,
+            offset,
+            next_offset,
+        })
+    }
+
+    fn observe_with_result(
+        &self,
+        state: &GameState,
+        result_action: Option<&ActionDefinition>,
+    ) -> Result<Observation, ContentValidationError> {
+        self.validate_state(state)?;
+        let location = self
+            .location(&state.world.current_location)
+            .expect("validated current location must be compiled");
+        let actions = crate::enumerate_legal_actions(state, self)
+            .map_err(|error| single_validation_error(error.to_string()))?;
+        let action_set_digest = crate::legal_action_digest(&actions)
+            .map_err(|error| single_validation_error(error.to_string()))?;
+        let location_text =
+            select_variant_text(&location.description, &location.description_variants, state);
+        let result = result_action
+            .map(|action| select_variant_text(&action.result, &action.result_variants, state));
+        let text = match &result {
+            Some(result) => format!("{result} {location_text}"),
+            None => location_text,
+        };
+        if word_count(&text) > 100 {
+            return Err(single_validation_error(
+                "combined routine observation exceeds 100 words",
+            ));
+        }
+        Ok(Observation {
+            build_id: self.build_id.clone(),
+            state_id: state.state_id(),
+            location_id: state.world.current_location.clone(),
+            title: location.name.clone(),
+            text,
+            result,
+            action_set_digest,
+            action_count: actions.len(),
+        })
+    }
+
     pub fn validate_state(&self, state: &GameState) -> Result<(), ContentValidationError> {
         let mut errors = ContentValidationError::new();
         if state.build_id != self.build_id {
@@ -585,6 +950,20 @@ impl CompiledContent {
         }
         if state.character.id.trim().is_empty() {
             errors.push("character id cannot be empty");
+        }
+        if self.contract == ContentContract::Production {
+            match self
+                .character_presets
+                .values()
+                .find(|preset| preset.character.id == state.character.id)
+            {
+                Some(preset)
+                    if static_character_fields_match(&state.character, &preset.character) => {}
+                Some(_) => errors
+                    .push("production character identity fields differ from its compiled preset"),
+                None => errors
+                    .push("production character id does not belong to a compiled character preset"),
+            }
         }
         if state.world.locations.len() != self.locations.len() {
             errors.push("state location runtime keys are not exact");
@@ -612,11 +991,30 @@ impl CompiledContent {
                     npc.id
                 ));
             }
-            if !self.npcs.contains_key(key) {
+            if let Some(definition) = self.npcs.get(key) {
+                if npc.goals != definition.goals
+                    || npc.values != definition.values
+                    || npc.tags != definition.tags
+                {
+                    errors.push(format!(
+                        "NPC {key} static goals, values, or tags differ from compiled content"
+                    ));
+                }
+            } else {
                 errors.push(format!("state NPC {key} is not in the content registry"));
             }
             if !self.locations.contains_key(&npc.location) {
                 errors.push(format!("NPC {key} has unknown location {}", npc.location));
+            } else if state
+                .world
+                .locations
+                .get(&npc.location)
+                .is_none_or(|runtime| !runtime.entities.contains(key))
+            {
+                errors.push(format!(
+                    "NPC {key} is missing from its location entity index {}",
+                    npc.location
+                ));
             }
             for (item, count) in &npc.inventory {
                 if item.trim().is_empty() || *count == 0 {
@@ -699,6 +1097,7 @@ fn validate_draft(
     if draft.world_id.trim().is_empty() {
         errors.push("world_id cannot be empty");
     }
+    let production = matches!(draft.contract, ContentContract::Production);
     let mut location_ids = BTreeSet::new();
     for location in &draft.locations {
         validate_location(location, &mut errors);
@@ -726,6 +1125,16 @@ fn validate_draft(
     if !location_ids.is_empty() && !graph_connected(&draft.locations, &location_ids) {
         errors.push("location graph is not connected");
     }
+    if draft.start_location.trim().is_empty() {
+        if production {
+            errors.push("production content must define a start_location");
+        }
+    } else if !location_ids.contains(&draft.start_location) {
+        errors.push(format!(
+            "start_location {} is not a registered location",
+            draft.start_location
+        ));
+    }
 
     let mut npc_ids = BTreeSet::new();
     for npc in &draft.npcs {
@@ -746,9 +1155,71 @@ fn validate_draft(
         }
     }
 
+    let mut preset_ids = BTreeSet::new();
+    let mut character_ids = BTreeSet::new();
+    for preset in &draft.character_presets {
+        if preset.id.trim().is_empty() {
+            errors.push("character preset id cannot be empty");
+        }
+        if !preset_ids.insert(&preset.id) {
+            errors.push(format!("duplicate character preset id {}", preset.id));
+        }
+        if preset.display_name.trim().is_empty() {
+            errors.push(format!(
+                "character preset {} has an empty display name",
+                preset.id
+            ));
+        }
+        if word_count(&preset.display_name) > 8 {
+            errors.push(format!(
+                "character preset {} display name exceeds 8 words",
+                preset.id
+            ));
+        }
+        if preset.summary.trim().is_empty() {
+            errors.push(format!(
+                "character preset {} has an empty summary",
+                preset.id
+            ));
+        } else if split_sentences(&preset.summary).len() > 2
+            || split_sentences(&preset.summary)
+                .iter()
+                .any(|sentence| word_count(sentence) > 18)
+        {
+            errors.push(format!(
+                "character preset {} summary exceeds concise text limits",
+                preset.id
+            ));
+        }
+        if preset.character.id.trim().is_empty() {
+            errors.push(format!(
+                "character preset {} has an empty character id",
+                preset.id
+            ));
+        }
+        if !character_ids.insert(&preset.character.id) {
+            errors.push(format!(
+                "duplicate character id {} across presets",
+                preset.character.id
+            ));
+        }
+    }
+    if production && draft.character_presets.len() < 2 {
+        errors.push("production content requires at least two character presets");
+    }
+    for location in &draft.locations {
+        validate_text_variants(
+            &location.description_variants,
+            &format!("location {} description", location.id),
+            &location_ids,
+            &npc_ids,
+            &mut errors,
+        );
+    }
+
     let mut action_ids = BTreeSet::new();
     for action in &draft.actions {
-        validate_action(action, &location_ids, &npc_ids, &mut errors);
+        validate_action(action, &location_ids, &npc_ids, production, &mut errors);
         if !action_ids.insert(&action.id) {
             errors.push(format!("duplicate action id {}", action.id));
         }
@@ -873,10 +1344,45 @@ fn validate_location(location: &LocationDefinition, errors: &mut ContentValidati
     }
 }
 
+fn validate_text_variants(
+    variants: &[TextVariant],
+    owner: &str,
+    location_ids: &BTreeSet<&String>,
+    npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+) {
+    let mut ids = BTreeSet::new();
+    for variant in variants {
+        if variant.id.trim().is_empty() || !ids.insert(&variant.id) {
+            errors.push(format!("{owner} has an empty or duplicate variant id"));
+        }
+        let text = variant.text.trim();
+        if text.is_empty() {
+            errors.push(format!("{owner} variant {} has empty text", variant.id));
+        } else {
+            let sentences = split_sentences(text);
+            if sentences.len() > 1 || sentences.iter().any(|sentence| word_count(sentence) > 18) {
+                errors.push(format!(
+                    "{owner} variant {} must be one sentence of at most 18 words",
+                    variant.id
+                ));
+            }
+        }
+        if variant.condition.contains_never() || variant.condition.is_obviously_never() {
+            errors.push(format!(
+                "{owner} variant {} contains or reduces to an impossible condition",
+                variant.id
+            ));
+        }
+        validate_condition(&variant.condition, owner, location_ids, npc_ids, errors, 0);
+    }
+}
+
 fn validate_action(
     action: &ActionDefinition,
     location_ids: &BTreeSet<&String>,
     npc_ids: &BTreeSet<&String>,
+    production: bool,
     errors: &mut ContentValidationError,
 ) {
     if action.id.trim().is_empty() {
@@ -888,8 +1394,45 @@ fn validate_action(
     } else if word_count(label) > 8 {
         errors.push(format!("action {} label exceeds 8 words", action.id));
     }
-    if action.condition.contains_never() {
-        errors.push(format!("action {} contains Condition::Never", action.id));
+    let category = action.category.trim();
+    if category.is_empty() {
+        if production {
+            errors.push(format!("action {} has an empty category", action.id));
+        }
+    } else if word_count(category) > 3 {
+        errors.push(format!("action {} category exceeds 3 words", action.id));
+    }
+    let result = action.result.trim();
+    if result.is_empty() {
+        if production {
+            errors.push(format!("action {} has an empty result", action.id));
+        }
+    } else {
+        if word_count(result) > 60 {
+            errors.push(format!("action {} result exceeds 60 words", action.id));
+        }
+        if split_sentences(result)
+            .iter()
+            .any(|sentence| word_count(sentence) > 18)
+        {
+            errors.push(format!(
+                "action {} result sentence exceeds 18 words",
+                action.id
+            ));
+        }
+    }
+    validate_text_variants(
+        &action.result_variants,
+        &format!("action {} result", action.id),
+        location_ids,
+        npc_ids,
+        errors,
+    );
+    if action.condition.contains_never() || action.condition.is_obviously_never() {
+        errors.push(format!(
+            "action {} contains or reduces to an impossible condition",
+            action.id
+        ));
     }
     let mut action_locations = BTreeSet::new();
     for location in &action.locations {
@@ -906,7 +1449,14 @@ fn validate_action(
             ));
         }
     }
-    validate_condition(&action.condition, action, location_ids, npc_ids, errors, 0);
+    validate_condition(
+        &action.condition,
+        &action.id,
+        location_ids,
+        npc_ids,
+        errors,
+        0,
+    );
     let mut parameters = BTreeSet::new();
     for parameter in &action.parameters {
         if parameter.name.trim().is_empty() || !parameters.insert(&parameter.name) {
@@ -985,70 +1535,58 @@ fn validate_action(
 
 fn validate_condition(
     condition: &Condition,
-    action: &ActionDefinition,
+    owner: &str,
     location_ids: &BTreeSet<&String>,
     npc_ids: &BTreeSet<&String>,
     errors: &mut ContentValidationError,
     depth: usize,
 ) {
     if depth > 64 {
-        errors.push(format!(
-            "action {} condition AST exceeds depth 64",
-            action.id
-        ));
+        errors.push(format!("action {} condition AST exceeds depth 64", owner));
         return;
     }
     match condition {
         Condition::All { conditions } | Condition::Any { conditions } => {
             if conditions.is_empty() {
-                errors.push(format!(
-                    "action {} has an empty boolean condition",
-                    action.id
-                ));
+                errors.push(format!("action {} has an empty boolean condition", owner));
             }
             for child in conditions {
-                validate_condition(child, action, location_ids, npc_ids, errors, depth + 1);
+                validate_condition(child, owner, location_ids, npc_ids, errors, depth + 1);
             }
         }
         Condition::Not { condition } => {
-            validate_condition(condition, action, location_ids, npc_ids, errors, depth + 1)
+            validate_condition(condition, owner, location_ids, npc_ids, errors, depth + 1)
         }
         Condition::LocationFlag { location, flag } => {
-            validate_location_ref(location, action, location_ids, errors);
+            validate_location_ref(location, owner, location_ids, errors);
             if flag.trim().is_empty() {
-                errors.push(format!("action {} has an empty location flag", action.id));
+                errors.push(format!("action {} has an empty location flag", owner));
             }
         }
         Condition::AtLocation { location } => {
-            validate_location_ref(location, action, location_ids, errors)
+            validate_location_ref(location, owner, location_ids, errors)
         }
         Condition::NpcKnows { npc, knowledge_id }
         | Condition::NpcKnowsWithProvenance {
             npc, knowledge_id, ..
         } => {
-            validate_npc_ref(npc, action, npc_ids, errors);
+            validate_npc_ref(npc, owner, npc_ids, errors);
             if knowledge_id.trim().is_empty() {
-                errors.push(format!(
-                    "action {} has an empty knowledge reference",
-                    action.id
-                ));
+                errors.push(format!("action {} has an empty knowledge reference", owner));
             }
         }
         Condition::NpcRemembers { npc, memory_id } => {
-            validate_npc_ref(npc, action, npc_ids, errors);
+            validate_npc_ref(npc, owner, npc_ids, errors);
             if memory_id.trim().is_empty() {
-                errors.push(format!(
-                    "action {} has an empty memory reference",
-                    action.id
-                ));
+                errors.push(format!("action {} has an empty memory reference", owner));
             }
         }
         Condition::NpcRelationshipAtLeast { npc, .. } => {
-            validate_npc_ref(npc, action, npc_ids, errors)
+            validate_npc_ref(npc, owner, npc_ids, errors)
         }
         Condition::FacetEquals { axis, .. } | Condition::FacetAtLeast { axis, .. } => {
             if axis.trim().is_empty() {
-                errors.push(format!("action {} has an empty facet axis", action.id));
+                errors.push(format!("action {} has an empty facet axis", owner));
             }
         }
         Condition::HasTag { tag }
@@ -1058,10 +1596,7 @@ fn validate_condition(
         | Condition::CharacterHasDeed { deed_id: tag }
         | Condition::WorldFlag { flag: tag } => {
             if tag.trim().is_empty() {
-                errors.push(format!(
-                    "action {} has an empty condition reference",
-                    action.id
-                ));
+                errors.push(format!("action {} has an empty condition reference", owner));
             }
         }
         Condition::Always | Condition::Never => {}
@@ -1310,7 +1845,7 @@ fn validate_provenance(
 
 fn validate_location_ref(
     location: &str,
-    action: &ActionDefinition,
+    owner: &str,
     location_ids: &BTreeSet<&String>,
     errors: &mut ContentValidationError,
 ) {
@@ -1320,22 +1855,19 @@ fn validate_location_ref(
     {
         errors.push(format!(
             "action {} references unknown location {}",
-            action.id, location
+            owner, location
         ));
     }
 }
 
 fn validate_npc_ref(
     npc: &str,
-    action: &ActionDefinition,
+    owner: &str,
     npc_ids: &BTreeSet<&String>,
     errors: &mut ContentValidationError,
 ) {
     if !npc_ids.iter().any(|candidate| candidate.as_str() == npc) {
-        errors.push(format!(
-            "action {} references unknown NPC {}",
-            action.id, npc
-        ));
+        errors.push(format!("action {} references unknown NPC {}", owner, npc));
     }
 }
 
@@ -1383,6 +1915,58 @@ fn word_count(text: &str) -> usize {
     text.split_whitespace().count()
 }
 
+/// Fields for which the current effect vocabulary has no mutation operation.
+/// Mutable resources and deeds are intentionally excluded; their provenance
+/// is established by a verified trace from an exact preset genesis.
+fn static_character_fields_match(left: &Character, right: &Character) -> bool {
+    left.id == right.id
+        && left.lineage == right.lineage
+        && left.origin == right.origin
+        && left.background == right.background
+        && left.aptitudes == right.aptitudes
+        && left.skills == right.skills
+        && left.values == right.values
+        && left.traits == right.traits
+        && left.flaws == right.flaws
+        && left.appearance == right.appearance
+        && left.affiliations == right.affiliations
+        && left.reputation == right.reputation
+        && left.knowledge == right.knowledge
+        && left.inventory == right.inventory
+        && left.injuries == right.injuries
+        && left.promises == right.promises
+        && left.discoveries == right.discoveries
+        && left.facets == right.facets
+}
+
+fn single_validation_error(message: impl Into<String>) -> ContentValidationError {
+    let mut error = ContentValidationError::new();
+    error.push(message);
+    error
+}
+
+fn sort_variants(variants: &mut [TextVariant]) {
+    variants.sort_by(|left, right| {
+        right
+            .priority
+            .cmp(&left.priority)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+}
+
+fn select_variant_text(fallback: &str, variants: &[TextVariant], state: &GameState) -> String {
+    variants
+        .iter()
+        .filter(|variant| variant.condition.evaluate(state))
+        .min_by(|left, right| {
+            right
+                .priority
+                .cmp(&left.priority)
+                .then_with(|| left.id.cmp(&right.id))
+        })
+        .map_or_else(|| fallback.to_owned(), |variant| variant.text.clone())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1394,11 +1978,15 @@ mod tests {
             schema_version: manifest.schema_abi_version().to_owned(),
             rules_version: manifest.rules_abi_version().to_owned(),
             world_id: "world-1".to_owned(),
+            contract: ContentContract::Fixture,
+            start_location: "gate".to_owned(),
+            character_presets: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
                     name: "Gate".to_owned(),
                     description: "A gate stands ahead.".to_owned(),
+                    description_variants: Vec::new(),
                     exits: vec!["yard".to_owned()],
                     terminal: true,
                 },
@@ -1406,6 +1994,7 @@ mod tests {
                     id: "yard".to_owned(),
                     name: "Yard".to_owned(),
                     description: "A quiet yard rests here.".to_owned(),
+                    description_variants: Vec::new(),
                     exits: vec!["gate".to_owned()],
                     terminal: true,
                 },
@@ -1426,6 +2015,9 @@ mod tests {
         ActionDefinition {
             id: id.to_owned(),
             label: "Use".to_owned(),
+            category: "Action".to_owned(),
+            result: "The action is complete.".to_owned(),
+            result_variants: Vec::new(),
             locations: vec!["gate".to_owned()],
             condition,
             effects,
@@ -1464,6 +2056,29 @@ mod tests {
         }
     }
 
+    fn preset(id: &str, background: &str) -> CharacterPreset {
+        let mut character = character();
+        character.id = id.to_owned();
+        character.background = background.to_owned();
+        CharacterPreset {
+            id: id.to_owned(),
+            display_name: id.to_owned(),
+            summary: "A distinct starting path.".to_owned(),
+            character,
+        }
+    }
+
+    fn production_draft(actions: Vec<ActionDefinition>) -> ContentDraft {
+        let mut content = draft(actions);
+        content.contract = ContentContract::Production;
+        content.start_location = "gate".to_owned();
+        content.character_presets = vec![preset("hero", "hero"), preset("scout", "scout")];
+        content.npcs[0].goals.insert("keep watch".to_owned());
+        content.npcs[0].values.insert("order".to_owned());
+        content.npcs[0].tags.insert("guard".to_owned());
+        content
+    }
+
     fn npc_state(id: &str, location: &str) -> NpcState {
         NpcState {
             id: id.to_owned(),
@@ -1480,10 +2095,17 @@ mod tests {
     }
 
     fn state(content: &CompiledContent) -> GameState {
-        let locations = content.empty_location_runtime();
+        let mut locations = content.empty_location_runtime();
         let npcs = content
             .npcs()
-            .map(|(id, definition)| (id.clone(), npc_state(id, &definition.location)))
+            .map(|(id, definition)| {
+                locations
+                    .get_mut(&definition.location)
+                    .unwrap()
+                    .entities
+                    .insert(id.clone());
+                (id.clone(), npc_state(id, &definition.location))
+            })
             .collect();
         GameState::new(
             content.build_id().to_owned(),
@@ -1521,6 +2143,10 @@ mod tests {
         missing_location.world.locations.remove("yard");
         assert!(content.validate_state(&missing_location).is_err());
 
+        let mut missing_npc_location = state(&content);
+        missing_npc_location.world.locations.remove("gate");
+        assert!(content.validate_state(&missing_npc_location).is_err());
+
         let mut unknown_npc = state(&content);
         unknown_npc
             .world
@@ -1537,6 +2163,26 @@ mod tests {
             .entities
             .insert("sava".to_owned());
         assert!(content.validate_state(&mismatched_entity).is_err());
+
+        let mut missing_entity = state(&content);
+        missing_entity
+            .world
+            .locations
+            .get_mut("gate")
+            .unwrap()
+            .entities
+            .remove("sava");
+        assert!(content.validate_state(&missing_entity).is_err());
+
+        let mut altered_static_npc = state(&content);
+        altered_static_npc
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .tags
+            .insert("forged-tag".to_owned());
+        assert!(content.validate_state(&altered_static_npc).is_err());
     }
 
     #[test]
@@ -1647,7 +2293,22 @@ mod tests {
             error
                 .issues
                 .iter()
-                .any(|issue| issue.contains("Condition::Never"))
+                .any(|issue| issue.contains("impossible condition"))
+        );
+
+        let not_always = action(
+            "not-always",
+            Condition::Not {
+                condition: Box::new(Condition::Always),
+            },
+            vec![Effect::Noop],
+        );
+        let error = compile(draft(vec![not_always])).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("impossible condition"))
         );
 
         let empty = action(
@@ -1776,7 +2437,13 @@ mod tests {
         left.npcs.reverse();
         right.locations.reverse();
         right.npcs.reverse();
-        right.actions[0].parameters.reverse();
+        right
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "first")
+            .expect("reordered action must be present")
+            .parameters
+            .reverse();
 
         let left = compile(left).unwrap();
         let right = compile(right).unwrap();
@@ -1805,5 +2472,237 @@ mod tests {
                 .iter()
                 .any(|issue| issue.contains("declares unused parameter"))
         );
+    }
+
+    #[test]
+    fn new_game_is_deterministic_and_populates_npc_indexes_from_content() {
+        let content = compile(production_draft(Vec::new())).unwrap();
+        let left = content.new_game("hero", 123).unwrap();
+        let right = content.new_game("hero", 123).unwrap();
+        assert_eq!(left, right);
+        assert_eq!(left.world.id, "world-1");
+        assert_eq!(left.world.current_location, "gate");
+        assert_eq!(left.character.id, "hero");
+        assert_eq!(left.entropy, EntropyState::new(123));
+        assert_eq!(
+            left.world.npcs["sava"].goals,
+            BTreeSet::from(["keep watch".to_owned()])
+        );
+        assert_eq!(
+            left.world.npcs["sava"].values,
+            BTreeSet::from(["order".to_owned()])
+        );
+        assert_eq!(
+            left.world.npcs["sava"].tags,
+            BTreeSet::from(["guard".to_owned()])
+        );
+        assert!(left.world.locations["gate"].entities.contains("sava"));
+        assert!(content.new_game("missing", 123).is_err());
+
+        let mut forged_identity = left.clone();
+        forged_identity.character.background = "forged".to_owned();
+        assert!(content.validate_state(&forged_identity).is_err());
+
+        let mut progressed = left;
+        progressed.character.resources.insert("coin".to_owned(), 99);
+        progressed.character.deeds.insert("later-deed".to_owned());
+        assert!(content.validate_state(&progressed).is_ok());
+    }
+
+    #[test]
+    fn production_contract_requires_start_and_two_presets() {
+        let mut content = production_draft(Vec::new());
+        content.character_presets.pop();
+        content.start_location.clear();
+        let error = compile(content).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("at least two character presets"))
+        );
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("start_location"))
+        );
+    }
+
+    #[test]
+    fn presentation_selects_conditions_with_stable_priority_and_tie_breaks() {
+        let mut inspect = action(
+            "inspect",
+            Condition::Always,
+            vec![Effect::SetFlag {
+                flag: "inspected".to_owned(),
+                value: true,
+            }],
+        );
+        inspect.result = "The inspection is complete.".to_owned();
+        inspect.result_variants = vec![
+            TextVariant {
+                id: "flagged".to_owned(),
+                priority: 5,
+                condition: Condition::WorldFlag {
+                    flag: "special".to_owned(),
+                },
+                text: "The marked result appears.".to_owned(),
+            },
+            TextVariant {
+                id: "facet".to_owned(),
+                priority: 5,
+                condition: Condition::FacetEquals {
+                    axis: "background".to_owned(),
+                    value: FacetValue::Text("hero".to_owned()),
+                },
+                text: "The skilled result appears.".to_owned(),
+            },
+            TextVariant {
+                id: "base".to_owned(),
+                priority: 1,
+                condition: Condition::Always,
+                text: "The ordinary result appears.".to_owned(),
+            },
+        ];
+        let mut content = production_draft(vec![inspect]);
+        content.locations[0].description_variants = vec![
+            TextVariant {
+                id: "zeta".to_owned(),
+                priority: 3,
+                condition: Condition::Always,
+                text: "The later description wins only by tie.".to_owned(),
+            },
+            TextVariant {
+                id: "alpha".to_owned(),
+                priority: 3,
+                condition: Condition::Always,
+                text: "The earlier description wins by ID.".to_owned(),
+            },
+            TextVariant {
+                id: "hero".to_owned(),
+                priority: 4,
+                condition: Condition::FacetEquals {
+                    axis: "background".to_owned(),
+                    value: FacetValue::Text("hero".to_owned()),
+                },
+                text: "The hero sees a bright gate.".to_owned(),
+            },
+        ];
+        let content = compile(content).unwrap();
+        let hero = content.new_game("hero", 1).unwrap();
+        let scout = content.new_game("scout", 1).unwrap();
+        assert_eq!(
+            content.location_description(&hero).unwrap(),
+            "The hero sees a bright gate."
+        );
+        assert_eq!(
+            content.location_description(&scout).unwrap(),
+            "The earlier description wins by ID."
+        );
+        assert_eq!(
+            content.action_result(&scout, "inspect").unwrap(),
+            "The ordinary result appears."
+        );
+        let mut flagged = scout.clone();
+        flagged.world.flags.insert("special".to_owned());
+        assert_eq!(
+            content.action_result(&flagged, "inspect").unwrap(),
+            "The marked result appears."
+        );
+        let observation = content.observe_action(&flagged, "inspect").unwrap();
+        assert_eq!(
+            observation.result.as_deref(),
+            Some("The marked result appears.")
+        );
+        assert!(observation.text.starts_with("The marked result appears."));
+        assert_eq!(observation.location_id, "gate");
+        assert_eq!(observation.title, "Gate");
+        assert!(observation.text.split_whitespace().count() <= 100);
+    }
+
+    #[test]
+    fn validates_category_result_and_variant_sentence_limits() {
+        let mut over_category = action("category", Condition::Always, vec![Effect::Noop]);
+        over_category.category = "one two three four".to_owned();
+        assert!(compile(draft(vec![over_category])).is_err());
+
+        let mut over_result = action("result", Condition::Always, vec![Effect::Noop]);
+        over_result.result = std::iter::repeat_n("word", 61)
+            .collect::<Vec<_>>()
+            .join(" ");
+        assert!(compile(draft(vec![over_result])).is_err());
+
+        let mut over_variant = action("variant", Condition::Always, vec![Effect::Noop]);
+        over_variant.result_variants = vec![TextVariant {
+            id: "too-long".to_owned(),
+            priority: 1,
+            condition: Condition::Always,
+            text: "First sentence. Second sentence.".to_owned(),
+        }];
+        assert!(compile(draft(vec![over_variant])).is_err());
+    }
+
+    #[test]
+    fn action_pages_union_to_the_full_catalog_and_keep_one_digest() {
+        let destinations: Vec<_> = (0..256).map(|index| format!("page-{index:03}")).collect();
+        let mut travel = action(
+            "travel",
+            Condition::Always,
+            vec![Effect::MoveCharacter {
+                location: StringRef::Parameter("destination".to_owned()),
+            }],
+        );
+        travel.parameters = vec![ParameterSpec {
+            name: "destination".to_owned(),
+            domain: ParameterDomain::LocationsAdjacent,
+        }];
+        travel.meaningful = true;
+        travel.movement = true;
+        let mut content = draft(vec![travel]);
+        content.locations = std::iter::once(LocationDefinition {
+            id: "gate".to_owned(),
+            name: "Gate".to_owned(),
+            description: "A gate opens to many roads.".to_owned(),
+            description_variants: Vec::new(),
+            exits: destinations.clone(),
+            terminal: true,
+        })
+        .chain(destinations.iter().map(|id| LocationDefinition {
+            id: id.clone(),
+            name: id.clone(),
+            description: "A marked road ends here.".to_owned(),
+            description_variants: Vec::new(),
+            exits: vec!["gate".to_owned()],
+            terminal: true,
+        }))
+        .collect();
+        let content = compile(content).unwrap();
+        let state = state(&content);
+        let full = crate::enumerate_legal_actions(&state, &content).unwrap();
+        assert_eq!(full.len(), 256);
+        let expected_ids: Vec<_> = full.iter().map(|action| action.action_id.clone()).collect();
+        let mut pages = Vec::new();
+        let mut offset = 0;
+        let mut digest = None;
+        loop {
+            let page = content.action_page(&state, offset, 17).unwrap();
+            assert_eq!(page.build_id, content.build_id());
+            assert_eq!(page.state_id, state.state_id());
+            assert_eq!(page.total, 256);
+            if let Some(expected) = &digest {
+                assert_eq!(expected, &page.digest);
+            } else {
+                digest = Some(page.digest.clone());
+            }
+            pages.extend(page.actions.iter().map(|action| action.action_id.clone()));
+            match page.next_offset {
+                Some(next) => offset = next,
+                None => break,
+            }
+        }
+        assert_eq!(pages, expected_ids);
+        let expected_digest = crate::legal_action_digest(&full).unwrap();
+        assert_eq!(digest.as_deref(), Some(expected_digest.as_str()));
     }
 }

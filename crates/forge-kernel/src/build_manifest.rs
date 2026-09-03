@@ -10,6 +10,7 @@ include!(concat!(env!("OUT_DIR"), "/generated_build_manifest.rs"));
 pub struct BuildManifest {
     kernel_source_sha256: String,
     compiler_source_sha256: String,
+    replay_source_sha256: String,
     cargo_lock_sha256: String,
     rust_toolchain_sha256: String,
     authoritative_config_sha256: String,
@@ -26,6 +27,7 @@ impl BuildManifest {
         Self {
             kernel_source_sha256: KERNEL_SOURCE_SHA256.to_owned(),
             compiler_source_sha256: COMPILER_SOURCE_SHA256.to_owned(),
+            replay_source_sha256: REPLAY_SOURCE_SHA256.to_owned(),
             cargo_lock_sha256: CARGO_LOCK_SHA256.to_owned(),
             rust_toolchain_sha256: RUST_TOOLCHAIN_SHA256.to_owned(),
             authoritative_config_sha256: AUTHORITATIVE_CONFIG_SHA256.to_owned(),
@@ -44,6 +46,10 @@ impl BuildManifest {
 
     pub fn compiler_source_sha256(&self) -> &str {
         &self.compiler_source_sha256
+    }
+
+    pub fn replay_source_sha256(&self) -> &str {
+        &self.replay_source_sha256
     }
 
     pub fn cargo_lock_sha256(&self) -> &str {
@@ -90,6 +96,7 @@ impl BuildManifest {
 #[cfg(test)]
 mod tests {
     use super::BuildManifest;
+    use serde_json::Value;
 
     fn assert_digest(value: &str) {
         assert_eq!(value.len(), 64);
@@ -106,6 +113,7 @@ mod tests {
         for digest in [
             first.kernel_source_sha256(),
             first.compiler_source_sha256(),
+            first.replay_source_sha256(),
             first.cargo_lock_sha256(),
             first.rust_toolchain_sha256(),
             first.authoritative_config_sha256(),
@@ -123,8 +131,27 @@ mod tests {
     #[test]
     fn generated_manifest_carries_only_repository_trusted_abi() {
         let manifest = BuildManifest::generated();
-        assert_eq!(manifest.schema_abi_version(), "forge-schema-v1");
+        assert_eq!(manifest.schema_abi_version(), "forge-schema-v2");
         assert_eq!(manifest.rules_abi_version(), "forge-rules-v1");
         assert_eq!(manifest.entropy_algorithm(), "splitmix64-v1");
+        assert_eq!(
+            manifest.entropy_algorithm(),
+            crate::ENTROPY_ALGORITHM_VERSION
+        );
+
+        let declared: Value = serde_json::from_str(include_str!("../schema-rules-abi.json"))
+            .expect("ABI declaration must be valid JSON");
+        assert_eq!(
+            declared["schema_abi"].as_str(),
+            Some(manifest.schema_abi_version())
+        );
+        assert_eq!(
+            declared["rules_abi"].as_str(),
+            Some(manifest.rules_abi_version())
+        );
+        assert_eq!(
+            declared["entropy_algorithm"].as_str(),
+            Some(manifest.entropy_algorithm())
+        );
     }
 }

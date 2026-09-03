@@ -50,13 +50,26 @@ fn digest_files(repo_root: &Path, paths: &[PathBuf]) -> String {
 }
 
 fn digest_file(path: &Path) -> String {
-    match fs::read(path) {
-        Ok(bytes) => sha256_hex(&bytes),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            sha256_hex(format!("missing:{}", path.display()).as_bytes())
-        }
-        Err(error) => panic!("cannot read build input {}: {error}", path.display()),
-    }
+    let bytes = fs::read(path).unwrap_or_else(|error| {
+        panic!(
+            "cannot read required build input {}: {error}",
+            path.display()
+        )
+    });
+    sha256_hex(&bytes)
+}
+
+fn declared_abi(path: &Path, field: &str) -> String {
+    let bytes = fs::read(path)
+        .unwrap_or_else(|error| panic!("cannot read ABI declaration {}: {error}", path.display()));
+    let declaration: serde_json::Value = serde_json::from_slice(&bytes)
+        .unwrap_or_else(|error| panic!("cannot parse ABI declaration {}: {error}", path.display()));
+    declaration
+        .get(field)
+        .and_then(serde_json::Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| panic!("ABI declaration is missing nonempty string field {field}"))
+        .to_owned()
 }
 
 fn main() {
@@ -68,11 +81,14 @@ fn main() {
         .to_path_buf();
     let kernel = repo_root.join("crates/forge-kernel");
     let compiler = repo_root.join("crates/forge-content");
+    let replay = repo_root.join("crates/forge-replay");
 
     let kernel_source_files = files_under(&kernel.join("src"));
     let compiler_source_files = files_under(&compiler.join("src"));
+    let mut replay_source_files = files_under(&replay.join("src"));
     let kernel_manifest = kernel.join("Cargo.toml");
     let compiler_manifest = compiler.join("Cargo.toml");
+    let replay_manifest = replay.join("Cargo.toml");
     let kernel_build = kernel.join("build.rs");
     let compiler_build = compiler.join("build.rs");
     let cargo_manifest = repo_root.join("Cargo.toml");
@@ -80,6 +96,9 @@ fn main() {
     let toolchain = repo_root.join("rust-toolchain.toml");
     let config = kernel.join("authoritative-config.json");
     let abi = kernel.join("schema-rules-abi.json");
+    let schema_abi = declared_abi(&abi, "schema_abi");
+    let rules_abi = declared_abi(&abi, "rules_abi");
+    let entropy_algorithm = declared_abi(&abi, "entropy_algorithm");
 
     let mut kernel_inputs = kernel_source_files.clone();
     kernel_inputs.extend([
@@ -90,9 +109,12 @@ fn main() {
     ]);
     let mut compiler_inputs = compiler_source_files.clone();
     compiler_inputs.extend([compiler_manifest.clone(), compiler_build.clone()]);
+    replay_source_files.push(replay_manifest.clone());
+    replay_source_files.sort();
     let mut scripts_and_manifests = vec![
         kernel_manifest.clone(),
         compiler_manifest.clone(),
+        replay_manifest,
         kernel_build.clone(),
         compiler_build.clone(),
         cargo_manifest.clone(),
@@ -105,32 +127,43 @@ fn main() {
     for path in kernel_inputs
         .iter()
         .chain(compiler_inputs.iter())
+        .chain(replay_source_files.iter())
         .chain(scripts_and_manifests.iter())
     {
         println!("cargo:rerun-if-changed={}", path.display());
+    }
+    // Watching the directories as well as their current files makes an
+    // incremental build notice newly added authoritative source files.
+    for source_dir in [kernel.join("src"), compiler.join("src"), replay.join("src")] {
+        println!("cargo:rerun-if-changed={}", source_dir.display());
     }
     println!("cargo:rerun-if-changed={}", cargo_lock.display());
 
     let output = format!(
         "pub const KERNEL_SOURCE_SHA256: &str = \"{}\";\n\
          pub const COMPILER_SOURCE_SHA256: &str = \"{}\";\n\
+         pub const REPLAY_SOURCE_SHA256: &str = \"{}\";\n\
          pub const CARGO_LOCK_SHA256: &str = \"{}\";\n\
          pub const RUST_TOOLCHAIN_SHA256: &str = \"{}\";\n\
          pub const AUTHORITATIVE_CONFIG_SHA256: &str = \"{}\";\n\
          pub const SCHEMA_RULES_ABI_SHA256: &str = \"{}\";\n\
          pub const BUILD_SCRIPTS_AND_MANIFESTS_SHA256: &str = \"{}\";\n\
-         pub const SCHEMA_ABI_VERSION: &str = \"forge-schema-v1\";\n\
-         pub const RULES_ABI_VERSION: &str = \"forge-rules-v1\";\n\
-         pub const ENTROPY_ALGORITHM: &str = \"splitmix64-v1\";\n\
+         pub const SCHEMA_ABI_VERSION: &str = \"{}\";\n\
+         pub const RULES_ABI_VERSION: &str = \"{}\";\n\
+         pub const ENTROPY_ALGORITHM: &str = \"{}\";\n\
          pub const ENTROPY_ALGORITHM_SHA256: &str = \"{}\";\n",
         digest_files(&repo_root, &kernel_inputs),
         digest_files(&repo_root, &compiler_inputs),
+        digest_files(&repo_root, &replay_source_files),
         digest_file(&cargo_lock),
         digest_file(&toolchain),
         digest_file(&config),
         digest_file(&abi),
         digest_files(&repo_root, &scripts_and_manifests),
-        sha256_hex(b"splitmix64-v1"),
+        schema_abi,
+        rules_abi,
+        entropy_algorithm,
+        sha256_hex(entropy_algorithm.as_bytes()),
     );
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR"));
     fs::write(out_dir.join("generated_build_manifest.rs"), output)
