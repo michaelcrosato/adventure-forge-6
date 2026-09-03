@@ -1,0 +1,15 @@
+[package]
+name = "forge-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "forge"
+path = "src/main.rs"
+
+[dependencies]
+forge-content = { path = "../forge-content" }
+forge-kernel = { path = "../forge-kernel" }
+forge-replay = { path = "../forge-replay" }

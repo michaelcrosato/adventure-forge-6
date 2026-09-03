@@ -17,6 +17,12 @@ use std::fmt::{Debug, Display, Formatter};
 /// Version the serialized trace format and receipt domain.
 pub const TRACE_FORMAT_VERSION: &str = "forge-replay-v1";
 
+/// Version for the player-safe, portable replay record. Unlike [`Trace`], this
+/// format deliberately omits authoritative state, events, entropy, and
+/// observations. A trusted process reconstructs those claims from the start
+/// specification and the chosen canonical action identities.
+pub const PLAYER_TRACE_FORMAT_VERSION: &str = "forge-player-trace-v1";
+
 /// Declares how the trace's genesis state was obtained. Production evidence
 /// must name an authored preset and seed so a verifier can reconstruct that
 /// state instead of trusting a caller-supplied character sheet.
@@ -178,6 +184,41 @@ pub struct Trace {
     pub final_receipt: String,
 }
 
+/// A player-safe save and replay record.
+///
+/// The detailed [`Trace`] remains an internal verification witness because it
+/// contains hidden state and events. This portable form contains only public
+/// start inputs, player-selected opaque action identities, and opaque final
+/// commitments. Loading it always reconstructs every step through the kernel.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct PlayerTrace {
+    format_version: String,
+    build_id: String,
+    character_preset_id: String,
+    seed: u64,
+    action_ids: Vec<String>,
+    final_state_id: String,
+    final_receipt: String,
+}
+
+impl PlayerTrace {
+    /// Encode a player-safe trace for a caller-managed save boundary.
+    pub fn to_json(&self) -> Result<String, ReplayError> {
+        serde_json::to_string(self).map_err(ReplayError::from)
+    }
+
+    /// Decode without accepting the record. [`resume_player_trace`] must
+    /// reconstruct it against the exact compiled content before use.
+    pub fn from_json(input: &str) -> Result<Self, ReplayError> {
+        serde_json::from_str(input).map_err(ReplayError::from)
+    }
+
+    pub fn action_count(&self) -> usize {
+        self.action_ids.len()
+    }
+}
+
 #[derive(Serialize)]
 struct InitialReceiptInput<'a> {
     trace_format_version: &'static str,
@@ -266,6 +307,38 @@ impl<'content> Session<'content> {
 
     pub fn into_trace(self) -> Trace {
         self.trace
+    }
+
+    /// Produce a portable save without exposing hidden state or events.
+    pub fn player_trace(&self) -> Result<PlayerTrace, ReplayError> {
+        let TraceStart::CharacterPreset {
+            character_preset_id,
+            seed,
+        } = &self.trace.start
+        else {
+            return Err(ReplayError::InvalidTrace(
+                "only authored character starts can become player traces".to_owned(),
+            ));
+        };
+        let mut action_ids = Vec::new();
+        action_ids
+            .try_reserve(self.trace.steps.len())
+            .map_err(|error| ReplayError::ResourceExhausted(error.to_string()))?;
+        action_ids.extend(
+            self.trace
+                .steps
+                .iter()
+                .map(|step| step.action.action_id.clone()),
+        );
+        Ok(PlayerTrace {
+            format_version: PLAYER_TRACE_FORMAT_VERSION.to_owned(),
+            build_id: self.trace.build_id.clone(),
+            character_preset_id: character_preset_id.clone(),
+            seed: *seed,
+            action_ids,
+            final_state_id: self.trace.final_state_id.clone(),
+            final_receipt: self.trace.final_receipt.clone(),
+        })
     }
 
     /// Apply one caller-selected canonical action and append its witness.
@@ -496,6 +569,54 @@ pub fn resume<'content>(
         state,
         trace: trace.clone(),
     })
+}
+
+/// Reconstruct a player-safe record through current kernel enumeration.
+///
+/// No serialized action is trusted: every opaque identity must match one
+/// action in the complete legal set at that exact reconstructed state.
+pub fn resume_player_trace<'content>(
+    player_trace: &PlayerTrace,
+    content: &'content CompiledContent,
+) -> Result<Session<'content>, ReplayError> {
+    if player_trace.format_version != PLAYER_TRACE_FORMAT_VERSION {
+        return Err(ReplayError::InvalidTrace(format!(
+            "unsupported player trace format version {}",
+            player_trace.format_version
+        )));
+    }
+    check_equal(
+        "build_id",
+        content.build_id(),
+        player_trace.build_id.as_str(),
+    )?;
+    let mut session = Session::new_game(
+        &player_trace.character_preset_id,
+        player_trace.seed,
+        content,
+    )?;
+    for (position, action_id) in player_trace.action_ids.iter().enumerate() {
+        let action = enumerate_legal_actions(session.state(), content)?
+            .into_iter()
+            .find(|action| action.action_id == *action_id)
+            .ok_or_else(|| {
+                ReplayError::InvalidTrace(format!(
+                    "action_ids[{position}] is not legal in its reconstructed state"
+                ))
+            })?;
+        session.record(&action)?;
+    }
+    check_equal(
+        "final_state_id",
+        &session.trace.final_state_id,
+        &player_trace.final_state_id,
+    )?;
+    check_equal(
+        "final_receipt",
+        &session.trace.final_receipt,
+        &player_trace.final_receipt,
+    )?;
+    Ok(session)
 }
 
 fn identify_start(state: &GameState, content: &CompiledContent) -> Result<TraceStart, ReplayError> {
@@ -816,6 +937,15 @@ mod tests {
         session.into_trace()
     }
 
+    fn two_step_production_session(content: &CompiledContent) -> Session<'_> {
+        let mut session = Session::new_game("ilyan", 71, content).expect("session starts");
+        let first = action_for(session.state(), content, "roll");
+        session.record(&first).expect("roll records");
+        let second = action_for(session.state(), content, "wait");
+        session.record(&second).expect("wait records");
+        session
+    }
+
     #[test]
     fn receipts_are_deterministic_and_bind_the_full_chain() {
         let content = content();
@@ -882,6 +1012,59 @@ mod tests {
             verify(&decoded, &content).unwrap(),
             verify(&trace, &content).unwrap()
         );
+    }
+
+    #[test]
+    fn player_trace_omits_hidden_claims_and_reconstructs_exactly() {
+        let content = production_content();
+        let session = two_step_production_session(&content);
+        let expected = session.trace().clone();
+        let player_trace = session.player_trace().unwrap();
+        let json = player_trace.to_json().unwrap();
+        let document: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let mut keys: Vec<_> = document
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        keys.sort_unstable();
+        assert_eq!(
+            keys,
+            [
+                "action_ids",
+                "build_id",
+                "character_preset_id",
+                "final_receipt",
+                "final_state_id",
+                "format_version",
+                "seed",
+            ]
+        );
+
+        let decoded = PlayerTrace::from_json(&json).unwrap();
+        let reconstructed = resume_player_trace(&decoded, &content).unwrap();
+        assert_eq!(reconstructed.trace(), &expected);
+        assert_eq!(reconstructed.state(), &verify(&expected, &content).unwrap());
+    }
+
+    #[test]
+    fn player_trace_rejects_tampering_and_fixture_genesis() {
+        let production = production_content();
+        let session = two_step_production_session(&production);
+        let player_trace = session.player_trace().unwrap();
+
+        let mut changed = player_trace.clone();
+        changed.action_ids[0].push('x');
+        assert!(resume_player_trace(&changed, &production).is_err());
+
+        let mut changed = player_trace.clone();
+        changed.final_receipt.push('x');
+        assert!(resume_player_trace(&changed, &production).is_err());
+
+        let fixture = content();
+        let fixture_session = Session::new(state(&fixture), &fixture).unwrap();
+        assert!(fixture_session.player_trace().is_err());
     }
 
     #[test]

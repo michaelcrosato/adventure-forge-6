@@ -47,6 +47,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-cli"
+version = "0.1.0"
+dependencies = [
+ "forge-content",
+ "forge-kernel",
+ "forge-replay",
+]
+
+[[package]]
 name = "forge-content"
 version = "0.1.0"
 dependencies = [

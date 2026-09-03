@@ -1,19 +1,21 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 2
-Release state: no playable release  
-Active milestone: 0 — Honest kernel foundation
+Manager cycle: 3
+Release state: playable CLI slice; no public release
+Active milestone: 0 — Verified CLI foundation
 
 ## Current truth
 
 - The local repository is a Git repository on branch `main`.
 - `origin` is the public HTTPS repository `https://github.com/michaelcrosato/adventure-forge-6`.
 - The four founding documents are preserved in commit `594183b`, consolidated into `PLAN.md`, and removed from the live tree.
-- The authoritative kernel, production content compiler, and in-memory replay layer pass the local mechanical gate.
+- The authoritative kernel, production content compiler, replay layer, and player CLI pass the local mechanical gate.
 - The Split Tide production pack contains 6 connected locations, 5 named inhabitants, 2 complete starting presets, and 47 programmed action definitions.
 - Replay receipts bind authored preset genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
-- This is a tested foundation, not a playable release or evidence of final scale.
+- Players can start as Ilyan or Rook, page or search every current legal action, save atomically, resume, and render a verified replay.
+- Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from canonical action identities.
+- This is a playable tested slice, not a public release or evidence of final scale.
 
 ## Constraint evidence
 
@@ -24,21 +26,21 @@ Active milestone: 0 — Honest kernel foundation
 | One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return | Long-session and broader cross-region continuity |
 | Skyrim breadth | Not built | Honest expansion strategy only | 500-node capacity fixture, then authored comparative evidence |
 | BG3-like area depth | Not built | Two-area contract only | Blindly sampled Split Tide approaches and outcomes |
-| Action-first play | Partial | Result-first observations expose full legal-action count and digest under the text budget | Play transcript and action/read measurements |
-| No fixed action cap | Partial | Kernel and presentation pages cover all 256 executable stress actions with one digest and checked allocation | Search union proof and larger scale fixture |
+| Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
+| No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog | Larger scale fixture and independent union witness |
 | Deterministic authority | Partial | Pure reducer plus deterministic multi-step record/replay/resume tests bind observations and explicit entropy | Clean-process trace equality and state exploration |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
-| Replay and persistence | Partial | JSON trace round-trip, receipt-chain tamper rejection, preset-genesis reconstruction, and resume parity pass in-process | CLI saves and independent clean-process replay |
-| Blind play | Not built | Firewall design recorded | Locked environment and canary probes |
+| Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, and exact resumed parity pass | Automated independent clean-process replay and corruption corpus |
+| Blind play | Partial | CLI output tests expose only observations and public commitments; persisted player traces omit verifier state and events | Locked environment, process boundary, and canary probes |
 | Manager operation | Partial | Charter, plan, accepted delegated implementation, rejected first candidate, and task-splitting process change | Full verified-finding improvement cycle |
 
 ## Active queue
 
-1. Add the CLI player loop with save, resume, trace export, replay, paging, and search over canonical actions.
-2. Add an independent clean-process replay verifier and checked witness files.
-3. Prove all current Split Tide actions execute from every state where they are advertised.
-4. Add a bounded crawler and first outcome witness traces.
-5. Run the first player-surface session and improve the weakest observed interaction.
+1. Add an independent clean-process replay verifier and checked witness files.
+2. Prove all current Split Tide actions execute from every state where they are advertised.
+3. Add a bounded crawler and first outcome witness traces.
+4. Run the first locked blind-player session with canary probes.
+5. Improve the weakest interaction found by direct player evidence.
 
 ## Delegation ledger
 
@@ -57,6 +59,8 @@ Active milestone: 0 — Honest kernel foundation
 | 2 | Production content migration | `gpt-5.6-luna` / max | Migrate Split Tide and its tests without engine edits | Strict compile plus counterfactual, prose, paging, and return proofs | Accepted after restoring the temporarily removed test gate |
 | 2 | Presentation audit | `gpt-5.6-luna` / max | Review only start-state and presentation authority | Concrete severity-ranked findings | Accepted; manager closed production-boundary findings |
 | 2 | Replay audit | `gpt-5.6-luna` / max | Review only trace integrity, transactionality, and malformed inputs | Concrete severity-ranked findings | Rejected candidate; manager closed panic and transition-forgery paths |
+| 3 | CLI implementation | `gpt-5.6-luna` / max | Add the first complete terminal player adapter | Play, paging, search, save, replay, resume, tests | Stopped after no timely implementation; manager completed the lane |
+| 3 | CLI boundary audit | `gpt-5.6-luna` / max | Review only authority, hidden output, persistence, navigation, and parsing | Severity-ranked current-tree verdict | Rejected first snapshot; persistence and coverage findings closed before acceptance |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -96,6 +100,10 @@ The first hardening task became too broad and was interrupted during a file rewr
 
 Production compilation is required by a trusted caller rather than selected only by the content document. A production trace reconstructs its named preset and seed, and every initial and post-action player observation is independently recomputed during replay. Raw structurally valid states remain useful kernel inputs, but they are not accepted as evidence without a verified trace lineage.
 
+### D-009: Player saves are replay recipes, not internal witnesses
+
+The detailed verifier trace contains authoritative state, events, entropy, and observations, so it stays behind the trusted player boundary. The portable player trace stores only its format and build, authored preset and seed, opaque selected action identities, and final state and receipt commitments. Resume and replay rebuild every step from the complete kernel-enumerated legal set. CLI saves use a bounded same-directory temporary file, durable file flush, atomic rename, and directory sync so a failed write does not first truncate a valid save.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -109,8 +117,8 @@ Production compilation is required by a trusted caller rather than selected only
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 6 real-content integration tests, 8 replay unit tests, and 2 real Split Tide replay tests. It covers deterministic in-process recording, JSON round-trip, field-tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, resume parity, and one multi-area production trace. It does not yet cover file-backed CLI saves, independent cross-process execution, blind isolation, crawler exploration, full text policy, or final game scale.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 6 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, and 9 CLI tests: 56 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, and one multi-area production trace. It does not yet automate independent clean-process equality, blind isolation, crawler exploration, full text policy, or final game scale.
 
 ## Next reassessment trigger
 
-Reassess after replay and the first CLI session. If players cannot understand consequences from bounded observations, prioritize presentation and action feedback before expanding the map.
+Reassess after the first locked blind-player session. If players cannot understand consequences from bounded observations, prioritize presentation and action feedback before expanding the map.

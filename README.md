@@ -6,19 +6,27 @@ The first playable arc is **The Split Tide**. A forged water order and a stolen 
 
 ## Current state
 
-The project is in Milestone 0: honest kernel foundation. It is not yet a playable release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
+The project is in Milestone 0 with a playable CLI slice. It is not yet a public release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
 
-## Intended commands
+## Play and verify
 
-As the foundation lands, these stable entry points will be maintained:
+List the two current characters, start a game, or run a short deterministic demo:
 
 ```bash
-./verify
-cargo run -p forge-cli -- play
-cargo run -p forge-cli -- replay <trace>
+cargo run -p forge-cli -- characters
+cargo run -p forge-cli -- play --character ilyan
+cargo run -p forge-cli -- demo --character rook --output rook.trace.json
 ```
 
-`./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after the CLI slice is proven.
+During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
+
+```bash
+cargo run -p forge-cli -- replay rook.trace.json
+cargo run -p forge-cli -- resume rook.trace.json
+./verify
+```
+
+`./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
 ## Core promises
 
@@ -31,4 +39,3 @@ cargo run -p forge-cli -- replay <trace>
 ## Repository history
 
 The four founding briefs are preserved in Git commit `594183b`. Their consolidated requirements and the active roadmap are in `PLAN.md`.
-
