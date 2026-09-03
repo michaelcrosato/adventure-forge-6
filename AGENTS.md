@@ -30,6 +30,7 @@ These boundaries can be implemented differently, but their meaning cannot be cha
 8. Record material architecture, workflow, evidence, scope, or risk changes in `PROJECT_STATE.md`.
 9. Preserve unrelated user work and do not rewrite another active agent's scoped files.
 10. Do not claim Skyrim breadth, BG3 area depth, blindness, or full conformance from fixtures or indirect evidence.
+11. Push every commit to `origin/main` immediately. A local-only commit is incomplete work.
 
 ## Content rules
 
@@ -47,4 +48,3 @@ These boundaries can be implemented differently, but their meaning cannot be cha
 ## Definition of done for a change
 
 A change is accepted only when its requested behavior is present, focused checks pass, relevant old evidence still passes, no client authority or hidden nondeterminism was added, and durable project state reflects any material consequence. Passing tests is evidence for what those tests cover, not proof of the entire project goal.
-

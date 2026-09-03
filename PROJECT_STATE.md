@@ -71,6 +71,10 @@ The default sentence limit is eighteen words and action labels prefer one to thr
 
 Generated topology is a capacity or travel substrate claim. It becomes shipped scale only after distinct mechanics, cast, interactions, outcomes, reactions, revisits, cross-area effects, and witnesses pass.
 
+### D-006: Push every commit
+
+Every commit is pushed to `origin/main` immediately. A commit that exists only in the local repository is not a completed integration step.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -84,4 +88,3 @@ Generated topology is a capacity or travel substrate claim. It becomes shipped s
 ## Next reassessment trigger
 
 Reassess after the first kernel/content tests run. If deterministic identity, DSL closure, or action completeness is weak, repair the foundation before authoring more world content.
-
