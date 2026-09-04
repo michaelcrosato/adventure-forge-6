@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck disable=SC1091
 source "$SCRIPT_DIR/live-blind-llm-playtest.sh"
 
+[[ "$LIVE_DEFAULT_MODEL" == "gpt-5.6-luna" ]]
+[[ "$LIVE_DEFAULT_REASONING_EFFORT" == "max" ]]
+
 TEST_DIR="$(mktemp -d /tmp/forge-live-auth-test.XXXXXX)"
 cleanup_test() {
     case "$TEST_DIR" in

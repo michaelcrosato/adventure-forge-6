@@ -47,18 +47,14 @@ fn real_split_tide_path_round_trips_and_replays() {
     let mut session = Session::new_game("ilyan", 71, &content).expect("session starts");
 
     record(&mut session, &content, "checkpoint.audit_order", None);
+    record(&mut session, &content, "checkpoint.show_charter", None);
     record(
         &mut session,
         &content,
         "travel_adjacent",
         Some(("destination", "lowsail.levee")),
     );
-    record(
-        &mut session,
-        &content,
-        "travel_adjacent",
-        Some(("destination", "red_sluice.floor")),
-    );
+    record(&mut session, &content, "levee.authority_path", None);
     record(&mut session, &content, "floor.read_harmonics", None);
     record(
         &mut session,
@@ -68,17 +64,12 @@ fn real_split_tide_path_round_trips_and_replays() {
     );
     record(&mut session, &content, "top.check_wheels", None);
     record(&mut session, &content, "top.split_flow", None);
-    record(
-        &mut session,
-        &content,
-        "travel_adjacent",
-        Some(("destination", "lowsail.return")),
-    );
+    record(&mut session, &content, "top.return_lowsail", None);
 
     assert!(session.state().world.flags.contains("flow_split"));
     assert_eq!(
         session.trace().steps.last().unwrap().observation.text,
-        "You move along the connected path. The market stands above calm water while both shores still receive a share."
+        "You return to Lowsail and see what the changed water has done. The market stands above calm water while both shores still receive a share."
     );
 
     let encoded = session.trace().to_json().expect("trace serializes");

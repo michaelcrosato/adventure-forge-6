@@ -36,7 +36,7 @@ On Linux, the same gate builds a stripped release-only player bundle and runs a 
 
 This scripted rehearsal is process-isolation evidence, not an actual blind-AI playtest, a model prompt-injection test, or proof against binary reverse engineering. Those claims remain separate milestone requirements.
 
-The live model runner uses the saved Codex ChatGPT subscription login and has no API-key fallback:
+The live model runner defaults to `gpt-5.6-luna` at maximum reasoning. It uses the saved Codex ChatGPT subscription login and has no API-key fallback:
 
 ```bash
 ./tools/live-blind-llm-playtest.sh --auth-check
@@ -62,7 +62,7 @@ cargo run -p forge-verify -- check-scale evidence/scale/synthetic-ring-500.json
 
 Each scenario has an opaque binding over its ID, canonical authored start, seed, complete parameter maps, ordered action recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. JSON inputs are preflighted for duplicate object keys before typed decoding. Area witnesses are representative contract evidence, not a claim of final world depth.
 
-The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 47 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
+The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 49 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
 
 The separate scale fixture compiles exactly 500 terminal synthetic locations in a reciprocal ring, admits their exact runtime ID set, independently proves graph reachability, and completes 500 kernel-enumerated travel transitions back to its start. It reconstructs every page of every travel-state catalog under fixed graph-frontier, catalog-work, and serialization ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. This proves engine and compiler capacity only; the generated nodes are not game content and do not count as authored breadth, area depth, or Skyrim parity.
 

@@ -1,6 +1,6 @@
 {
-  "verifier_id": "5534e855c00af3cddab3b8c0e1a875fa8fa1cc61deccbcbd3104f963a279ba5c",
-  "build_id": "641ce56fe10eb6535dba1656781e612c0e201a328371a123f6fe9be994f98772",
+  "verifier_id": "5b13ae03e90a6dce3be5a298892bd9028f9bef8b14d3a0d724c4db196dcc18d7",
+  "build_id": "ced75a8d605e24c5da7d4ac1bb3eb828278c26f497099c4f31815d0d73160ca3",
   "budget": {
     "max_depth": 12,
     "max_expanded_states": 4096,
@@ -8,10 +8,10 @@
     "max_action_executions": 65536,
     "catalog_page_size": 7
   },
-  "expanded_states": 44,
-  "discovered_frontiers": 202,
-  "successful_actions": 283,
-  "max_legal_actions": 10,
+  "expanded_states": 67,
+  "discovered_frontiers": 257,
+  "successful_actions": 450,
+  "max_legal_actions": 9,
   "reached_locations": [
     "lowsail.docks",
     "lowsail.levee",
@@ -50,6 +50,7 @@
     "levee.inspect_damage",
     "levee.relay_warning",
     "levee.send_report",
+    "levee.stolen_path",
     "return.acknowledge_report",
     "return.ask_oren",
     "return.count_dry_stalls",
@@ -64,6 +65,7 @@
     "top.hold_market",
     "top.overload",
     "top.rescue_worker",
+    "top.return_lowsail",
     "top.signal_market",
     "top.split_flow",
     "travel_adjacent",
@@ -99,6 +101,7 @@
     "levee.inspect_damage",
     "levee.relay_warning",
     "levee.send_report",
+    "levee.stolen_path",
     "return.acknowledge_report",
     "return.ask_oren",
     "return.count_dry_stalls",
@@ -113,10 +116,11 @@
     "top.hold_market",
     "top.overload",
     "top.rescue_worker",
+    "top.return_lowsail",
     "top.signal_market",
     "top.split_flow",
     "travel_adjacent",
     "wait_tide"
   ],
-  "execution_receipt": "57493688277e6b3a3b01ae9963480a2c4cba7ae4875d73ac5b27810559fc64bb"
+  "execution_receipt": "1a7e0d0a0c87aabe2a030a0e182707fbffb54a41597f605d06920f83bf9124c8"
 }

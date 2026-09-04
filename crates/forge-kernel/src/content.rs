@@ -149,6 +149,9 @@ pub struct ActionView {
     pub definition_id: String,
     pub label: String,
     pub category: String,
+    /// Player-facing names for canonical parameter values. The canonical
+    /// values remain in `parameters` and continue to define action identity.
+    pub parameter_display_values: BTreeMap<String, String>,
     pub parameters: BTreeMap<String, String>,
 }
 
@@ -1109,11 +1112,40 @@ impl CompiledContent {
             let definition = self
                 .action(&action.definition_id)
                 .expect("enumerated action definition must be compiled");
+            let parameter_display_values = action
+                .parameters
+                .iter()
+                .map(|(name, value)| {
+                    let display_value = definition
+                        .parameters
+                        .iter()
+                        .find(|parameter| parameter.name == *name)
+                        .map_or_else(
+                            || value.clone(),
+                            |parameter| match &parameter.domain {
+                                ParameterDomain::LocationsAdjacent => {
+                                    self.location(value).map_or_else(
+                                        || value.clone(),
+                                        |location| location.name.clone(),
+                                    )
+                                }
+                                ParameterDomain::NpcsAtCurrentLocation => self
+                                    .npc(value)
+                                    .map_or_else(|| value.clone(), |npc| npc.name.clone()),
+                                ParameterDomain::Values(_) | ParameterDomain::InventoryItems => {
+                                    value.clone()
+                                }
+                            },
+                        );
+                    (name.clone(), display_value)
+                })
+                .collect();
             views.push(ActionView {
                 action_id: action.action_id.clone(),
                 definition_id: action.definition_id.clone(),
                 label: definition.label.clone(),
                 category: definition.category.clone(),
+                parameter_display_values,
                 parameters: action.parameters.clone(),
             });
         }
@@ -3572,7 +3604,7 @@ mod tests {
         })
         .chain(destinations.iter().map(|id| LocationDefinition {
             id: id.clone(),
-            name: id.clone(),
+            name: format!("Road {}", id.trim_start_matches("page-")),
             description: "A marked road ends here.".to_owned(),
             description_variants: Vec::new(),
             exits: vec!["gate".to_owned()],
@@ -3587,6 +3619,7 @@ mod tests {
         let mut pages = Vec::new();
         let mut offset = 0;
         let mut digest = None;
+        let mut saw_display_name = false;
         loop {
             let page = content.action_page(&state, offset, 17).unwrap();
             assert_eq!(page.build_id, content.build_id());
@@ -3597,12 +3630,19 @@ mod tests {
             } else {
                 digest = Some(page.digest.clone());
             }
+            if let Some(action) = page.actions.iter().find(|action| {
+                action.parameters.get("destination").map(String::as_str) == Some("page-000")
+            }) {
+                assert_eq!(action.parameter_display_values["destination"], "Road 000");
+                saw_display_name = true;
+            }
             pages.extend(page.actions.iter().map(|action| action.action_id.clone()));
             match page.next_offset {
                 Some(next) => offset = next,
                 None => break,
             }
         }
+        assert!(saw_display_name);
         assert_eq!(pages, expected_ids);
         let expected_digest = crate::legal_action_digest(&full).unwrap();
         assert_eq!(digest.as_deref(), Some(expected_digest.as_str()));

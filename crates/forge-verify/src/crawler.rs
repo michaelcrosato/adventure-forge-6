@@ -1,6 +1,7 @@
 use forge_kernel::{
-    CanonicalAction, CompiledContent, Condition, GameState, enumerate_legal_actions,
-    legal_action_digest, sha256_json, step,
+    ActionDefinition, CanonicalAction, CompiledContent, Condition, Effect, GameState,
+    LocationDefinition, ParameterDomain, StringRef, enumerate_legal_actions, legal_action_digest,
+    sha256_json, step,
 };
 use serde::Serialize;
 use std::cmp::Reverse;
@@ -88,7 +89,9 @@ struct ActionShape {
 
 type FrontierScore = (
     usize,
+    usize,
     Reverse<usize>,
+    usize,
     usize,
     Reverse<usize>,
     usize,
@@ -339,7 +342,9 @@ fn frontier_score(
 ) -> Result<FrontierScore, VerifyError> {
     let location = &frontier.state.world.current_location;
     let mut uncovered_here = 0usize;
+    let mut ready_uncovered = 0usize;
     let mut nearest_ready_target = usize::MAX;
+    let mut total_progress = 0usize;
     let mut best_partial = (0usize, Reverse(usize::MAX));
     for (definition_id, definition) in content.actions() {
         if report.covered_definitions.contains(definition_id) {
@@ -356,9 +361,11 @@ fn frontier_score(
         };
         let (satisfied, total) = condition_progress(&definition.condition, &frontier.state);
         let scaled_progress = satisfied.saturating_mul(1_024) / total.max(1);
+        total_progress = total_progress.saturating_add(scaled_progress);
         best_partial = best_partial.max((scaled_progress, Reverse(target_distance)));
 
         if definition.condition.evaluate(&frontier.state) {
+            ready_uncovered = ready_uncovered.saturating_add(1);
             nearest_ready_target = nearest_ready_target.min(target_distance);
             if target_distance == 0 {
                 uncovered_here += 1;
@@ -368,7 +375,9 @@ fn frontier_score(
 
     Ok((
         uncovered_here,
+        ready_uncovered,
         Reverse(nearest_ready_target),
+        total_progress,
         best_partial.0,
         Reverse(frontier.depth.saturating_add((best_partial.1).0)),
         state_progress(&frontier.state),
@@ -419,8 +428,87 @@ fn location_distance(
                 pending.push_back((exit.clone(), distance + 1));
             }
         }
+        for (_, action) in content.actions() {
+            if !action.locations.is_empty()
+                && !action
+                    .locations
+                    .iter()
+                    .any(|candidate| candidate == &location_id)
+            {
+                continue;
+            }
+            let mut found_target = false;
+            visit_movement_targets(action, location, &mut |destination| {
+                if destination == target {
+                    found_target = true;
+                } else if content.has_location(destination)
+                    && visited.insert(destination.to_owned())
+                {
+                    pending.push_back((destination.to_owned(), distance + 1));
+                }
+            });
+            if found_target {
+                return Ok(distance + 1);
+            }
+        }
     }
     Ok(usize::MAX)
+}
+
+fn visit_movement_targets(
+    action: &ActionDefinition,
+    location: &LocationDefinition,
+    visitor: &mut impl FnMut(&str),
+) {
+    fn visit_effect(
+        effect: &Effect,
+        action: &ActionDefinition,
+        location: &LocationDefinition,
+        visitor: &mut impl FnMut(&str),
+    ) {
+        match effect {
+            Effect::MoveCharacter {
+                location: StringRef::Literal(destination),
+            } => visitor(destination),
+            Effect::MoveCharacter {
+                location: StringRef::Parameter(name),
+            } => {
+                let Some(parameter) = action
+                    .parameters
+                    .iter()
+                    .find(|parameter| parameter.name == *name)
+                else {
+                    return;
+                };
+                match &parameter.domain {
+                    ParameterDomain::Values(values) => {
+                        for destination in values {
+                            visitor(destination);
+                        }
+                    }
+                    ParameterDomain::LocationsAdjacent => {
+                        for destination in &location.exits {
+                            visitor(destination);
+                        }
+                    }
+                    ParameterDomain::InventoryItems | ParameterDomain::NpcsAtCurrentLocation => {}
+                }
+            }
+            Effect::RandomChance {
+                on_success,
+                on_failure,
+                ..
+            } => {
+                visit_effect(on_success, action, location, visitor);
+                visit_effect(on_failure, action, location, visitor);
+            }
+            _ => {}
+        }
+    }
+
+    for effect in &action.effects {
+        visit_effect(effect, action, location, visitor);
+    }
 }
 
 fn state_progress(state: &GameState) -> usize {
@@ -578,15 +666,28 @@ mod tests {
         let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
         let report = crawl_production(&content, CrawlBudget::default()).unwrap();
         assert!(report.is_complete());
-        assert_eq!(report.advertised_definitions.len(), 47);
+        assert_eq!(report.advertised_definitions.len(), 49);
         assert_eq!(report.reached_locations.len(), 6);
         assert!(report.successful_actions >= report.advertised_definitions.len());
-        assert!(report.expanded_states <= 64);
+        assert!(report.expanded_states <= 72);
         assert!(report.discovered_frontiers <= 512);
         assert_eq!(report.execution_receipt.len(), 64);
 
         let repeated = crawl_production(&content, CrawlBudget::default()).unwrap();
         assert_eq!(report.execution_receipt, repeated.execution_receipt);
+    }
+
+    #[test]
+    fn distance_uses_authored_literal_movement_across_gated_edges() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        assert_eq!(
+            location_distance(&content, "lowsail.levee", "red_sluice.floor").unwrap(),
+            1
+        );
+        assert_eq!(
+            location_distance(&content, "red_sluice.top", "lowsail.return").unwrap(),
+            1
+        );
     }
 
     #[test]

@@ -6,6 +6,8 @@ REPO_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 BUILD_TARGET_DIR="$REPO_DIR/target/live-blind-llm"
 LOCAL_REPORT_ROOT="$REPO_DIR/artifacts/local/live-blind-llm"
 WORK_DIR=""
+LIVE_DEFAULT_MODEL="gpt-5.6-luna"
+LIVE_DEFAULT_REASONING_EFFORT="max"
 
 fail() {
     printf 'live blind LLM playtest failed: %s\n' "$1" >&2
@@ -129,7 +131,8 @@ usage() {
         'usage: tools/live-blind-llm-playtest.sh [options]' \
         '' \
         'Options:' \
-        '  --model MODEL          Subscription-accessible Codex model (default: gpt-5.6-luna)' \
+        "  --model MODEL          Subscription-accessible Codex model (default: $LIVE_DEFAULT_MODEL)" \
+        "                         Reasoning effort is fixed at $LIVE_DEFAULT_REASONING_EFFORT" \
         '  --character ID         Character preset (default: ilyan)' \
         '  --seed INTEGER         Deterministic game seed (default: 71)' \
         '  --min-turns INTEGER    Required successful actions (default: 12)' \
@@ -140,8 +143,8 @@ usage() {
 }
 
 run_main() {
-    local model="gpt-5.6-luna"
-    local reasoning_effort="medium"
+    local model="$LIVE_DEFAULT_MODEL"
+    local reasoning_effort="$LIVE_DEFAULT_REASONING_EFFORT"
     local character="ilyan"
     local seed="71"
     local minimum_turns="12"

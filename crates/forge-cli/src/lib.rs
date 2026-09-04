@@ -856,10 +856,36 @@ fn action_matches(action: &ActionView, lowercase_query: &str) -> bool {
             .definition_id
             .to_lowercase()
             .contains(lowercase_query)
+        || action
+            .parameter_display_values
+            .values()
+            .any(|value| value.to_lowercase().contains(lowercase_query))
         || action.parameters.iter().any(|(name, value)| {
             name.to_lowercase().contains(lowercase_query)
                 || value.to_lowercase().contains(lowercase_query)
         })
+}
+
+fn public_action_label(action: &ActionView) -> String {
+    let single_parameter = action.parameters.len() == 1;
+    let parameters = action
+        .parameters
+        .iter()
+        .map(|(name, value)| {
+            let display_value = action.parameter_display_values.get(name).unwrap_or(value);
+            if single_parameter {
+                display_value.clone()
+            } else {
+                format!("{name}={display_value}")
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    if parameters.is_empty() {
+        format!("[{}] {}", action.category, action.label)
+    } else {
+        format!("[{}] {} — {parameters}", action.category, action.label)
+    }
 }
 
 fn render_observation<W: Write>(observation: &Observation, output: &mut W) -> Result<(), CliError> {
@@ -887,31 +913,7 @@ fn render_action_list<W: Write>(
     let end = offset.saturating_add(actions.len()).min(total);
     writeln!(output, "Actions {}–{} of {total}:", offset + 1, end).map_err(io_error)?;
     for (index, action) in actions.iter().enumerate() {
-        let parameters = action
-            .parameters
-            .iter()
-            .map(|(name, value)| format!("{name}={value}"))
-            .collect::<Vec<_>>()
-            .join(", ");
-        if parameters.is_empty() {
-            writeln!(
-                output,
-                "  {}. [{}] {}",
-                index + 1,
-                action.category,
-                action.label
-            )
-            .map_err(io_error)?;
-        } else {
-            writeln!(
-                output,
-                "  {}. [{}] {} — {parameters}",
-                index + 1,
-                action.category,
-                action.label
-            )
-            .map_err(io_error)?;
-        }
+        writeln!(output, "  {}. {}", index + 1, public_action_label(action)).map_err(io_error)?;
     }
     Ok(())
 }
@@ -1329,6 +1331,10 @@ mod tests {
                 action.action_id
             );
         }
+        assert!(paged.contains("[Travel] Travel — Lowsail Docks"));
+        assert!(paged.contains("[Travel] Travel — Lowsail Levee"));
+        assert!(!paged.contains("destination=lowsail.docks"));
+        assert!(!paged.contains("destination=lowsail.levee"));
 
         let searched = invoke(
             &[

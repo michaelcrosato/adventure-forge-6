@@ -1,11 +1,11 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "5534e855c00af3cddab3b8c0e1a875fa8fa1cc61deccbcbd3104f963a279ba5c",
+  "verifier_id": "5b13ae03e90a6dce3be5a298892bd9028f9bef8b14d3a0d724c4db196dcc18d7",
   "scenario_id": "m1-custom-unlikely-ally",
   "scenario_binding": "7537995303c25903b79db6c00cf5eadca24157221ae19b57347d990d2141da64",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "641ce56fe10eb6535dba1656781e612c0e201a328371a123f6fe9be994f98772",
+    "build_id": "ced75a8d605e24c5da7d4ac1bb3eb828278c26f497099c4f31815d0d73160ca3",
     "start": {
       "kind": "character_creation",
       "selection": {
@@ -40,79 +40,79 @@
       "seed": 71
     },
     "action_ids": [
-      "941a45bafde41b0bb82ffd51a2330f07feb7e504e303f8434649f374d87773d2",
-      "5b122b7a12c1adb204f93ddf4f9e1f2fae206fdda8268905f19379e3b54ec099"
+      "65925e9586860ff11ac4c0cab761d438505389d3f0cbd329107bc0cf10436037",
+      "6f5b3500ebac5f846c8fe255a0315d2948285073e2192c954aaf6806fca7004d"
     ],
-    "final_state_id": "894ea3e47705ed5d46196a73b5927d4c860cf377f6fb47a734cb27ba088c3c45",
-    "final_receipt": "20e9cfd12a89152d6cf6c36c0dced8b5a1c743fe35f9fbb495004c8c40f8e759"
+    "final_state_id": "9fb39151f66727fe3ed3ce763d455e59148ae4fc9fe6a4ed65ce6f0827a039ca",
+    "final_receipt": "2bc5b202ea3665531469349bcc18072bdf5f22c779624dbb6b1f499641f623b5"
   },
-  "initial_state_id": "bdbba5a3dcfb7f94e0c1e18b80b038fb1773d27e9885f7c0402f177a3085eb10",
+  "initial_state_id": "06bc6642210e15f1181b1ee27c915af6dbdf698456cfd954de310de812d0825d",
   "initial_observation": {
-    "build_id": "641ce56fe10eb6535dba1656781e612c0e201a328371a123f6fe9be994f98772",
-    "state_id": "bdbba5a3dcfb7f94e0c1e18b80b038fb1773d27e9885f7c0402f177a3085eb10",
+    "build_id": "ced75a8d605e24c5da7d4ac1bb3eb828278c26f497099c4f31815d0d73160ca3",
+    "state_id": "06bc6642210e15f1181b1ee27c915af6dbdf698456cfd954de310de812d0825d",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
     "result": null,
-    "action_set_digest": "ef58f904b4764c90654697c6a7c9c27f131bfe3b7a72e784765bd39c1fa61006",
+    "action_set_digest": "4d638dc18a2e00e018d4f39805e28942378bc5aa5e1f631a7eb9a71d9ec4a3d8",
     "action_count": 6
   },
-  "initial_observation_hash": "8ab295af5c2fc8450701c180d9287d040ade59462936b90b3f8d686b37e3bab3",
-  "initial_receipt": "590c56c36c3302f792b2f48f248d74fb66f04177f079500b45877658988ca4e8",
+  "initial_observation_hash": "bd9f49ac3a9a7f48a3486bb86023c70d1004f51d3b96976b6b7f5b7f0da09792",
+  "initial_receipt": "7e6eec48159819f47bcd92022118c8357d39d900e244ef903394b1b00d39a52d",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "941a45bafde41b0bb82ffd51a2330f07feb7e504e303f8434649f374d87773d2",
+      "action_id": "65925e9586860ff11ac4c0cab761d438505389d3f0cbd329107bc0cf10436037",
       "action_definition_id": "checkpoint.recall_worker",
       "action_parameters": {},
-      "legal_action_set_digest": "ef58f904b4764c90654697c6a7c9c27f131bfe3b7a72e784765bd39c1fa61006",
-      "pre_state_id": "bdbba5a3dcfb7f94e0c1e18b80b038fb1773d27e9885f7c0402f177a3085eb10",
+      "legal_action_set_digest": "4d638dc18a2e00e018d4f39805e28942378bc5aa5e1f631a7eb9a71d9ec4a3d8",
+      "pre_state_id": "06bc6642210e15f1181b1ee27c915af6dbdf698456cfd954de310de812d0825d",
       "events_hash": "f7ba7d5b4128b9bd2d8d03c22ff9554d827f519ee410a53b524ee95896c68b7a",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "da5818b710ff006b693753b99c28f8288335e99dccae4d22a8ce23becf6b674d",
+      "post_state_id": "3d6c50bef04cb92f8a98b009adc5180ab506b4101ee46858ab03b5a667e315d6",
       "observation": {
-        "build_id": "641ce56fe10eb6535dba1656781e612c0e201a328371a123f6fe9be994f98772",
-        "state_id": "da5818b710ff006b693753b99c28f8288335e99dccae4d22a8ce23becf6b674d",
+        "build_id": "ced75a8d605e24c5da7d4ac1bb3eb828278c26f497099c4f31815d0d73160ca3",
+        "state_id": "3d6c50bef04cb92f8a98b009adc5180ab506b4101ee46858ab03b5a667e315d6",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "Sava recalls the worker you saved. A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
         "result": "Sava recalls the worker you saved.",
-        "action_set_digest": "46a6a83c6ac79bd1deff8867a070c94220c369414d2881381972439a5a330b89",
+        "action_set_digest": "16064d567f58c98181b6070f5c47ef03b7e5f05d97d3065f839a299e832bb0b3",
         "action_count": 6
       },
-      "observation_hash": "142afd1cf4dfa3c6ad79c95705ddc5fbad5eb5c6fd971cca735a1b701a81c11c",
-      "receipt": "4f290a85e60430579369c012fa9fa95716ce8e4d3cbca9e27da514c459071516"
+      "observation_hash": "b3029d32c5da6f249f0c3e657ff65de99b57e4a9025670c655509ded75dfbcb1",
+      "receipt": "59e76829177f50c3fb220166e7afed8df9bb6940399491cd87d54826889b0b6d"
     },
     {
       "step_index": 1,
-      "action_id": "5b122b7a12c1adb204f93ddf4f9e1f2fae206fdda8268905f19379e3b54ec099",
+      "action_id": "6f5b3500ebac5f846c8fe255a0315d2948285073e2192c954aaf6806fca7004d",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.levee"
       },
-      "legal_action_set_digest": "46a6a83c6ac79bd1deff8867a070c94220c369414d2881381972439a5a330b89",
-      "pre_state_id": "da5818b710ff006b693753b99c28f8288335e99dccae4d22a8ce23becf6b674d",
+      "legal_action_set_digest": "16064d567f58c98181b6070f5c47ef03b7e5f05d97d3065f839a299e832bb0b3",
+      "pre_state_id": "3d6c50bef04cb92f8a98b009adc5180ab506b4101ee46858ab03b5a667e315d6",
       "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "894ea3e47705ed5d46196a73b5927d4c860cf377f6fb47a734cb27ba088c3c45",
+      "post_state_id": "9fb39151f66727fe3ed3ce763d455e59148ae4fc9fe6a4ed65ce6f0827a039ca",
       "observation": {
-        "build_id": "641ce56fe10eb6535dba1656781e612c0e201a328371a123f6fe9be994f98772",
-        "state_id": "894ea3e47705ed5d46196a73b5927d4c860cf377f6fb47a734cb27ba088c3c45",
+        "build_id": "ced75a8d605e24c5da7d4ac1bb3eb828278c26f497099c4f31815d0d73160ca3",
+        "state_id": "9fb39151f66727fe3ed3ce763d455e59148ae4fc9fe6a4ed65ce6f0827a039ca",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You move along the connected path. The levee road runs east to the Sluice. Flood marks show fresh damage.",
         "result": "You move along the connected path.",
-        "action_set_digest": "270c61a1d622caff52bb8ab84e5f7e4f4659ee7391829bac38cb827de870f29a",
-        "action_count": 5
+        "action_set_digest": "5057b8ddc2a5e5ae49c694262a05d43d69b6025a067832ddc9a696f5488c1631",
+        "action_count": 4
       },
-      "observation_hash": "57e0a53b215f7f9f1106ef2cdcf4041b3f72d3410586a5156eeedf2a961c4604",
-      "receipt": "20e9cfd12a89152d6cf6c36c0dced8b5a1c743fe35f9fbb495004c8c40f8e759"
+      "observation_hash": "258054b8e8c818774eba24ffa393fccf172cc83e15e54d27d509981885fcd578",
+      "receipt": "2bc5b202ea3665531469349bcc18072bdf5f22c779624dbb6b1f499641f623b5"
     }
   ],
-  "final_state_id": "894ea3e47705ed5d46196a73b5927d4c860cf377f6fb47a734cb27ba088c3c45",
-  "final_receipt": "20e9cfd12a89152d6cf6c36c0dced8b5a1c743fe35f9fbb495004c8c40f8e759"
+  "final_state_id": "9fb39151f66727fe3ed3ce763d455e59148ae4fc9fe6a4ed65ce6f0827a039ca",
+  "final_receipt": "2bc5b202ea3665531469349bcc18072bdf5f22c779624dbb6b1f499641f623b5"
 }

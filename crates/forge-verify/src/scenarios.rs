@@ -130,54 +130,58 @@ const CUSTOM_UNLIKELY_ALLY_STEPS: &[ScenarioStep] = &[
 ];
 
 const SPLIT_FLOW_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.show_charter"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.authority_path"),
     action!("floor.read_harmonics"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.check_wheels"),
     action!("top.split_flow"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.share_water"),
 ];
 
 const HOLD_MARKET_STEPS: &[ScenarioStep] = &[
     action!("checkpoint.show_charter"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.authority_path"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.hold_market"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.count_dry_stalls"),
 ];
 
 const RELIEF_CHANNEL_STEPS: &[ScenarioStep] = &[
     action!("travel_adjacent", "destination" => "lowsail.docks"),
     action!("docks.ring_warning"),
+    action!("docks.ask_oren"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.culvert_path"),
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.divert_relief"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.move_inland"),
 ];
 
 const BREAK_TOLL_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.blend_workers"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.culvert_path"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.break_toll"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.open_ferry"),
 ];
 
 const OVERLOAD_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.use_stolen_permit"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.stolen_path"),
     action!("floor.force_wheel"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.overload"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.face_flood"),
 ];
 
@@ -191,16 +195,17 @@ const LOWSAIL_AREA_STEPS: &[ScenarioStep] = &[
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.divert_relief"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.move_inland"),
 ];
 
 const RED_SLUICE_AREA_STEPS: &[ScenarioStep] = &[
     action!("checkpoint.audit_order"),
+    action!("checkpoint.show_charter"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
     action!("levee.inspect_damage"),
     action!("levee.send_report"),
-    action!("travel_adjacent", "destination" => "red_sluice.floor"),
+    action!("levee.authority_path"),
     action!("floor.test_pressure"),
     action!("floor.stabilize_gauge"),
     action!("floor.read_harmonics"),
@@ -208,7 +213,7 @@ const RED_SLUICE_AREA_STEPS: &[ScenarioStep] = &[
     action!("top.rescue_worker"),
     action!("top.check_wheels"),
     action!("top.split_flow"),
-    action!("travel_adjacent", "destination" => "lowsail.return"),
+    action!("top.return_lowsail"),
     action!("return.share_water"),
 ];
 
@@ -329,6 +334,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_disaster",
             ],
             required_location_flags: &[
+                ("red_sluice.floor", "authorized_entry"),
                 ("red_sluice.top", "wheels_checked"),
                 ("lowsail.return", "market_stable"),
             ],
@@ -374,6 +380,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_location_flags: &[
                 ("lowsail_market", "market_permit"),
+                ("red_sluice.floor", "authorized_entry"),
                 ("lowsail.return", "market_stable"),
                 ("lowsail.return", "upland_dry"),
             ],
@@ -419,6 +426,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_disaster",
             ],
             required_location_flags: &[
+                ("red_sluice.floor", "culvert_entry"),
                 ("red_sluice.top", "relief_ready"),
                 ("lowsail.return", "market_moved"),
             ],
@@ -448,6 +456,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_observation_contains: "The free ferry route links both shores.",
             exclusive_after_action: "top.break_toll",
             required_world_flags: &[
+                "culvert_revealed",
                 "sluice_outcome_chosen",
                 "old_channel_open",
                 "ending_freedom",
@@ -462,7 +471,10 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_relief",
                 "ending_disaster",
             ],
-            required_location_flags: &[("lowsail.return", "ferry_free")],
+            required_location_flags: &[
+                ("red_sluice.floor", "culvert_entry"),
+                ("lowsail.return", "ferry_free"),
+            ],
             required_deeds: &["freed_ferry", "opened_free_ferry"],
             required_visited_locations: &[
                 "lowsail_market",
@@ -488,6 +500,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_observation_contains: "The lower market floods and the broken gates remain.",
             exclusive_after_action: "top.overload",
             required_world_flags: &[
+                "stolen_route",
                 "sluice_breached",
                 "sluice_outcome_chosen",
                 "sluice_failure",
@@ -504,6 +517,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
             ],
             required_location_flags: &[
+                ("red_sluice.floor", "forged_entry"),
                 ("red_sluice.top", "worker_rescue_needed"),
                 ("lowsail.return", "market_flooded"),
             ],
@@ -607,6 +621,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_location_flags: &[
                 ("lowsail.levee", "damage_seen"),
+                ("red_sluice.floor", "authorized_entry"),
                 ("red_sluice.floor", "pressure_read"),
                 ("red_sluice.floor", "gauge_stable"),
                 ("red_sluice.floor", "harmonics_read"),

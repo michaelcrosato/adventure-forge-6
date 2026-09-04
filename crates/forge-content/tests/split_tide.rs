@@ -122,7 +122,7 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 6);
     assert_eq!(content.npcs().count(), 5);
-    assert_eq!(content.actions().count(), 47);
+    assert_eq!(content.actions().count(), 49);
     assert_eq!(content.character_presets().count(), 2);
     let creation = content.character_creation().expect("custom creation");
     assert_eq!(creation.slots.len(), 6);
@@ -202,6 +202,22 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
                 .map(|action| action.definition_id)
                 .collect::<BTreeSet<_>>(),
         );
+
+        let routed = travel_to(state, &content, "lowsail.docks");
+        let routed = apply(routed, &content, "docks.ask_oren");
+        let routed = travel_to(routed, &content, "lowsail.levee");
+        assert!(
+            enumerate_legal_actions(&routed, &content)
+                .unwrap()
+                .iter()
+                .all(
+                    |action| action.parameters.get("destination").map(String::as_str)
+                        != Some("red_sluice.floor")
+                ),
+            "custom build {mask} bypassed the authored Sluice routes"
+        );
+        let routed = apply(routed, &content, "levee.culvert_path");
+        assert_eq!(routed.world.current_location, "red_sluice.floor");
     }
 
     assert_eq!(character_ids.len(), combination_count);
@@ -358,35 +374,118 @@ fn result_first_and_conditional_prose_show_character_and_npc_reactions() {
         content
             .action_result(&pressured, "checkpoint.ask_sava")
             .unwrap(),
-        "Sava answers with one hand near the alarm."
+        "Sava points east toward the guarded Red Sluice, one hand near the alarm."
     );
     assert!(pressured.world.npcs["sava_rusk"].remembers("sava_was_pressured"));
+}
+
+#[test]
+fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
+    let content = content();
+
+    let mut authority = new_game(&content, "ilyan");
+    let sava_result = content
+        .action_result(&authority, "checkpoint.ask_sava")
+        .unwrap();
+    assert_eq!(
+        sava_result,
+        "Sava points east: the levee road reaches the Red Sluice."
+    );
+    authority = apply(authority, &content, "checkpoint.show_charter");
+    let charter_observation = content
+        .observe_action(&authority, "checkpoint.show_charter")
+        .unwrap();
+    assert_eq!(
+        charter_observation.result.as_deref(),
+        Some("Sava honors your charter, opening the Authority Path at Lowsail Levee.")
+    );
+    authority = travel_to(authority, &content, "lowsail.levee");
+    assert!(definitions(&authority, &content).contains("levee.authority_path"));
+    assert!(
+        enumerate_legal_actions(&authority, &content)
+            .unwrap()
+            .iter()
+            .all(
+                |action| action.parameters.get("destination").map(String::as_str)
+                    != Some("red_sluice.floor")
+            )
+    );
+    let authority = apply(authority, &content, "levee.authority_path");
+    assert_eq!(
+        content
+            .action_result(&authority, "floor.test_pressure")
+            .unwrap(),
+        "Edrik accepts your seal, then shows pressure building below the gate."
+    );
+
+    let mut culvert = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
+    culvert = apply(culvert, &content, "docks.ask_oren");
+    let oren_observation = content.observe_action(&culvert, "docks.ask_oren").unwrap();
+    assert_eq!(
+        oren_observation.result.as_deref(),
+        Some(
+            "Oren reveals the submerged culvert beneath Lowsail Levee and asks you to break the toll."
+        )
+    );
+    assert!(culvert.world.flags.contains("culvert_revealed"));
+    assert!(culvert.world.npcs["oren_pell"].remembers("oren_revealed_culvert"));
+    culvert = travel_to(culvert, &content, "lowsail.levee");
+    assert!(definitions(&culvert, &content).contains("levee.culvert_path"));
+    culvert = apply(culvert, &content, "levee.culvert_path");
+    assert_eq!(
+        content
+            .action_result(&culvert, "floor.test_pressure")
+            .unwrap(),
+        "Edrik eyes the culvert mud while the gauge shows rising pressure."
+    );
+}
+
+#[test]
+fn travel_presentation_keeps_canonical_identity_and_names_the_destination() {
+    let content = content();
+    let docks = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
+    let page = content.action_page(&docks, 0, usize::MAX).unwrap();
+    let checkpoint = page
+        .actions
+        .iter()
+        .find(|action| {
+            action.definition_id == "travel_adjacent"
+                && action
+                    .parameters
+                    .get("destination")
+                    .is_some_and(|value| value == "lowsail_market")
+        })
+        .expect("docks must retain canonical travel back to the checkpoint");
+
+    assert_eq!(checkpoint.parameters["destination"], "lowsail_market");
+    assert_eq!(
+        checkpoint.parameter_display_values["destination"],
+        "Lowsail Checkpoint"
+    );
 }
 
 #[test]
 fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
     let content = content();
 
-    let baseline_floor = travel_to(
-        travel_to(new_game(&content, "ilyan"), &content, "lowsail.levee"),
+    let baseline = apply(
+        new_game(&content, "ilyan"),
         &content,
-        "red_sluice.floor",
+        "checkpoint.show_charter",
     );
+    let baseline = travel_to(baseline, &content, "lowsail.levee");
+    let baseline_floor = apply(baseline, &content, "levee.authority_path");
     assert!(!definitions(&baseline_floor, &content).contains("floor.open_relief"));
 
-    let warned_floor = travel_to(
-        travel_to(
-            apply(
-                travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks"),
-                &content,
-                "docks.ring_warning",
-            ),
-            &content,
-            "lowsail.levee",
-        ),
+    let warned = apply(
+        new_game(&content, "ilyan"),
         &content,
-        "red_sluice.floor",
+        "checkpoint.show_charter",
     );
+    let warned = travel_to(warned, &content, "lowsail.docks");
+    let warned = apply(warned, &content, "docks.ring_warning");
+    let warned = travel_to(warned, &content, "lowsail.levee");
+    let warned_floor = apply(warned, &content, "levee.authority_path");
     assert!(warned_floor.world.flags.contains("market_warned"));
     assert!(definitions(&warned_floor, &content).contains("floor.open_relief"));
 
@@ -423,7 +522,7 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     state = apply(state, &content, "checkpoint.audit_order");
     state = apply(state, &content, "checkpoint.show_charter");
     state = travel_to(state, &content, "lowsail.levee");
-    state = travel_to(state, &content, "red_sluice.floor");
+    state = apply(state, &content, "levee.authority_path");
     state = apply(state, &content, "floor.read_harmonics");
     state = travel_to(state, &content, "red_sluice.top");
     state = apply(state, &content, "top.check_wheels");
@@ -451,7 +550,8 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
             .flags
             .contains("market_stable")
     );
-    state = travel_to(state, &content, "lowsail.return");
+    assert!(definitions(&state, &content).contains("top.return_lowsail"));
+    state = apply(state, &content, "top.return_lowsail");
     assert_eq!(
         content.location_description(&state).unwrap(),
         "The market stands above calm water while both shores still receive a share."
@@ -486,9 +586,13 @@ fn every_sluice_outcome_excludes_the_other_four() {
 
     let content = content();
 
-    let mut split = new_game(&content, "ilyan");
+    let mut split = apply(
+        new_game(&content, "ilyan"),
+        &content,
+        "checkpoint.show_charter",
+    );
     split = travel_to(split, &content, "lowsail.levee");
-    split = travel_to(split, &content, "red_sluice.floor");
+    split = apply(split, &content, "levee.authority_path");
     split = apply(split, &content, "floor.read_harmonics");
     split = travel_to(split, &content, "red_sluice.top");
     split = apply(split, &content, "top.check_wheels");
@@ -499,24 +603,40 @@ fn every_sluice_outcome_excludes_the_other_four() {
         "checkpoint.show_charter",
     );
     hold = travel_to(hold, &content, "lowsail.levee");
-    hold = travel_to(hold, &content, "red_sluice.floor");
+    hold = apply(hold, &content, "levee.authority_path");
     hold = travel_to(hold, &content, "red_sluice.top");
 
     let mut relief = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
     relief = apply(relief, &content, "docks.ring_warning");
+    relief = apply(relief, &content, "docks.ask_oren");
     relief = travel_to(relief, &content, "lowsail.levee");
-    relief = travel_to(relief, &content, "red_sluice.floor");
+    relief = apply(relief, &content, "levee.culvert_path");
     relief = apply(relief, &content, "floor.open_relief");
     relief = travel_to(relief, &content, "red_sluice.top");
 
-    let mut freedom = new_game(&content, "rook");
+    let mut freedom = apply(
+        new_game(&content, "rook"),
+        &content,
+        "checkpoint.blend_workers",
+    );
     freedom = travel_to(freedom, &content, "lowsail.levee");
-    freedom = travel_to(freedom, &content, "red_sluice.floor");
+    freedom = apply(freedom, &content, "levee.culvert_path");
     freedom = travel_to(freedom, &content, "red_sluice.top");
 
-    let mut disaster = new_game(&content, "rook");
+    let mut disaster = apply(
+        new_game(&content, "rook"),
+        &content,
+        "checkpoint.use_stolen_permit",
+    );
     disaster = travel_to(disaster, &content, "lowsail.levee");
-    disaster = travel_to(disaster, &content, "red_sluice.floor");
+    assert!(definitions(&disaster, &content).contains("levee.stolen_path"));
+    disaster = apply(disaster, &content, "levee.stolen_path");
+    assert_eq!(
+        content
+            .action_result(&disaster, "floor.test_pressure")
+            .unwrap(),
+        "Edrik doubts your permit while the gauge shows rising pressure."
+    );
     disaster = apply(disaster, &content, "floor.climb_hot_face");
     disaster = travel_to(disaster, &content, "red_sluice.top");
 
@@ -528,9 +648,20 @@ fn every_sluice_outcome_excludes_the_other_four() {
         (disaster, "top.overload"),
     ] {
         assert!(definitions(&state, &content).contains(selected));
+        assert!(!definitions(&state, &content).contains("top.return_lowsail"));
+        assert!(
+            enumerate_legal_actions(&state, &content)
+                .unwrap()
+                .iter()
+                .all(
+                    |action| action.parameters.get("destination").map(String::as_str)
+                        != Some("lowsail.return")
+                )
+        );
         let resolved = apply(state, &content, selected);
         assert!(resolved.world.flags.contains("sluice_outcome_chosen"));
         let legal_after = definitions(&resolved, &content);
+        assert!(legal_after.contains("top.return_lowsail"));
         assert!(
             OUTCOMES
                 .iter()

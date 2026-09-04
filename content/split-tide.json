@@ -307,7 +307,7 @@
           "text": "Yara keeps the Tide Key low and trusts the runner near her skiff."
         }
       ],
-      "exits": ["lowsail_market", "lowsail.levee", "lowsail.return"],
+      "exits": ["lowsail_market", "lowsail.levee"],
       "terminal": false
     },
     {
@@ -328,7 +328,7 @@
           "text": "The levee crew moves uphill because Lowsail expects the next surge."
         }
       ],
-      "exits": ["lowsail_market", "red_sluice.floor"],
+      "exits": ["lowsail_market"],
       "terminal": false
     },
     {
@@ -382,7 +382,7 @@
           "text": "Mira steadies the wheels while the rescued crew waits beside the hot ladder."
         }
       ],
-      "exits": ["red_sluice.floor", "lowsail.return"],
+      "exits": ["red_sluice.floor"],
       "terminal": false
     },
     {
@@ -511,13 +511,13 @@
       "id": "checkpoint.ask_sava",
       "label": "Ask Sava",
       "category": "Talk",
-      "result": "Sava answers, then remembers your question.",
+      "result": "Sava points east: the levee road reaches the Red Sluice.",
       "result_variants": [
         {
           "id": "guarded_after_threat",
           "priority": 20,
           "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "sava_was_pressured"},
-          "text": "Sava answers with one hand near the alarm."
+          "text": "Sava points east toward the guarded Red Sluice, one hand near the alarm."
         }
       ],
       "locations": ["lowsail_market"],
@@ -588,7 +588,7 @@
       "id": "checkpoint.show_charter",
       "label": "Show Charter",
       "category": "Law",
-      "result": "Sava raises the chain and grants a dry route.",
+      "result": "Sava honors your charter, opening the Authority Path at Lowsail Levee.",
       "locations": ["lowsail_market"],
       "condition": {
         "kind": "all",
@@ -746,12 +746,13 @@
       "id": "docks.ask_oren",
       "label": "Ask Oren",
       "category": "Talk",
-      "result": "Oren offers a smuggler's route for a fair price.",
+      "result": "Oren reveals the submerged culvert beneath Lowsail Levee and asks you to break the toll.",
       "locations": ["lowsail.docks"],
       "condition": {"kind": "always"},
       "effects": [
+        {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
-        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_met_player", "subject": "The player asked about the tide key.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_revealed_culvert", "subject": "Oren showed the player the submerged culvert.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
       ],
       "parameters": [],
@@ -943,6 +944,8 @@
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "authorized_entry", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "culvert_entry", "value": false},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "forged_entry", "value": false},
         {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.floor"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -964,7 +967,27 @@
         ]
       },
       "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "authorized_entry", "value": false},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "culvert_entry", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "forged_entry", "value": false},
+        {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.floor"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "levee.stolen_path",
+      "label": "Take Stolen Path",
+      "category": "Deception",
+      "result": "The stolen permit gets you past the Red Sluice guard.",
+      "locations": ["lowsail.levee"],
+      "condition": {"kind": "world_flag", "flag": "stolen_route"},
+      "effects": [
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "authorized_entry", "value": false},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "culvert_entry", "value": false},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "forged_entry", "value": true},
         {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.floor"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -978,6 +1001,26 @@
       "label": "Test Pressure",
       "category": "Inspect",
       "result": "The gauge shows pressure building below the gate.",
+      "result_variants": [
+        {
+          "id": "authority_entry",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "authorized_entry"},
+          "text": "Edrik accepts your seal, then shows pressure building below the gate."
+        },
+        {
+          "id": "culvert_entry",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "culvert_entry"},
+          "text": "Edrik eyes the culvert mud while the gauge shows rising pressure."
+        },
+        {
+          "id": "forged_entry",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "forged_entry"},
+          "text": "Edrik doubts your permit while the gauge shows rising pressure."
+        }
+      ],
       "locations": ["red_sluice.floor"],
       "condition": {"kind": "always"},
       "effects": [
@@ -1353,6 +1396,21 @@
       "parameters": [],
       "meaningful": true,
       "movement": false
+    },
+    {
+      "id": "top.return_lowsail",
+      "label": "Return to Lowsail",
+      "category": "Travel",
+      "result": "You return to Lowsail and see what the changed water has done.",
+      "locations": ["red_sluice.top"],
+      "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+      "effects": [
+        {"kind": "move_character", "location": {"kind": "literal", "value": "lowsail.return"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
     },
 
     {

@@ -1,6 +1,6 @@
-use super::{CliError, atomic_write, load_content, short_hash, write_trace};
+use super::{CliError, atomic_write, load_content, public_action_label, short_hash, write_trace};
 use forge_kernel::{
-    ActionView, CompiledContent, Observation, enumerate_legal_actions, validate_unique_json_keys,
+    CompiledContent, Observation, enumerate_legal_actions, validate_unique_json_keys,
 };
 use forge_replay::Session;
 use serde_json::{Value, json};
@@ -490,20 +490,6 @@ fn public_view(
     Ok(view)
 }
 
-fn public_action_label(action: &ActionView) -> String {
-    let parameters = action
-        .parameters
-        .iter()
-        .map(|(name, value)| format!("{name}={value}"))
-        .collect::<Vec<_>>()
-        .join(", ");
-    if parameters.is_empty() {
-        format!("[{}] {}", action.category, action.label)
-    } else {
-        format!("[{}] {} — {parameters}", action.category, action.label)
-    }
-}
-
 fn append_view(transcript: &mut String, heading: &str, view: &str) -> Result<(), CliError> {
     transcript.push_str(heading);
     transcript.push('\n');
@@ -634,6 +620,10 @@ mod tests {
             .collect();
         assert_eq!(tool_names, ["observe", "act", "finish"]);
         assert!(output.contains(&config.observation_canary));
+        assert!(output.contains("[Travel] Travel — Lowsail Docks"));
+        assert!(output.contains("[Travel] Travel — Lowsail Levee"));
+        assert!(!output.contains("destination=lowsail.docks"));
+        assert!(!output.contains("destination=lowsail.levee"));
         for forbidden in [
             "event_log",
             "scheduled_events",
