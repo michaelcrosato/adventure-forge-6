@@ -502,14 +502,14 @@ run_main() {
         -c 'mcp_servers.forge_player.enabled_tools=["observe","act","finish"]'
     )
 
-    "${codex_sandbox[@]}" login status 2>&1 | grep -F 'Logged in using ChatGPT' >/dev/null || {
+    timeout --kill-after=5s 30s "${codex_sandbox[@]}" login status 2>&1 | grep -F 'Logged in using ChatGPT' >/dev/null || {
         fail "the sandboxed Codex process cannot reuse the saved subscription login"
         return 1
     }
-    "${codex_sandbox[@]}" "${feature_args[@]}" "${mcp_args[@]}" mcp get forge_player >"$tool_config"
+    timeout --kill-after=5s 30s "${codex_sandbox[@]}" "${feature_args[@]}" "${mcp_args[@]}" mcp get forge_player >"$tool_config"
     local prompt_text
     prompt_text="$(<"$prompt_path")"
-    "${codex_sandbox[@]}" "${feature_args[@]}" "${mcp_args[@]}" debug prompt-input "$prompt_text" >"$prompt_audit"
+    timeout --kill-after=5s 30s "${codex_sandbox[@]}" "${feature_args[@]}" -c 'web_search="disabled"' debug prompt-input "$prompt_text" >"$prompt_audit"
 
     for path in "$prompt_path" "$schema_path" "$tool_config" "$prompt_audit"; do
         assert_absent "$path" "$private_token" "the private source canary entered model-visible setup" || return 1
