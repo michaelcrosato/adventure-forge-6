@@ -19,7 +19,7 @@ cargo run -p forge-cli -- play --character ilyan
 cargo run -p forge-cli -- demo --character rook --output rook.trace.json
 ```
 
-The creator offers six authored two-way axes—lineage, origin, calling, value, burden, and history—for 64 validated combinations. The CLI submits only the chosen public IDs; the kernel derives the complete character and binds its canonical recipe into state and replay provenance. During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. The player view shows the authoritative tide step, the remaining time before the Lowsail surge, and the exact or bounded tide-step cost of every action. Outcome and ending rows also preview their consequence before selection. Completed discoveries leave the catalog instead of inviting consequence-free repetition. Once the surge resolves, obsolete actions close and `Enter Lowsail Aftermath` leads directly to the persistent result and its distinct ending. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
+The creator offers six authored two-way axes—lineage, origin, calling, value, burden, and history—for 64 validated combinations. The CLI submits only the chosen public IDs; the kernel derives the complete character and binds its canonical recipe into state and replay provenance. During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. The player view shows the authoritative tide step, the remaining time before the Lowsail surge, and the exact or bounded tide-step cost of every action. Outcome and ending rows also preview their consequence before selection. Completed discoveries leave the catalog instead of inviting consequence-free repetition. Once the surge resolves, obsolete actions close and `Return to Lowsail` leads to the persistent result and its distinct ending. That route remains available for later visits. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
 
 ```bash
 cargo run -p forge-cli -- replay rook.trace.json
@@ -31,6 +31,8 @@ cargo run -p forge-verify -- check-player rook.trace.json
 Catalog search includes the visible consequence previews. NPC information also has a delivery path: ringing Lowsail's warning teaches Oren, and relaying it from the levee teaches Edrik and unlocks his relief-channel help. Discovering a distant event does not automatically make an NPC know it.
 
 The Tide Key is a persistent item: taking it removes it from Yara's stock and opens `Calibrate Gate` at Red Sluice Floor. That provides another preparation route to Split Flow. Save/resume reconstructs the same ownership and calibration through canonical actions. Saves remain tied to their exact game build; this schema/rules change does not silently migrate older saves.
+
+`Climb Hot Face` carries a qualified climber directly to Red Sluice Top in one tide step. It also exposes the destructive overload controls; the climb itself does not choose that outcome.
 
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 

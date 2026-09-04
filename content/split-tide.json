@@ -257,13 +257,13 @@
           "id": "surge_missed",
           "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "Floodwater reaches the checkpoint; choose Enter Lowsail Aftermath to face the damage."
+          "text": "Floodwater reaches the checkpoint; choose Return to Lowsail to face the damage."
         },
         {
           "id": "surge_resolved",
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
-          "text": "The Sluice decision is settled; choose Enter Lowsail Aftermath to see what changed."
+          "text": "The Sluice decision is settled; choose Return to Lowsail to see what changed."
         },
         {
           "id": "charter_path_open",
@@ -334,13 +334,13 @@
           "id": "surge_missed",
           "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "Floodwater fills the docks; choose Enter Lowsail Aftermath to face the damage."
+          "text": "Floodwater fills the docks; choose Return to Lowsail to face the damage."
         },
         {
           "id": "surge_resolved",
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
-          "text": "The Sluice decision has changed these docks; choose Enter Lowsail Aftermath to see the result."
+          "text": "The Sluice decision has changed these docks; choose Return to Lowsail to see the result."
         },
         {
           "id": "warning_rung",
@@ -367,13 +367,13 @@
           "id": "surge_missed",
           "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "Floodwater runs below the levee; choose Enter Lowsail Aftermath to face the damage."
+          "text": "Floodwater runs below the levee; choose Return to Lowsail to face the damage."
         },
         {
           "id": "surge_resolved",
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
-          "text": "The Sluice decision is settled beyond the levee; choose Enter Lowsail Aftermath to see what changed."
+          "text": "The Sluice decision is settled beyond the levee; choose Return to Lowsail to see what changed."
         },
         {
           "id": "report_sent",
@@ -400,13 +400,13 @@
           "id": "surge_missed",
           "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "The missed surge has passed the lower gate; choose Enter Lowsail Aftermath to face the flood."
+          "text": "The missed surge has passed the lower gate; choose Return to Lowsail to face the flood."
         },
         {
           "id": "surge_resolved",
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
-          "text": "Your Sluice decision is settled; choose Enter Lowsail Aftermath to see the result."
+          "text": "Your Sluice decision is settled; choose Return to Lowsail to see the result."
         },
         {
           "id": "market_warning",
@@ -445,13 +445,13 @@
           "id": "surge_missed",
           "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "The missed surge has flooded Lowsail; choose Enter Lowsail Aftermath to face the damage."
+          "text": "The missed surge has flooded Lowsail; choose Return to Lowsail to face the damage."
         },
         {
           "id": "surge_resolved",
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
-          "text": "This surge is settled; choose Enter Lowsail Aftermath to see the result."
+          "text": "This surge is settled; choose Return to Lowsail to see the result."
         },
         {
           "id": "relief_ready",
@@ -1364,7 +1364,7 @@
       "id": "floor.climb_hot_face",
       "label": "Climb Hot Face",
       "category": "Climb",
-      "result": "Heat marks guide your climb above the intake.",
+      "result": "You climb the hot service face to Red Sluice Top. The route exposes Overload Gates, which would flood Lowsail.",
       "locations": ["red_sluice.floor"],
       "condition": {
         "kind": "all",
@@ -1383,11 +1383,12 @@
         {"kind": "set_world_flag", "flag": "high_route_open", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_hot_route", "subject": "The Kilnborn lock-runner climbed the hot service face.", "provenance": {"kind": "witnessed"}},
         {"kind": "add_character_deed", "deed_id": "climbed_service_face"},
+        {"kind": "move_character", "location": {"kind": "literal", "value": "red_sluice.top"}},
         {"kind": "advance_time", "ticks": 1}
       ],
       "parameters": [],
       "meaningful": true,
-      "movement": false
+      "movement": true
     },
     {
       "id": "floor.open_relief",
@@ -1706,9 +1707,9 @@
     },
     {
       "id": "world.enter_aftermath",
-      "label": "Enter Lowsail Aftermath",
+      "label": "Return to Lowsail",
       "category": "Travel",
-      "result": "You enter Lowsail's aftermath and face what the changed water has done.",
+      "result": "You return to Lowsail's changed market.",
       "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top"],
       "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
       "effects": [

@@ -862,7 +862,7 @@ fn resolved_phase_closes_old_actions_and_hold_aftermath_stays_truthful() {
             content
                 .location_description(state)
                 .unwrap()
-                .contains("Enter Lowsail Aftermath"),
+                .contains("Return to Lowsail"),
             "resolved scene still gives expired directions at {}",
             state.world.current_location
         );
@@ -968,7 +968,6 @@ fn every_sluice_outcome_excludes_the_other_four() {
         "Edrik doubts your permit while the gauge shows rising pressure."
     );
     disaster = apply(disaster, &content, "floor.climb_hot_face");
-    disaster = travel_to(disaster, &content, "red_sluice.top");
 
     for (state, selected) in [
         (split, "top.split_flow"),
@@ -999,6 +998,134 @@ fn every_sluice_outcome_excludes_the_other_four() {
             "an outcome remained legal after {selected}"
         );
     }
+}
+
+#[test]
+fn hot_face_climb_moves_to_top_once_and_return_remains_visible_after_ending() {
+    let content = content();
+    let mut floor = apply(
+        new_game(&content, "rook"),
+        &content,
+        "checkpoint.use_stolen_permit",
+    );
+    floor = travel_to(floor, &content, "lowsail.levee");
+    floor = apply(floor, &content, "levee.stolen_path");
+    assert_eq!(floor.world.current_location, "red_sluice.floor");
+    assert!(!definitions(&floor, &content).contains("top.overload"));
+
+    let pre_climb_time = floor.world.time;
+    let climb = action_for(&floor, &content, "floor.climb_hot_face");
+    assert_eq!(
+        content
+            .action_result(&floor, "floor.climb_hot_face")
+            .unwrap(),
+        "You climb the hot service face to Red Sluice Top. The route exposes Overload Gates, which would flood Lowsail."
+    );
+    let transition = step(&floor, &climb, &content, &floor.entropy).unwrap();
+    let arrival = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(arrival.location_id, "red_sluice.top");
+    assert_eq!(arrival.title, "Red Sluice Top");
+    let memory_index = transition
+        .events()
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::NpcMemoryAdded { npc, memory }
+                    if npc == "edrik_voss" && memory == "edrik_saw_hot_route"
+            )
+        })
+        .expect("climb must record Edrik's witnessed route");
+    let moved_index = transition
+        .events()
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::Moved { from, to }
+                    if from == "red_sluice.floor" && to == "red_sluice.top"
+            )
+        })
+        .expect("climb must emit a floor-to-top move");
+    assert!(memory_index < moved_index);
+    assert_eq!(
+        transition
+            .events()
+            .iter()
+            .filter(|event| {
+                matches!(
+                    &event.kind,
+                    EventKind::Moved { from, to }
+                        if from == "red_sluice.floor" && to == "red_sluice.top"
+                )
+            })
+            .count(),
+        1
+    );
+    let top = transition.into_state();
+    assert_eq!(top.world.current_location, "red_sluice.top");
+    assert_eq!(top.world.time, pre_climb_time + 1);
+    assert!(top.world.flags.contains("high_route_open"));
+    assert!(top.character.deeds.contains("climbed_service_face"));
+    assert!(top.world.npcs["edrik_voss"].remembers("edrik_saw_hot_route"));
+    assert_eq!(
+        top.world.npcs["edrik_voss"].memories["edrik_saw_hot_route"].turn,
+        pre_climb_time
+    );
+    assert!(top.event_log.iter().any(|event| {
+        matches!(
+            &event.kind,
+            EventKind::Moved { from, to }
+                if from == "red_sluice.floor" && to == "red_sluice.top"
+        )
+    }));
+    assert!(definitions(&top, &content).contains("top.overload"));
+
+    let descended = travel_to(top.clone(), &content, "red_sluice.floor");
+    assert_eq!(descended.world.current_location, "red_sluice.floor");
+    assert!(!definitions(&descended, &content).contains("floor.climb_hot_face"));
+    assert!(descended.world.flags.contains("high_route_open"));
+
+    let mut resolved = apply(top, &content, "top.overload");
+    let assert_return_row = |state: &GameState| {
+        let page = content.action_page(state, 0, usize::MAX).unwrap();
+        let return_view = page
+            .actions
+            .iter()
+            .find(|action| action.definition_id == "world.enter_aftermath")
+            .expect("resolved old-map scene must show the return action");
+        assert_eq!(return_view.label, "Return to Lowsail");
+        assert_eq!(
+            content
+                .action_result(state, "world.enter_aftermath")
+                .unwrap(),
+            "You return to Lowsail's changed market."
+        );
+    };
+    assert_return_row(&resolved);
+    assert!(resolved.world.flags.contains("sluice_failure"));
+    assert!(
+        resolved.world.locations["lowsail.return"]
+            .flags
+            .contains("market_flooded")
+    );
+
+    resolved = apply(resolved, &content, "world.enter_aftermath");
+    assert_eq!(resolved.world.current_location, "lowsail.return");
+    assert!(resolved.world.flags.contains("sluice_outcome_chosen"));
+    assert!(!resolved.world.flags.contains("ending_disaster"));
+    resolved = apply(resolved, &content, "return.face_flood");
+    assert!(resolved.world.flags.contains("ending_disaster"));
+    assert!(resolved.character.deeds.contains("faced_flood"));
+
+    let docks = travel_to(resolved, &content, "lowsail.docks");
+    assert_return_row(&docks);
+    assert!(definitions(&docks, &content).contains("world.enter_aftermath"));
+    let repeated_return = apply(docks, &content, "world.enter_aftermath");
+    assert_eq!(repeated_return.world.current_location, "lowsail.return");
+    assert!(repeated_return.world.flags.contains("sluice_failure"));
+    assert!(repeated_return.world.flags.contains("ending_disaster"));
+    assert!(repeated_return.character.deeds.contains("faced_flood"));
 }
 
 #[test]
@@ -1186,7 +1313,7 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
         content
             .location_description(&missed)
             .unwrap()
-            .contains("Enter Lowsail Aftermath")
+            .contains("Return to Lowsail")
     );
 
     let missed_floor = travel_to(missed, &content, "red_sluice.floor");
@@ -1210,14 +1337,14 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
         content
             .location_description(&missed_floor)
             .unwrap()
-            .contains("Enter Lowsail Aftermath")
+            .contains("Return to Lowsail")
     );
     let mut missed_roads = missed_floor.clone();
     for destination in ["lowsail.levee", "lowsail_market", "lowsail.docks"] {
         missed_roads = travel_to(missed_roads, &content, destination);
         let description = content.location_description(&missed_roads).unwrap();
         assert!(description.contains("Floodwater"));
-        assert!(description.contains("Enter Lowsail Aftermath"));
+        assert!(description.contains("Return to Lowsail"));
         assert!(
             content
                 .observe(&missed_roads)

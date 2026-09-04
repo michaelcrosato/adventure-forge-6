@@ -146,6 +146,49 @@ const ROOK_TIDE_KEY_SPLIT_PATH: [ActionSpec; 11] = [
     },
 ];
 
+const ROOK_HOT_ROUTE_FERRY_PATH: [ActionSpec; 10] = [
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.docks")),
+    },
+    ActionSpec {
+        definition_id: "docks.ask_oren",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.levee")),
+    },
+    ActionSpec {
+        definition_id: "levee.culvert_path",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "floor.climb_hot_face",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "top.break_toll",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "world.enter_aftermath",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "return.open_ferry",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.docks")),
+    },
+    ActionSpec {
+        definition_id: "world.enter_aftermath",
+        parameter: None,
+    },
+];
+
 fn record_specs(
     session: &mut Session<'_>,
     content: &forge_kernel::CompiledContent,
@@ -299,7 +342,7 @@ fn real_split_tide_path_round_trips_and_replays() {
     assert!(session.state().world.flags.contains("flow_split"));
     assert_eq!(
         session.trace().steps.last().unwrap().observation.text,
-        "You enter Lowsail's aftermath and face what the changed water has done. The market stands above calm water while both shores still receive a share."
+        "You return to Lowsail's changed market. The market stands above calm water while both shores still receive a share."
     );
 
     let encoded = session.trace().to_json().expect("trace serializes");
@@ -431,6 +474,201 @@ fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
     assert_eq!(
         resumed_full.trace().final_receipt,
         uninterrupted.trace().final_receipt
+    );
+}
+
+#[test]
+fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("rook", 71, &content).expect("session starts");
+    let mut after_climb = None;
+    let mut after_return = None;
+
+    for (index, spec) in ROOK_HOT_ROUTE_FERRY_PATH.iter().enumerate() {
+        record(
+            &mut uninterrupted,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+        match index + 1 {
+            5 => after_climb = Some(resume_player_save(&uninterrupted, &content)),
+            7 => after_return = Some(resume_player_save(&uninterrupted, &content)),
+            _ => {}
+        }
+    }
+
+    let climb_step = &uninterrupted.trace().steps[4];
+    assert_eq!(climb_step.action.definition_id, "floor.climb_hot_face");
+    assert_eq!(climb_step.observation.location_id, "red_sluice.top");
+    assert_eq!(
+        climb_step.observation.result.as_deref(),
+        Some(
+            "You climb the hot service face to Red Sluice Top. The route exposes Overload Gates, which would flood Lowsail."
+        )
+    );
+    let memory_event = climb_step
+        .events
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::NpcMemoryAdded { npc, memory }
+                    if npc == "edrik_voss" && memory == "edrik_saw_hot_route"
+            )
+        })
+        .expect("climb records Edrik's witnessed memory");
+    let moved_event = climb_step
+        .events
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::Moved { from, to }
+                    if from == "red_sluice.floor" && to == "red_sluice.top"
+            )
+        })
+        .expect("climb records a typed move to Red Sluice Top");
+    assert!(
+        memory_event < moved_event,
+        "Edrik must witness the climb before the movement event"
+    );
+    assert_eq!(
+        uninterrupted.state().world.current_location,
+        "lowsail.return"
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("high_route_open")
+            && uninterrupted
+                .state()
+                .world
+                .flags
+                .contains("sluice_outcome_chosen")
+            && uninterrupted.state().world.flags.contains("ending_freedom")
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .character
+            .deeds
+            .contains("climbed_service_face")
+            && uninterrupted
+                .state()
+                .character
+                .deeds
+                .contains("freed_ferry")
+            && uninterrupted
+                .state()
+                .character
+                .deeds
+                .contains("opened_free_ferry")
+    );
+    let edrik_route_memory = uninterrupted.state().world.npcs["edrik_voss"]
+        .memories
+        .get("edrik_saw_hot_route")
+        .expect("Edrik retains the climb memory after reentry");
+    assert_eq!(
+        edrik_route_memory.subject,
+        "The Kilnborn lock-runner climbed the hot service face."
+    );
+    assert_eq!(
+        edrik_route_memory.provenance,
+        KnowledgeProvenance::Witnessed
+    );
+
+    let first_return = &uninterrupted.trace().steps[6];
+    assert_eq!(first_return.action.definition_id, "world.enter_aftermath");
+    assert_eq!(
+        first_return.observation.result.as_deref(),
+        Some("You return to Lowsail's changed market.")
+    );
+
+    let mut resumed_after_climb = after_climb.expect("climb checkpoint");
+    assert_eq!(resumed_after_climb.trace().steps.len(), 5);
+    assert_eq!(resumed_after_climb.state().world.time, 5);
+    assert_eq!(
+        resumed_after_climb.state().world.current_location,
+        "red_sluice.top"
+    );
+    assert!(
+        resumed_after_climb
+            .state()
+            .world
+            .flags
+            .contains("high_route_open")
+    );
+    assert!(
+        resumed_after_climb
+            .state()
+            .character
+            .deeds
+            .contains("climbed_service_face")
+    );
+    record_specs(
+        &mut resumed_after_climb,
+        &content,
+        &ROOK_HOT_ROUTE_FERRY_PATH[5..],
+    );
+
+    let mut resumed_after_return = after_return.expect("return checkpoint");
+    assert_eq!(resumed_after_return.trace().steps.len(), 7);
+    assert_eq!(resumed_after_return.state().world.time, 7);
+    assert_eq!(
+        resumed_after_return.state().world.current_location,
+        "lowsail.return"
+    );
+    assert!(
+        resumed_after_return
+            .state()
+            .world
+            .flags
+            .contains("sluice_outcome_chosen")
+    );
+    assert!(
+        resumed_after_return.state().world.locations["lowsail.return"]
+            .flags
+            .contains("ferry_free")
+    );
+    record_specs(
+        &mut resumed_after_return,
+        &content,
+        &ROOK_HOT_ROUTE_FERRY_PATH[7..],
+    );
+
+    assert_eq!(resumed_after_climb.state(), uninterrupted.state());
+    assert_eq!(resumed_after_return.state(), uninterrupted.state());
+    assert_eq!(
+        resumed_after_climb.trace().final_state_id,
+        uninterrupted.trace().final_state_id
+    );
+    assert_eq!(
+        resumed_after_return.trace().final_state_id,
+        uninterrupted.trace().final_state_id
+    );
+    assert_eq!(
+        resumed_after_climb.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
+    assert_eq!(
+        resumed_after_return.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
+    assert_eq!(uninterrupted.trace().steps.len(), 10);
+    assert_eq!(uninterrupted.state().world.time, 10);
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("old_channel_open")
+    );
+    assert_eq!(
+        uninterrupted.state().world.current_location,
+        "lowsail.return"
     );
 }
 
