@@ -294,6 +294,18 @@ fn assert_tide_key_inventory(session: &Session<'_>) {
     );
 }
 
+fn assert_npc_fields_unchanged(before: &forge_kernel::NpcState, after: &forge_kernel::NpcState) {
+    assert_eq!(after.id, before.id);
+    assert_eq!(after.goals, before.goals);
+    assert_eq!(after.values, before.values);
+    assert_eq!(after.tags, before.tags);
+    assert_eq!(after.relationships, before.relationships);
+    assert_eq!(after.memories, before.memories);
+    assert_eq!(after.knowledge, before.knowledge);
+    assert_eq!(after.inventory, before.inventory);
+    assert_eq!(after.suspicion, before.suspicion);
+}
+
 fn assert_closed_post_outcome_choices(
     session: &Session<'_>,
     content: &forge_kernel::CompiledContent,
@@ -342,7 +354,7 @@ fn real_split_tide_path_round_trips_and_replays() {
     assert!(session.state().world.flags.contains("flow_split"));
     assert_eq!(
         session.trace().steps.last().unwrap().observation.text,
-        "You return to Lowsail's changed market. The market stands above calm water while both shores still receive a share."
+        "You return to Lowsail's changed market. Oren, Sava, and Mira wait by calm water; both shores still receive a share."
     );
 
     let encoded = session.trace().to_json().expect("trace serializes");
@@ -582,9 +594,34 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
 
     let first_return = &uninterrupted.trace().steps[6];
     assert_eq!(first_return.action.definition_id, "world.enter_aftermath");
+    assert_eq!(first_return.observation.location_id, "lowsail.return");
+    assert!(
+        first_return
+            .observation
+            .text
+            .contains("Oren, Sava, and Mira")
+    );
     assert_eq!(
         first_return.observation.result.as_deref(),
         Some("You return to Lowsail's changed market.")
+    );
+    let npc_moves: Vec<_> = first_return
+        .events
+        .iter()
+        .filter_map(|event| match &event.kind {
+            EventKind::NpcMoved { npc, from, to } => {
+                Some((npc.as_str(), from.as_str(), to.as_str()))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        npc_moves,
+        vec![
+            ("oren_pell", "lowsail.docks", "lowsail.return"),
+            ("sava_rusk", "lowsail_market", "lowsail.return"),
+            ("mira_kett", "red_sluice.top", "lowsail.return"),
+        ]
     );
 
     let mut resumed_after_climb = after_climb.expect("climb checkpoint");
@@ -614,6 +651,12 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
         &ROOK_HOT_ROUTE_FERRY_PATH[5..],
     );
 
+    let mut before_return = Session::new_game("rook", 71, &content).expect("session starts");
+    record_specs(
+        &mut before_return,
+        &content,
+        &ROOK_HOT_ROUTE_FERRY_PATH[..6],
+    );
     let mut resumed_after_return = after_return.expect("return checkpoint");
     assert_eq!(resumed_after_return.trace().steps.len(), 7);
     assert_eq!(resumed_after_return.state().world.time, 7);
@@ -633,6 +676,32 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
             .flags
             .contains("ferry_free")
     );
+    for (npc_id, source_location) in [
+        ("oren_pell", "lowsail.docks"),
+        ("sava_rusk", "lowsail_market"),
+        ("mira_kett", "red_sluice.top"),
+    ] {
+        let before_npc = &before_return.state().world.npcs[npc_id];
+        let after_npc = &resumed_after_return.state().world.npcs[npc_id];
+        assert_eq!(before_npc.location, source_location);
+        assert_eq!(after_npc.location, "lowsail.return");
+        assert_npc_fields_unchanged(before_npc, after_npc);
+        assert!(
+            before_return.state().world.locations[source_location]
+                .entities
+                .contains(npc_id)
+        );
+        assert!(
+            !resumed_after_return.state().world.locations[source_location]
+                .entities
+                .contains(npc_id)
+        );
+        assert!(
+            resumed_after_return.state().world.locations["lowsail.return"]
+                .entities
+                .contains(npc_id)
+        );
+    }
     record_specs(
         &mut resumed_after_return,
         &content,
@@ -659,6 +728,11 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
     );
     assert_eq!(uninterrupted.trace().steps.len(), 10);
     assert_eq!(uninterrupted.state().world.time, 10);
+    assert!(uninterrupted.trace().steps[7..].iter().all(|step| {
+        step.events
+            .iter()
+            .all(|event| !matches!(event.kind, EventKind::NpcMoved { .. }))
+    }));
     assert!(
         uninterrupted
             .state()
@@ -713,13 +787,13 @@ fn ilyan_relief_path_survives_128_turn_player_save_checkpoints() {
         "world.enter_aftermath"
     );
     assert!(final_aftermath.observation.text.contains(
-        "Empty stalls mark the old market as families carry goods toward higher ground."
+        "Oren, Sava, and Mira watch families carry goods toward higher ground beyond the empty stalls."
     ));
     assert_eq!(
         content
             .location_description(uninterrupted.state())
             .expect("return aftermath observes"),
-        "Empty stalls mark the old market as families carry goods toward higher ground."
+        "Oren, Sava, and Mira watch families carry goods toward higher ground beyond the empty stalls."
     );
 
     let oren = uninterrupted
@@ -963,8 +1037,8 @@ fn timed_event_fixture_content() -> CompiledContent {
     };
 
     CompiledContent::try_compile(ContentDraft {
-        schema_version: "forge-schema-v5".to_owned(),
-        rules_version: "forge-rules-v3".to_owned(),
+        schema_version: "forge-schema-v6".to_owned(),
+        rules_version: "forge-rules-v4".to_owned(),
         world_id: "timed-fixture".to_owned(),
         contract: ContentContract::Fixture,
         start_location: "room".to_owned(),

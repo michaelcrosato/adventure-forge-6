@@ -340,6 +340,11 @@ pub enum EventKind {
         from: LocationId,
         to: LocationId,
     },
+    NpcMoved {
+        npc: NpcId,
+        from: LocationId,
+        to: LocationId,
+    },
     NpcRelationshipAdjusted {
         npc: NpcId,
         amount: i64,

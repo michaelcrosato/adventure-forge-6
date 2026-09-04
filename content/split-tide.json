@@ -1,6 +1,6 @@
 {
-  "schema_version": "forge-schema-v5",
-  "rules_version": "forge-rules-v3",
+  "schema_version": "forge-schema-v6",
+  "rules_version": "forge-rules-v4",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
@@ -346,7 +346,7 @@
           "id": "warning_rung",
           "priority": 15,
           "condition": {"kind": "world_flag", "flag": "market_warned"},
-          "text": "The docks stand empty beneath the warning bell."
+          "text": "The loading crews have cleared the docks; Oren and Yara remain beside the warning bell."
         },
         {
           "id": "yara_trusts",
@@ -472,7 +472,7 @@
     {
       "id": "lowsail.return",
       "name": "Lowsail Return",
-      "description": "The water has changed the market. Stalls, prices, and guards show who controls the tide.",
+      "description": "The water has changed the market. Oren, Sava, and Mira wait beside you.",
       "description_variants": [
         {
           "id": "stable_market",
@@ -484,31 +484,31 @@
               {"kind": "world_flag", "flag": "flow_split"}
             ]
           },
-          "text": "The market stands above calm water while both shores still receive a share."
+          "text": "Oren, Sava, and Mira wait by calm water; both shores still receive a share."
         },
         {
           "id": "upland_dry",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
-          "text": "Lowsail stays dry while the upland works crack above the lowered water."
+          "text": "Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water."
         },
         {
           "id": "moved_market",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
-          "text": "Empty stalls mark the old market as families carry goods toward higher ground."
+          "text": "Oren, Sava, and Mira watch families carry goods toward higher ground beyond the empty stalls."
         },
         {
           "id": "free_ferry",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
-          "text": "The old ferry channel runs clear as Oren raises a free-route flag."
+          "text": "Oren, Sava, and Mira stand by the open ferry channel beneath a free-route flag."
         },
         {
           "id": "flooded_market",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
-          "text": "Water fills the lower stalls while the market pays for the broken gates."
+          "text": "Oren, Sava, and Mira wait beside flooded stalls under the broken gates."
         }
       ],
       "exits": ["lowsail.docks", "red_sluice.top"],
@@ -746,7 +746,7 @@
       "id": "checkpoint.blend_workers",
       "label": "Blend Workers",
       "category": "Stealth",
-      "result": "The workers hide your passage from the checkpoint.",
+      "result": "The workers hide your passage and send Oren a note confirming your safe crossing.",
       "locations": ["lowsail_market"],
       "condition": {
         "kind": "all",
@@ -764,7 +764,7 @@
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail_market"}, "flag": "worker_cover", "value": true},
         {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
-        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_worker_cover", "subject": "The player slipped through with the workers.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_worker_cover", "subject": "The player slipped through with the workers.", "provenance": {"kind": "read", "source": "the checkpoint workers' crossing note"}},
         {"kind": "add_character_deed", "deed_id": "found_worker_cover"},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -1713,6 +1713,9 @@
       "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top"],
       "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
       "effects": [
+        {"kind": "move_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "location": {"kind": "literal", "value": "lowsail.return"}},
+        {"kind": "move_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "location": {"kind": "literal", "value": "lowsail.return"}},
+        {"kind": "move_npc", "npc": {"kind": "literal", "value": "mira_kett"}, "location": {"kind": "literal", "value": "lowsail.return"}},
         {"kind": "move_character", "location": {"kind": "literal", "value": "lowsail.return"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -1781,11 +1784,52 @@
       "id": "return.ask_oren",
       "label": "Ask Oren",
       "category": "Talk",
-      "result": "Oren names the price of the new water route.",
+      "result": "Oren: The water has changed our routes.",
+      "result_variants": [
+        {
+          "id": "shared_water",
+          "priority": 20,
+          "condition": {"kind": "world_flag", "flag": "flow_split"},
+          "text": "Oren: Both shores kept their water; I can run ferries between them."
+        },
+        {
+          "id": "council_water",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+          "text": "Oren: Lowsail stayed dry, but the upland works lost their water."
+        },
+        {
+          "id": "higher_market",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
+          "text": "Oren: Families are moving uphill; I'll carry their goods toward the higher market."
+        },
+        {
+          "id": "open_channel",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
+          "text": "Oren: The old channel is open; Abolish Ferry Toll will make its crossing free."
+        },
+        {
+          "id": "free_crossing",
+          "priority": 30,
+          "condition": {"kind": "world_flag", "flag": "ending_freedom"},
+          "text": "Oren: The old channel is open, and the ferry now runs without a toll."
+        },
+        {
+          "id": "lost_crossing",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
+          "text": "Oren: Floodwater fills the stalls; the old market crossing is lost."
+        }
+      ],
       "locations": ["lowsail.return"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_saw_return"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "npc_at_location", "npc": "oren_pell", "location": "lowsail.return"},
+          {"kind": "not", "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_saw_return"}}
+        ]
       },
       "effects": [
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
@@ -1813,6 +1857,7 @@
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "mira_kett", "location": "lowsail.return"},
           {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
           {"kind": "world_flag", "flag": "flow_split"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_accord"}}
@@ -1837,6 +1882,7 @@
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "sava_rusk", "location": "lowsail.return"},
           {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_council"}}
         ]
@@ -1860,6 +1906,7 @@
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "mira_kett", "location": "lowsail.return"},
           {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_relief"}}
         ]
@@ -1883,6 +1930,7 @@
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "oren_pell", "location": "lowsail.return"},
           {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_freedom"}}
         ]
@@ -1906,6 +1954,7 @@
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "mira_kett", "location": "lowsail.return"},
           {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_disaster"}}
         ]
@@ -1924,17 +1973,18 @@
       "id": "return.acknowledge_report",
       "label": "Acknowledge Report",
       "category": "Report",
-      "result": "Sava records the report and watches the changed water.",
+      "result": "You confirm that Sava's report reached Edrik. She records your return.",
       "locations": ["lowsail.return"],
       "condition": {
         "kind": "all",
         "conditions": [
+          {"kind": "npc_at_location", "npc": "sava_rusk", "location": "lowsail.return"},
           {"kind": "world_flag", "flag": "report_sent"},
           {"kind": "not", "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "sava_received_return_report"}}
         ]
       },
       "effects": [
-        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_return_report", "subject": "The player returned after sending the Sluice report.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_return_report", "subject": "The player confirmed that Edrik received Sava's report.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
       ],
       "parameters": [],

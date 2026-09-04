@@ -364,6 +364,7 @@ fn frontier_score(
     // longer routes, but cannot let a currently gated shortcut monopolize the
     // frontier queue.
     let immediate_targets = immediate_movement_targets(&frontier.state, content)?;
+    let npc_arrivals = immediate_npc_arrival_projections(&frontier.state, content)?;
     let mut uncovered_here = 0usize;
     let mut ready_one_move = 0usize;
     let mut ready_uncovered = 0usize;
@@ -375,6 +376,13 @@ fn frontier_score(
             continue;
         }
         let ready = definition.condition.evaluate(&frontier.state);
+        let ready_on_arrival = npc_arrivals.iter().any(|arrival| {
+            (definition.locations.is_empty()
+                || definition
+                    .locations
+                    .contains(&arrival.world.current_location))
+                && definition.condition.evaluate(arrival)
+        });
         let target_distance = if definition.locations.is_empty() {
             0
         } else {
@@ -389,19 +397,24 @@ fn frontier_score(
         total_progress = total_progress.saturating_add(scaled_progress);
         best_partial = best_partial.max((scaled_progress, Reverse(target_distance)));
 
-        if ready {
-            let mut available_distance = if definition.locations.is_empty() {
+        if ready || ready_on_arrival {
+            let mut available_distance = if ready && definition.locations.is_empty() {
                 0
             } else {
                 usize::MAX
             };
-            for target in &definition.locations {
-                available_distance = available_distance.min(location_distance(
-                    content,
-                    location,
-                    target,
-                    Some(&frontier.state),
-                )?);
+            if ready {
+                for target in &definition.locations {
+                    available_distance = available_distance.min(location_distance(
+                        content,
+                        location,
+                        target,
+                        Some(&frontier.state),
+                    )?);
+                }
+            }
+            if ready_on_arrival {
+                available_distance = available_distance.min(1);
             }
             if available_distance == usize::MAX {
                 continue;
@@ -410,10 +423,11 @@ fn frontier_score(
             nearest_ready_target = nearest_ready_target.min(available_distance);
             if available_distance == 0 {
                 uncovered_here += 1;
-            } else if definition
-                .locations
-                .iter()
-                .any(|target| immediate_targets.contains(target))
+            } else if ready_on_arrival
+                || definition
+                    .locations
+                    .iter()
+                    .any(|target| immediate_targets.contains(target))
             {
                 ready_one_move += 1;
             }
@@ -432,6 +446,74 @@ fn frontier_score(
         !report.reached_locations.contains(location),
         Reverse(frontier.ordinal),
     ))
+}
+
+/// Rank conversations opened by NPC relocation during an available travel
+/// program. These are condition-only projections, never admitted states or
+/// counted executions: indexes, history, and deadlines are not simulated.
+/// Only movement/time programs with one direct player move and literal NPC
+/// moves are projected; other programs are left to real play.
+fn immediate_npc_arrival_projections(
+    state: &GameState,
+    content: &CompiledContent,
+) -> Result<Vec<GameState>, VerifyError> {
+    let location = content
+        .location(&state.world.current_location)
+        .ok_or_else(|| VerifyError::new("crawler encountered an unknown location"))?;
+    let mut arrivals = Vec::new();
+    for (_, action) in content.actions() {
+        if !action.movement
+            || (!action.locations.is_empty() && !action.locations.contains(&location.id))
+            || !action.condition.evaluate(state)
+            || action
+                .effects
+                .iter()
+                .filter(|effect| matches!(effect, Effect::MoveCharacter { .. }))
+                .count()
+                != 1
+        {
+            continue;
+        }
+        let mut npc_destinations = BTreeMap::new();
+        let mut supported = true;
+        for effect in &action.effects {
+            match effect {
+                Effect::MoveNpc {
+                    npc: StringRef::Literal(npc),
+                    location: StringRef::Literal(destination),
+                } => {
+                    npc_destinations.insert(npc, destination);
+                }
+                Effect::Noop | Effect::MoveCharacter { .. } | Effect::AdvanceTime { .. } => {}
+                _ => {
+                    supported = false;
+                    break;
+                }
+            }
+        }
+        if !supported || npc_destinations.is_empty() {
+            continue;
+        }
+        let mut targets = BTreeSet::new();
+        visit_movement_targets(action, location, &mut |destination| {
+            targets.insert(destination.to_owned());
+        });
+        arrivals
+            .try_reserve(targets.len())
+            .map_err(|_| VerifyError::new("crawler arrival planning allocation failed"))?;
+        for destination in targets {
+            let mut arrival = state.clone();
+            arrival.world.current_location = destination;
+            for (npc, destination) in &npc_destinations {
+                let npc_state = arrival.world.npcs.get_mut(*npc).ok_or_else(|| {
+                    VerifyError::new("crawler arrival planning encountered an unknown NPC")
+                })?;
+                npc_state.location.clone_from(destination);
+            }
+            arrivals.push(arrival);
+        }
+    }
+    Ok(arrivals)
 }
 
 fn immediate_movement_targets(
@@ -588,6 +670,8 @@ fn visit_movement_targets(
                     ParameterDomain::InventoryItems | ParameterDomain::NpcsAtCurrentLocation => {}
                 }
             }
+            // NPC relocation changes world presence, not the player's graph.
+            Effect::MoveNpc { .. } => {}
             Effect::RandomChance {
                 on_success,
                 on_failure,
@@ -753,6 +837,7 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
         | Effect::SetLocationFlag { .. }
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::TransferNpcItemToCharacter { .. }
         | Effect::AddNpcMemory { .. }
@@ -920,6 +1005,150 @@ mod tests {
                 .to_string()
                 .contains("resolved non-time action checkpoint.read_flag remains legal")
         );
+    }
+
+    fn resolved_rook_for_arrival_planning(content: &CompiledContent) -> GameState {
+        let mut state = content.new_game("rook", 71).unwrap();
+        for (definition, destination) in [
+            ("checkpoint.use_stolen_permit", None),
+            ("travel_adjacent", Some("lowsail.levee")),
+            ("levee.stolen_path", None),
+            ("floor.climb_hot_face", None),
+            ("top.overload", None),
+        ] {
+            let action = enumerate_legal_actions(&state, content)
+                .unwrap()
+                .into_iter()
+                .find(|action| {
+                    action.definition_id == definition
+                        && destination.is_none_or(|destination| {
+                            action.parameters.get("destination").map(String::as_str)
+                                == Some(destination)
+                        })
+                })
+                .unwrap();
+            state = step(&state, &action, content, &state.entropy)
+                .unwrap()
+                .into_state();
+        }
+        state
+    }
+
+    #[test]
+    fn npc_arrival_planning_requires_open_player_travel_and_never_mutates_state() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        let initial = content.new_game("rook", 71).unwrap();
+        assert!(
+            immediate_npc_arrival_projections(&initial, &content)
+                .unwrap()
+                .is_empty()
+        );
+        let resolved = resolved_rook_for_arrival_planning(&content);
+        let before = resolved.clone();
+        let ending = content.action("return.face_flood").unwrap();
+        assert!(!ending.condition.evaluate(&resolved));
+        let arrivals = immediate_npc_arrival_projections(&resolved, &content).unwrap();
+        assert_eq!(resolved, before);
+        assert_eq!(arrivals.len(), 1);
+        assert_eq!(arrivals[0].world.current_location, "lowsail.return");
+        assert!(ending.condition.evaluate(&arrivals[0]));
+
+        let action = enumerate_legal_actions(&resolved, &content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == "world.enter_aftermath")
+            .unwrap();
+        let actual = step(&resolved, &action, &content, &resolved.entropy).unwrap();
+        assert_eq!(arrivals[0].world.npcs, actual.state().world.npcs);
+        assert_eq!(
+            arrivals[0].event_log, resolved.event_log,
+            "planning cannot fabricate history"
+        );
+        assert_eq!(
+            arrivals[0].world.time, resolved.world.time,
+            "planning is not execution"
+        );
+        assert!(
+            enumerate_legal_actions(actual.state(), &content)
+                .unwrap()
+                .iter()
+                .any(|action| action.definition_id == "return.face_flood")
+        );
+
+        let mut npc_only = content.action("world.enter_aftermath").unwrap().clone();
+        npc_only
+            .effects
+            .retain(|effect| matches!(effect, Effect::MoveNpc { .. }));
+        let mut targets = BTreeSet::new();
+        visit_movement_targets(
+            &npc_only,
+            content.location("red_sluice.top").unwrap(),
+            &mut |target| {
+                targets.insert(target.to_owned());
+            },
+        );
+        assert!(
+            targets.is_empty(),
+            "moving an NPC must not add a player graph edge"
+        );
+    }
+
+    #[test]
+    fn npc_arrival_planning_declines_unmodeled_programs() {
+        for variant in [
+            "random",
+            "resource",
+            "parameterized",
+            "multiple_player_moves",
+        ] {
+            let mut draft = parse(SPLIT_TIDE).unwrap();
+            let action = draft
+                .actions
+                .iter_mut()
+                .find(|action| action.id == "world.enter_aftermath")
+                .unwrap();
+            match variant {
+                "random" => {
+                    action.effects[0] = Effect::RandomChance {
+                        success_percent: 50,
+                        on_success: Box::new(action.effects[0].clone()),
+                        on_failure: Box::new(Effect::Noop),
+                    };
+                }
+                "resource" => action.effects.push(Effect::AdjustResource {
+                    resource: "coin".to_owned(),
+                    amount: 1,
+                }),
+                "parameterized" => {
+                    let Effect::MoveNpc { npc, .. } = &mut action.effects[0] else {
+                        panic!()
+                    };
+                    *npc = StringRef::Parameter("inhabitant".to_owned());
+                    action.parameters.push(forge_kernel::ParameterSpec {
+                        name: "inhabitant".to_owned(),
+                        domain: ParameterDomain::Values(vec!["oren_pell".to_owned()]),
+                    });
+                }
+                "multiple_player_moves" => action.effects.push(Effect::MoveCharacter {
+                    location: StringRef::Literal("red_sluice.top".to_owned()),
+                }),
+                _ => unreachable!(),
+            }
+            let content = compile_production(draft).unwrap();
+            let resolved = resolved_rook_for_arrival_planning(&content);
+            assert!(
+                enumerate_legal_actions(&resolved, &content)
+                    .unwrap()
+                    .iter()
+                    .any(|action| action.definition_id == "world.enter_aftermath")
+            );
+            assert!(
+                immediate_npc_arrival_projections(&resolved, &content)
+                    .unwrap()
+                    .is_empty(),
+                "{variant}"
+            );
+        }
     }
 
     #[test]

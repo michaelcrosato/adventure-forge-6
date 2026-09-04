@@ -1,6 +1,6 @@
 {
-  "verifier_id": "c359b65e18d20b9f0325508af2199198f3219d1109ab93814f8e15e7e50aab44",
-  "build_id": "378c38e85553e1794b5467a1a182c71e5750fe92660601fa79626a01f6504722",
+  "verifier_id": "cbfce344a71cd4450b02ad48257a67901b7f9644cd6582a19c497d36c9e168eb",
+  "build_id": "490be1a7e1f854b2354bac36c896502e4d3ed7c471ba2bbf7f950d7c3710a443",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 4096,
@@ -8,9 +8,9 @@
     "max_action_executions": 65536,
     "catalog_page_size": 7
   },
-  "expanded_states": 56,
-  "discovered_frontiers": 296,
-  "successful_actions": 318,
+  "expanded_states": 55,
+  "discovered_frontiers": 280,
+  "successful_actions": 303,
   "max_legal_actions": 8,
   "reached_locations": [
     "lowsail.docks",
@@ -124,5 +124,5 @@
     "wait_tide",
     "world.enter_aftermath"
   ],
-  "execution_receipt": "3581cb3eb97749a9ec5db7c7a656262d78750274c621b5b558f242faf06ba271"
+  "execution_receipt": "c3d41d0ea34f078c74fa419975b3459ce5c1556daef7bc35b4bfe693903b270b"
 }

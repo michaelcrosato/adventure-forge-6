@@ -65,6 +65,12 @@ struct ScenarioNpcKnowledgeAbsence {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcLocationExpectation {
+    npc: &'static str,
+    location: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 struct ScenarioInventoryExpectation {
     item: &'static str,
     count: u32,
@@ -89,6 +95,7 @@ pub(super) struct ScenarioExpectations {
     required_location_flags: &'static [(&'static str, &'static str)],
     required_deeds: &'static [&'static str],
     required_visited_locations: &'static [&'static str],
+    required_npc_locations: &'static [ScenarioNpcLocationExpectation],
     required_npc_knowledge: &'static [ScenarioNpcKnowledgeExpectation],
     forbidden_npc_knowledge: &'static [ScenarioNpcKnowledgeAbsence],
     required_character_inventory: &'static [ScenarioInventoryExpectation],
@@ -263,6 +270,29 @@ const RELAYED_REQUIRED_NPC_KNOWLEDGE: &[ScenarioNpcKnowledgeExpectation] = &[
     },
 ];
 
+const AFTERMATH_NPC_LOCATIONS: &[ScenarioNpcLocationExpectation] = &[
+    ScenarioNpcLocationExpectation {
+        npc: "oren_pell",
+        location: "lowsail.return",
+    },
+    ScenarioNpcLocationExpectation {
+        npc: "sava_rusk",
+        location: "lowsail.return",
+    },
+    ScenarioNpcLocationExpectation {
+        npc: "mira_kett",
+        location: "lowsail.return",
+    },
+    ScenarioNpcLocationExpectation {
+        npc: "yara_dene",
+        location: "lowsail.docks",
+    },
+    ScenarioNpcLocationExpectation {
+        npc: "edrik_voss",
+        location: "red_sluice.floor",
+    },
+];
+
 const RELIEF_CHANNEL_STEPS: &[ScenarioStep] = &[
     action!("travel_adjacent", "destination" => "lowsail.docks"),
     action!("docks.ring_warning"),
@@ -388,6 +418,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -416,6 +447,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[("lowsail_market", "worker_cover")],
             required_deeds: &["found_worker_cover"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -445,6 +477,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["stole_permit", "read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -474,6 +507,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[],
             required_deeds: &["saved_worker"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -516,6 +550,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[("lowsail.return", "market_flooded")],
             required_deeds: &["faced_flood"],
             required_visited_locations: &["lowsail_market", "lowsail.return"],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -568,6 +603,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -621,6 +657,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -654,6 +691,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "lowsail.levee",
                 "red_sluice.floor",
             ],
+            required_npc_locations: &[],
             required_npc_knowledge: OREN_MARKET_WARNING_KNOWLEDGE,
             forbidden_npc_knowledge: UNRELAYED_FORBIDDEN_NPC_KNOWLEDGE,
             required_character_inventory: &[],
@@ -690,6 +728,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "lowsail.levee",
                 "red_sluice.floor",
             ],
+            required_npc_locations: &[],
             required_npc_knowledge: RELAYED_REQUIRED_NPC_KNOWLEDGE,
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -744,6 +783,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -795,6 +835,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -848,6 +889,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -910,6 +952,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -976,6 +1019,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: &[],
@@ -1035,6 +1079,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
             required_character_inventory: TIDE_KEY_CHARACTER_INVENTORY,
@@ -1202,6 +1247,7 @@ pub(super) fn validate_session(
         expected.required_character_inventory,
         expected.forbidden_npc_inventory,
     )?;
+    validate_npc_locations(state, expected.required_npc_locations)?;
 
     let mut visited = BTreeSet::new();
     visited.insert(session.trace().initial_observation.location_id.as_str());
@@ -1296,6 +1342,52 @@ fn validate_inventory(
                 "scenario NPC {} still owns forbidden item {}",
                 expected.npc, expected.item
             )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_npc_locations(
+    state: &forge_kernel::GameState,
+    expected: &[ScenarioNpcLocationExpectation],
+) -> Result<(), VerifyError> {
+    for expected in expected {
+        let destination = state
+            .world
+            .locations
+            .get(expected.location)
+            .ok_or_else(|| {
+                VerifyError::new(format!(
+                    "scenario references unknown location {} for NPC {}",
+                    expected.location, expected.npc
+                ))
+            })?;
+        let npc = state.world.npcs.get(expected.npc).ok_or_else(|| {
+            VerifyError::new(format!(
+                "scenario references unknown NPC {} for location assertion",
+                expected.npc
+            ))
+        })?;
+        if npc.location != expected.location {
+            return Err(VerifyError::new(format!(
+                "scenario NPC {} has the wrong location",
+                expected.npc
+            )));
+        }
+        if !destination.entities.contains(expected.npc) {
+            return Err(VerifyError::new(format!(
+                "scenario NPC {} is missing from location index {}",
+                expected.npc, expected.location
+            )));
+        }
+        for (location, runtime) in &state.world.locations {
+            let indexed = runtime.entities.contains(expected.npc);
+            if location != expected.location && indexed {
+                return Err(VerifyError::new(format!(
+                    "scenario NPC {} remains in location index {}",
+                    expected.npc, location
+                )));
+            }
         }
     }
     Ok(())
@@ -1791,6 +1883,78 @@ mod tests {
         let mut changed = *relayed_spec;
         let mut changed_expectations = changed.expectations;
         changed_expectations.final_world_time = Some(7);
+        changed.expectations = changed_expectations;
+        assert_ne!(original_binding, binding(&changed).unwrap());
+    }
+
+    #[test]
+    fn aftermath_npc_locations_bind_position_and_entity_indexes() {
+        let content = crate::load_content().unwrap();
+        let spec = get("m1-outcome-split-flow").unwrap();
+        let session = run(spec, &content).unwrap();
+        validate_npc_locations(session.state(), spec.expectations.required_npc_locations).unwrap();
+
+        let mut wrong_position = session.state().clone();
+        wrong_position
+            .world
+            .npcs
+            .get_mut("mira_kett")
+            .unwrap()
+            .location = "red_sluice.top".to_owned();
+        assert!(
+            validate_npc_locations(&wrong_position, spec.expectations.required_npc_locations,)
+                .is_err()
+        );
+
+        let mut wrong_index = session.state().clone();
+        assert!(
+            wrong_index
+                .world
+                .locations
+                .get_mut("lowsail.return")
+                .unwrap()
+                .entities
+                .remove("mira_kett")
+        );
+        assert!(
+            validate_npc_locations(&wrong_index, spec.expectations.required_npc_locations).is_err()
+        );
+
+        let mut duplicate_index = session.state().clone();
+        assert!(
+            duplicate_index
+                .world
+                .locations
+                .get_mut("red_sluice.top")
+                .unwrap()
+                .entities
+                .insert("mira_kett".to_owned())
+        );
+        assert!(
+            validate_npc_locations(&duplicate_index, spec.expectations.required_npc_locations)
+                .is_err()
+        );
+
+        let mut missing_destination = session.state().clone();
+        assert!(
+            missing_destination
+                .world
+                .locations
+                .remove("lowsail.return")
+                .is_some()
+        );
+        assert!(
+            validate_npc_locations(
+                &missing_destination,
+                spec.expectations.required_npc_locations,
+            )
+            .is_err()
+        );
+
+        let original_binding = binding(spec).unwrap();
+        let mut changed = *spec;
+        let mut changed_expectations = changed.expectations;
+        changed_expectations.required_npc_locations = &[];
         changed.expectations = changed_expectations;
         assert_ne!(original_binding, binding(&changed).unwrap());
     }

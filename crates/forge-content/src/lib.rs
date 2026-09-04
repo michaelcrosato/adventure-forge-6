@@ -108,14 +108,14 @@ mod tests {
     #[test]
     fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
         let duplicate_top_level = r#"{
-            "schema_version":"forge-schema-v5",
+            "schema_version":"forge-schema-v6",
             "schema_version":"shadow"
         }"#;
         assert!(parse(duplicate_top_level).is_err());
 
         let duplicate_nested_map = r#"{
-            "schema_version":"forge-schema-v5",
-            "rules_version":"forge-rules-v3",
+            "schema_version":"forge-schema-v6",
+            "rules_version":"forge-rules-v4",
             "world_id":"world",
             "character_creation":{
                 "base":{"resources":{"coin":1,"coin":2}},

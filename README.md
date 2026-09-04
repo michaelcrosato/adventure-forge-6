@@ -34,6 +34,8 @@ The Tide Key is a persistent item: taking it removes it from Yara's stock and op
 
 `Climb Hot Face` carries a qualified climber directly to Red Sluice Top in one tide step. It also exposes the destructive overload controls; the climb itself does not choose that outcome.
 
+The first return also brings Oren, Sava, and Mira into the changed market. Their positions persist across revisits without resetting their memories, knowledge, relationships, or stock. Return conversations require actual NPC presence; Oren describes the chosen water route and distinguishes opening the channel from launching the free ferry.
+
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.

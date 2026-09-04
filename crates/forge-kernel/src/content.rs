@@ -360,6 +360,10 @@ pub enum Condition {
     AtLocation {
         location: LocationId,
     },
+    NpcAtLocation {
+        npc: NpcId,
+        location: LocationId,
+    },
     NpcKnows {
         npc: NpcId,
         knowledge_id: String,
@@ -429,6 +433,11 @@ impl Condition {
                 .get(location)
                 .is_some_and(|runtime| runtime.flags.contains(flag)),
             Self::AtLocation { location } => state.world.current_location == *location,
+            Self::NpcAtLocation { npc, location } => state
+                .world
+                .npcs
+                .get(npc)
+                .is_some_and(|npc_state| npc_state.location == *location),
             Self::NpcKnows { npc, knowledge_id } => state
                 .world
                 .npcs
@@ -486,6 +495,7 @@ impl Condition {
             | Self::WorldFlag { .. }
             | Self::LocationFlag { .. }
             | Self::AtLocation { .. }
+            | Self::NpcAtLocation { .. }
             | Self::NpcKnows { .. }
             | Self::NpcKnowsWithProvenance { .. }
             | Self::NpcRemembers { .. }
@@ -523,6 +533,7 @@ impl Condition {
                 | Self::WorldFlag { .. }
                 | Self::LocationFlag { .. }
                 | Self::AtLocation { .. }
+                | Self::NpcAtLocation { .. }
                 | Self::NpcKnows { .. }
                 | Self::NpcKnowsWithProvenance { .. }
                 | Self::NpcRemembers { .. }
@@ -567,6 +578,10 @@ pub enum Effect {
         amount: i64,
     },
     MoveCharacter {
+        location: StringRef,
+    },
+    MoveNpc {
+        npc: StringRef,
         location: StringRef,
     },
     AdjustNpcRelationship {
@@ -619,6 +634,7 @@ impl Effect {
             | Self::SetLocationFlag { .. }
             | Self::AdjustResource { .. }
             | Self::MoveCharacter { .. }
+            | Self::MoveNpc { .. }
             | Self::AdjustNpcRelationship { .. }
             | Self::AddNpcMemory { .. }
             | Self::TeachNpc { .. }
@@ -657,6 +673,7 @@ fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
         | Effect::SetLocationFlag { .. }
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
@@ -1620,6 +1637,7 @@ impl CompiledContent {
         }
         if self.contract == ContentContract::Production {
             self.validate_production_inventory(state, &mut errors);
+            self.validate_production_npc_positions(state, &mut errors);
         }
         if state.entropy.algorithm != self.manifest.entropy_algorithm()
             || state.entropy.validate().is_err()
@@ -1717,6 +1735,78 @@ impl CompiledContent {
             {
                 errors.push(format!(
                     "production NPC {npc_id} inventory does not match authored genesis and transfer history"
+                ));
+            }
+        }
+    }
+
+    fn validate_production_npc_positions(
+        &self,
+        state: &GameState,
+        errors: &mut ContentValidationError,
+    ) {
+        let mut expected_locations = self
+            .npcs
+            .iter()
+            .map(|(id, definition)| (id.clone(), definition.location.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let mut previous_move_turn = None;
+
+        for (index, event) in state.event_log.iter().enumerate() {
+            let EventKind::NpcMoved { npc, from, to } = &event.kind else {
+                continue;
+            };
+            let event_name = format!("NPC move event {index}");
+            if let Some(previous_turn) = previous_move_turn
+                && event.turn < previous_turn
+            {
+                errors.push(format!(
+                    "{event_name} has turn {} before prior NPC move turn {previous_turn}",
+                    event.turn
+                ));
+            }
+            previous_move_turn = Some(event.turn);
+            if event.turn > state.world.time {
+                errors.push(format!(
+                    "{event_name} has future turn {} at world time {}",
+                    event.turn, state.world.time
+                ));
+            }
+            if !self.npcs.contains_key(npc) {
+                errors.push(format!("{event_name} references unknown NPC {npc}"));
+            }
+            if !self.locations.contains_key(from) {
+                errors.push(format!(
+                    "{event_name} references unknown source location {from}"
+                ));
+            }
+            if !self.locations.contains_key(to) {
+                errors.push(format!(
+                    "{event_name} references unknown destination location {to}"
+                ));
+            }
+            if from == to {
+                errors.push(format!("{event_name} is a no-op"));
+            }
+
+            let Some(expected_from) = expected_locations.get(npc) else {
+                continue;
+            };
+            if expected_from != from {
+                errors.push(format!(
+                    "{event_name} expects NPC {npc} at {expected_from}, not {from}"
+                ));
+                continue;
+            }
+            expected_locations.insert(npc.clone(), to.clone());
+        }
+
+        for (npc, expected_location) in expected_locations {
+            if let Some(actual) = state.world.npcs.get(&npc)
+                && actual.location != expected_location
+            {
+                errors.push(format!(
+                    "production NPC {npc} location does not match authored genesis and move history"
                 ));
             }
         }
@@ -2456,6 +2546,7 @@ fn condition_possible_at_depth(condition: &Condition, location: &str, depth: usi
         | Condition::CharacterHasDeed { .. }
         | Condition::WorldFlag { .. }
         | Condition::LocationFlag { .. }
+        | Condition::NpcAtLocation { .. }
         | Condition::NpcKnows { .. }
         | Condition::NpcKnowsWithProvenance { .. }
         | Condition::NpcRemembers { .. }
@@ -2815,6 +2906,7 @@ fn effect_advances_time(effect: &Effect) -> bool {
         | Effect::SetLocationFlag { .. }
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
@@ -2855,6 +2947,10 @@ fn validate_condition(
         }
         Condition::AtLocation { location } => {
             validate_location_ref(location, owner, location_ids, errors)
+        }
+        Condition::NpcAtLocation { npc, location } => {
+            validate_npc_ref(npc, owner, npc_ids, errors);
+            validate_location_ref(location, owner, location_ids, errors);
         }
         Condition::NpcKnows { npc, knowledge_id }
         | Condition::NpcKnowsWithProvenance {
@@ -2948,6 +3044,28 @@ fn validate_effects(
                 roles,
                 errors,
             ),
+            Effect::MoveNpc { npc, location } => {
+                validate_reference(
+                    npc,
+                    ReferenceRole::Npc,
+                    action,
+                    location_ids,
+                    npc_ids,
+                    parameters,
+                    roles,
+                    errors,
+                );
+                validate_reference(
+                    location,
+                    ReferenceRole::Location,
+                    action,
+                    location_ids,
+                    npc_ids,
+                    parameters,
+                    roles,
+                    errors,
+                );
+            }
             Effect::AdjustNpcRelationship { npc, .. } => validate_reference(
                 npc,
                 ReferenceRole::Npc,
@@ -3121,6 +3239,7 @@ fn guaranteed_npc_knowledge_at_depth(
         | Condition::WorldFlag { .. }
         | Condition::LocationFlag { .. }
         | Condition::AtLocation { .. }
+        | Condition::NpcAtLocation { .. }
         | Condition::NpcRemembers { .. }
         | Condition::NpcRelationshipAtLeast { .. } => BTreeSet::new(),
     }
@@ -3222,6 +3341,7 @@ fn guaranteed_npc_knowledge_after_effects(
             | Effect::SetLocationFlag { .. }
             | Effect::AdjustResource { .. }
             | Effect::MoveCharacter { .. }
+            | Effect::MoveNpc { .. }
             | Effect::AdjustNpcRelationship { .. }
             | Effect::AddNpcMemory { .. }
             | Effect::TransferNpcItemToCharacter { .. }
@@ -3906,6 +4026,154 @@ mod tests {
     }
 
     #[test]
+    fn validates_npc_location_conditions_and_move_effect_references() {
+        let mut valid = action(
+            "move-npc",
+            Condition::NpcAtLocation {
+                npc: "sava".to_owned(),
+                location: "gate".to_owned(),
+            },
+            vec![Effect::MoveNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                location: StringRef::Literal("yard".to_owned()),
+            }],
+        );
+        valid.meaningful = true;
+        let content = compile(draft(vec![valid])).expect("literal NPC movement compiles");
+        assert!(
+            Effect::MoveNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                location: StringRef::Literal("yard".to_owned()),
+            }
+            .changes_state()
+        );
+        assert_eq!(
+            effect_time_cost(&Effect::MoveNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                location: StringRef::Literal("yard".to_owned()),
+            }),
+            Some(ActionTimeCost {
+                minimum_ticks: 0,
+                maximum_ticks: 0,
+            })
+        );
+
+        let mut state = state(&content);
+        let at_gate = Condition::NpcAtLocation {
+            npc: "sava".to_owned(),
+            location: "gate".to_owned(),
+        };
+        assert!(at_gate.evaluate(&state));
+        state.world.npcs.get_mut("sava").unwrap().location = "yard".to_owned();
+        assert!(!at_gate.evaluate(&state));
+
+        let mut parameterized = action(
+            "parameterized-move-npc",
+            Condition::Always,
+            vec![Effect::MoveNpc {
+                npc: StringRef::Parameter("actor".to_owned()),
+                location: StringRef::Parameter("destination".to_owned()),
+            }],
+        );
+        parameterized.parameters = vec![
+            ParameterSpec {
+                name: "actor".to_owned(),
+                domain: ParameterDomain::Values(vec!["sava".to_owned()]),
+            },
+            ParameterSpec {
+                name: "destination".to_owned(),
+                domain: ParameterDomain::Values(vec!["yard".to_owned()]),
+            },
+        ];
+        assert!(compile(draft(vec![parameterized])).is_ok());
+
+        let mut incompatible = action(
+            "incompatible-move-npc",
+            Condition::Always,
+            vec![Effect::MoveNpc {
+                npc: StringRef::Parameter("target".to_owned()),
+                location: StringRef::Parameter("target".to_owned()),
+            }],
+        );
+        incompatible.parameters = vec![ParameterSpec {
+            name: "target".to_owned(),
+            domain: ParameterDomain::Values(vec!["sava".to_owned(), "yard".to_owned()]),
+        }];
+        let error = compile(draft(vec![incompatible])).unwrap_err();
+        assert!(error.to_string().contains("incompatible reference types"));
+
+        let unknown_npc = action(
+            "unknown-move-npc",
+            Condition::Always,
+            vec![Effect::MoveNpc {
+                npc: StringRef::Literal("ghost".to_owned()),
+                location: StringRef::Literal("yard".to_owned()),
+            }],
+        );
+        let error = compile(draft(vec![unknown_npc])).unwrap_err();
+        assert!(error.to_string().contains("references unknown Npc ghost"));
+
+        let unknown_location = action(
+            "unknown-move-location",
+            Condition::NpcAtLocation {
+                npc: "sava".to_owned(),
+                location: "unknown".to_owned(),
+            },
+            vec![Effect::MoveNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                location: StringRef::Literal("unknown".to_owned()),
+            }],
+        );
+        let error = compile(draft(vec![unknown_location])).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("references unknown location unknown")
+        );
+    }
+
+    #[test]
+    fn move_npc_is_valid_in_random_actions_and_timed_events() {
+        let nested = action(
+            "random-move-npc",
+            Condition::NpcAtLocation {
+                npc: "sava".to_owned(),
+                location: "gate".to_owned(),
+            },
+            vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(Effect::MoveNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    location: StringRef::Literal("yard".to_owned()),
+                }),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        );
+        let mut source = draft(vec![nested]);
+        source.timed_events.push(TimedEventDefinition {
+            id: "move-npc-event".to_owned(),
+            due_time: 1,
+            event_kind: "notice".to_owned(),
+            label: "Move NPC".to_owned(),
+            result: "The guard changes posts.".to_owned(),
+            condition: Condition::NpcAtLocation {
+                npc: "sava".to_owned(),
+                location: "gate".to_owned(),
+            },
+            effects: vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(Effect::MoveNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    location: StringRef::Literal("yard".to_owned()),
+                }),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        });
+        let content = compile(source).expect("NPC movement compiles in action and event branches");
+        assert!(content.timed_event("move-npc-event").is_some());
+    }
+
+    #[test]
     fn timed_events_validate_closed_effects_and_compile_into_identity() {
         let mut source = draft(vec![action(
             "wait",
@@ -4223,6 +4491,46 @@ mod tests {
         }
     }
 
+    fn npc_move_event(turn: u64, npc: &str, from: &str, to: &str) -> Event {
+        Event {
+            turn,
+            kind: EventKind::NpcMoved {
+                npc: npc.to_owned(),
+                from: from.to_owned(),
+                to: to.to_owned(),
+            },
+        }
+    }
+
+    fn apply_npc_move_for_admission(
+        state: &mut GameState,
+        npc: &str,
+        from: &str,
+        to: &str,
+        turn: u64,
+    ) {
+        set_npc_location_for_admission(state, npc, from, to);
+        state.event_log.push(npc_move_event(turn, npc, from, to));
+    }
+
+    fn set_npc_location_for_admission(state: &mut GameState, npc: &str, from: &str, to: &str) {
+        state
+            .world
+            .locations
+            .get_mut(from)
+            .expect("source location exists")
+            .entities
+            .remove(npc);
+        state
+            .world
+            .locations
+            .get_mut(to)
+            .expect("destination location exists")
+            .entities
+            .insert(npc.to_owned());
+        state.world.npcs.get_mut(npc).unwrap().location = to.to_owned();
+    }
+
     #[test]
     fn production_inventory_requires_genesis_and_typed_transfer_history() {
         let content = production_content_with_npc_stock(2);
@@ -4318,6 +4626,139 @@ mod tests {
         content
             .validate_state(&game)
             .expect("custom genesis plus transfer history must validate");
+    }
+
+    #[test]
+    fn production_npc_positions_progress_from_preset_and_custom_genesis() {
+        let content = compile(production_draft(Vec::new())).unwrap();
+
+        let mut preset = content.new_game("hero", 9).unwrap();
+        apply_npc_move_for_admission(&mut preset, "sava", "gate", "yard", 0);
+        apply_npc_move_for_admission(&mut preset, "sava", "yard", "gate", 0);
+        content
+            .validate_state(&preset)
+            .expect("ordered NPC movement history must return a preset NPC to its genesis place");
+
+        let selection = CharacterSelection {
+            name: "Mara Venn".to_owned(),
+            choices: vec![
+                CharacterChoiceSelection {
+                    slot_id: "path".to_owned(),
+                    choice_id: "clerk".to_owned(),
+                },
+                CharacterChoiceSelection {
+                    slot_id: "lineage".to_owned(),
+                    choice_id: "fenborn".to_owned(),
+                },
+            ],
+        };
+        let mut custom = content
+            .new_custom_game(&selection, 9)
+            .expect("custom genesis must produce a valid game");
+        apply_npc_move_for_admission(&mut custom, "sava", "gate", "yard", 0);
+        content
+            .validate_state(&custom)
+            .expect("custom genesis plus NPC movement history must validate");
+    }
+
+    #[test]
+    fn rejects_forged_npc_position_histories_and_indexes() {
+        let content = compile(production_draft(Vec::new())).unwrap();
+
+        let mut teleport = content.new_game("hero", 9).unwrap();
+        set_npc_location_for_admission(&mut teleport, "sava", "gate", "yard");
+        let error = content.validate_state(&teleport).unwrap_err().to_string();
+        assert!(error.contains("NPC sava location does not match authored genesis"));
+
+        let mut stale = content.new_game("hero", 9).unwrap();
+        stale
+            .event_log
+            .push(npc_move_event(0, "sava", "gate", "yard"));
+        let error = content.validate_state(&stale).unwrap_err().to_string();
+        assert!(error.contains("NPC sava location does not match authored genesis"));
+
+        let mut unknown_npc = content.new_game("hero", 9).unwrap();
+        unknown_npc
+            .event_log
+            .push(npc_move_event(0, "ghost", "gate", "yard"));
+        let error = content
+            .validate_state(&unknown_npc)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("references unknown NPC ghost"));
+
+        let mut unknown_source = content.new_game("hero", 9).unwrap();
+        unknown_source
+            .event_log
+            .push(npc_move_event(0, "sava", "ghost", "yard"));
+        let error = content
+            .validate_state(&unknown_source)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("references unknown source location ghost"));
+
+        let mut unknown_destination = content.new_game("hero", 9).unwrap();
+        unknown_destination
+            .event_log
+            .push(npc_move_event(0, "sava", "gate", "ghost"));
+        let error = content
+            .validate_state(&unknown_destination)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("references unknown destination location ghost"));
+
+        let mut future = content.new_game("hero", 9).unwrap();
+        future
+            .event_log
+            .push(npc_move_event(1, "sava", "gate", "yard"));
+        let error = content.validate_state(&future).unwrap_err().to_string();
+        assert!(error.contains("has future turn 1 at world time 0"));
+
+        let mut wrong_from = content.new_game("hero", 9).unwrap();
+        wrong_from
+            .event_log
+            .push(npc_move_event(0, "sava", "yard", "gate"));
+        let error = content.validate_state(&wrong_from).unwrap_err().to_string();
+        assert!(error.contains("expects NPC sava at gate, not yard"));
+
+        let mut no_op = content.new_game("hero", 9).unwrap();
+        no_op
+            .event_log
+            .push(npc_move_event(0, "sava", "gate", "gate"));
+        let error = content.validate_state(&no_op).unwrap_err().to_string();
+        assert!(error.contains("NPC move event 0 is a no-op"));
+
+        let mut duplicate = content.new_game("hero", 9).unwrap();
+        apply_npc_move_for_admission(&mut duplicate, "sava", "gate", "yard", 0);
+        duplicate
+            .event_log
+            .push(npc_move_event(0, "sava", "gate", "yard"));
+        let error = content.validate_state(&duplicate).unwrap_err().to_string();
+        assert!(error.contains("expects NPC sava at yard, not gate"));
+
+        let mut decreasing_turns = content.new_game("hero", 9).unwrap();
+        apply_npc_move_for_admission(&mut decreasing_turns, "sava", "gate", "yard", 1);
+        apply_npc_move_for_admission(&mut decreasing_turns, "sava", "yard", "gate", 0);
+        let error = content
+            .validate_state(&decreasing_turns)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("has turn 0 before prior NPC move turn 1"));
+
+        let mut missing_index = content.new_game("hero", 9).unwrap();
+        apply_npc_move_for_admission(&mut missing_index, "sava", "gate", "yard", 0);
+        missing_index
+            .world
+            .locations
+            .get_mut("yard")
+            .unwrap()
+            .entities
+            .remove("sava");
+        let error = content
+            .validate_state(&missing_index)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("NPC sava is missing from its location entity index yard"));
     }
 
     #[test]

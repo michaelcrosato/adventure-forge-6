@@ -572,6 +572,7 @@ fn contains_item_transfer(effects: &[Effect]) -> bool {
         | Effect::SetLocationFlag { .. }
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
@@ -623,6 +624,7 @@ fn item_transfer_effect_requirements(
         | Effect::SetLocationFlag { .. }
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
@@ -900,6 +902,83 @@ fn apply_effect(
                 kind: EventKind::Moved { from, to: location },
             });
         }
+        Effect::MoveNpc { npc, location } => {
+            let npc = resolve_ref(npc, parameters)?;
+            let location = resolve_ref(location, parameters)?;
+            if !content.has_npc(&npc) {
+                return Err(KernelError::InvalidAction(format!(
+                    "cannot move unknown NPC {npc}"
+                )));
+            }
+            if !content.has_location(&location) || !state.world.locations.contains_key(&location) {
+                return Err(KernelError::InvalidAction(format!(
+                    "cannot move NPC {npc} to unknown location {location}"
+                )));
+            }
+
+            let from = state
+                .world
+                .npcs
+                .get(&npc)
+                .ok_or_else(|| KernelError::InvalidAction(format!("unknown NPC {npc}")))?
+                .location
+                .clone();
+            let source_runtime = state.world.locations.get(&from).ok_or_else(|| {
+                KernelError::InvalidState(format!("NPC {npc} has unknown source location {from}"))
+            })?;
+            if !source_runtime.entities.contains(&npc) {
+                return Err(KernelError::InvalidState(format!(
+                    "NPC {npc} is missing from source location index {from}"
+                )));
+            }
+            if from == location {
+                return Ok(());
+            }
+            if state
+                .world
+                .locations
+                .get(&location)
+                .is_some_and(|runtime| runtime.entities.contains(&npc))
+            {
+                return Err(KernelError::InvalidState(format!(
+                    "NPC {npc} already appears at destination location {location}"
+                )));
+            }
+
+            let removed = state
+                .world
+                .locations
+                .get_mut(&from)
+                .expect("source location was validated above")
+                .entities
+                .remove(&npc);
+            if !removed {
+                return Err(KernelError::InvalidState(format!(
+                    "NPC {npc} is missing from source location index {from}"
+                )));
+            }
+            state
+                .world
+                .locations
+                .get_mut(&location)
+                .expect("destination location was validated above")
+                .entities
+                .insert(npc.clone());
+            state
+                .world
+                .npcs
+                .get_mut(&npc)
+                .expect("NPC was validated above")
+                .location = location.clone();
+            events.push(Event {
+                turn,
+                kind: EventKind::NpcMoved {
+                    npc,
+                    from,
+                    to: location,
+                },
+            });
+        }
         Effect::AdjustNpcRelationship { npc, amount } => {
             let npc = resolve_ref(npc, parameters)?;
             let npc_state = state
@@ -1119,6 +1198,7 @@ mod tests {
     use super::*;
     use crate::content::{
         ActionDefinition, Condition, ContentDraft, Effect, LocationDefinition, NpcDefinition,
+        TimedEventDefinition,
     };
     use crate::model::{Character, NpcState, WorldState};
     use crate::{EntropyState, MAX_ENTROPY_CURSOR};
@@ -1150,8 +1230,8 @@ mod tests {
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v5".to_owned(),
-            rules_version: "forge-rules-v3".to_owned(),
+            schema_version: "forge-schema-v6".to_owned(),
+            rules_version: "forge-rules-v4".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -1262,6 +1342,10 @@ mod tests {
             item: item.to_owned(),
             count,
         }
+    }
+
+    fn move_npc_effect(npc: StringRef, location: StringRef) -> Effect {
+        Effect::MoveNpc { npc, location }
     }
 
     #[test]
@@ -1534,6 +1618,435 @@ mod tests {
             Event { turn: 0, kind: EventKind::NpcItemTransferredToCharacter { npc, item, count: 2 } },
             Event { turn: 0, kind: EventKind::NpcRelationshipAdjusted { npc: related, amount: 1 } },
         ] if flag == "deal" && npc == "sava" && item == "ore" && related == "sava"));
+    }
+
+    #[test]
+    fn npc_move_updates_indexes_preserves_state_and_emits_typed_event() {
+        let content = content(vec![simple_action(
+            "move-sava",
+            Condition::Always,
+            vec![move_npc_effect(
+                StringRef::Literal("sava".to_owned()),
+                StringRef::Literal("yard".to_owned()),
+            )],
+        )]);
+        let mut initial = state(&content);
+        let sava = initial.world.npcs.get_mut("sava").unwrap();
+        sava.relationships.insert("player".to_owned(), 3);
+        sava.memories.insert(
+            "checkpoint".to_owned(),
+            crate::Memory {
+                id: "checkpoint".to_owned(),
+                subject: "The gate was checked.".to_owned(),
+                turn: 0,
+                provenance: crate::KnowledgeProvenance::Witnessed,
+            },
+        );
+        sava.knowledge.insert(
+            "tide-key".to_owned(),
+            crate::Knowledge {
+                id: "tide-key".to_owned(),
+                subject: "The key is safe.".to_owned(),
+                turn: 0,
+                provenance: crate::KnowledgeProvenance::Witnessed,
+            },
+        );
+        sava.inventory.insert("ore".to_owned(), 2);
+        sava.suspicion = 4;
+        let before = initial.clone();
+        let before_npc = initial.world.npcs["sava"].clone();
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert_eq!(initial, before, "moving an NPC leaves input immutable");
+        let next = transition.state();
+        let mut expected_npc = before_npc;
+        expected_npc.location = "yard".to_owned();
+        assert_eq!(next.world.npcs["sava"], expected_npc);
+        assert!(!next.world.locations["gate"].entities.contains("sava"));
+        assert!(next.world.locations["yard"].entities.contains("sava"));
+        assert!(matches!(
+            transition.events(),
+            [Event {
+                turn: 0,
+                kind: EventKind::NpcMoved { npc, from, to }
+            }] if npc == "sava" && from == "gate" && to == "yard"
+        ));
+        assert_eq!(next.event_log, transition.events());
+    }
+
+    #[test]
+    fn npc_self_move_is_silent_and_preserves_state() {
+        let content = content(vec![simple_action(
+            "stay-sava",
+            Condition::Always,
+            vec![move_npc_effect(
+                StringRef::Literal("sava".to_owned()),
+                StringRef::Literal("gate".to_owned()),
+            )],
+        )]);
+        let initial = state(&content);
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert!(transition.events().is_empty());
+        assert_eq!(transition.state(), &initial);
+        assert!(
+            transition.state().world.locations["gate"]
+                .entities
+                .contains("sava")
+        );
+    }
+
+    #[test]
+    fn sequential_npc_moves_update_indexes_and_event_order() {
+        let content = content_with_mira(vec![simple_action(
+            "move-both",
+            Condition::Always,
+            vec![
+                move_npc_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    StringRef::Literal("yard".to_owned()),
+                ),
+                move_npc_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    StringRef::Literal("gate".to_owned()),
+                ),
+                move_npc_effect(
+                    StringRef::Literal("mira".to_owned()),
+                    StringRef::Literal("yard".to_owned()),
+                ),
+            ],
+        )]);
+        let initial = state(&content);
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert!(matches!(
+            transition.events(),
+            [
+                Event {
+                    turn: 0,
+                    kind: EventKind::NpcMoved { npc: first, from: first_from, to: first_to }
+                },
+                Event {
+                    turn: 0,
+                    kind: EventKind::NpcMoved { npc: middle, from: middle_from, to: middle_to }
+                },
+                Event {
+                    turn: 0,
+                    kind: EventKind::NpcMoved { npc: second, from: second_from, to: second_to }
+                }
+            ] if first == "sava"
+                && first_from == "gate"
+                && first_to == "yard"
+                && middle == "sava"
+                && middle_from == "yard"
+                && middle_to == "gate"
+                && second == "mira"
+                && second_from == "gate"
+                && second_to == "yard"
+        ));
+        assert_eq!(transition.state().world.npcs["sava"].location, "gate");
+        assert_eq!(transition.state().world.npcs["mira"].location, "yard");
+        assert_eq!(
+            transition.state().world.locations["gate"].entities,
+            BTreeSet::from(["sava".to_owned()])
+        );
+        assert_eq!(
+            transition.state().world.locations["yard"].entities,
+            BTreeSet::from(["mira".to_owned()])
+        );
+    }
+
+    #[test]
+    fn parameterized_npc_moves_follow_current_location_domain() {
+        let move_action = ActionDefinition {
+            id: "move-npc".to_owned(),
+            label: "Move NPC".to_owned(),
+            category: "World".to_owned(),
+            result: "The NPC moves.".to_owned(),
+            result_variants: Vec::new(),
+            locations: vec!["gate".to_owned()],
+            condition: Condition::Always,
+            effects: vec![move_npc_effect(
+                StringRef::Parameter("npc".to_owned()),
+                StringRef::Parameter("destination".to_owned()),
+            )],
+            parameters: vec![
+                crate::ParameterSpec {
+                    name: "npc".to_owned(),
+                    domain: ParameterDomain::NpcsAtCurrentLocation,
+                },
+                crate::ParameterSpec {
+                    name: "destination".to_owned(),
+                    domain: ParameterDomain::Values(vec!["yard".to_owned()]),
+                },
+            ],
+            meaningful: true,
+            movement: false,
+        };
+        let content = content_with_mira(vec![move_action]);
+        let initial = state(&content);
+        let actions = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(actions.len(), 2);
+        assert_eq!(
+            actions
+                .iter()
+                .map(|action| action.parameters["npc"].as_str())
+                .collect::<Vec<_>>(),
+            vec!["mira", "sava"]
+        );
+        let sava_action = actions
+            .iter()
+            .find(|action| action.parameters["npc"] == "sava")
+            .unwrap();
+        let after = step(&initial, sava_action, &content, &initial.entropy)
+            .unwrap()
+            .into_state();
+        let remaining = enumerate_legal_actions(&after, &content).unwrap();
+        assert_eq!(remaining.len(), 1);
+        assert_eq!(remaining[0].parameters["npc"], "mira");
+        assert_eq!(after.world.npcs["sava"].location, "yard");
+    }
+
+    #[test]
+    fn random_npc_move_is_fixed_by_explicit_seed() {
+        let content = content(vec![simple_action(
+            "random-move",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(move_npc_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    StringRef::Literal("yard".to_owned()),
+                )),
+                on_failure: Box::new(move_npc_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    StringRef::Literal("gate".to_owned()),
+                )),
+            }],
+        )]);
+        for seed in [42, 43] {
+            let mut initial = state(&content);
+            initial.entropy = EntropyState::new(seed);
+            let action = enumerate_legal_actions(&initial, &content)
+                .unwrap()
+                .into_iter()
+                .next()
+                .unwrap();
+            let left = step(&initial, &action, &content, &initial.entropy).unwrap();
+            let right = step(&initial, &action, &content, &initial.entropy).unwrap();
+            assert_eq!(left.events(), right.events());
+            assert_eq!(left.state(), right.state());
+            let draw = left
+                .events()
+                .iter()
+                .find_map(|event| match event.kind {
+                    EventKind::RandomDraw { value, .. } => Some(value),
+                    _ => None,
+                })
+                .unwrap();
+            let succeeded = draw % 100 < 50;
+            assert_eq!(
+                left.state().world.npcs["sava"].location,
+                if succeeded { "yard" } else { "gate" }
+            );
+            assert_eq!(
+                left.events()
+                    .iter()
+                    .filter(|event| matches!(event.kind, EventKind::NpcMoved { .. }))
+                    .count(),
+                usize::from(succeeded)
+            );
+            if succeeded {
+                assert!(matches!(
+                    left.events(),
+                    [
+                        Event {
+                            kind: EventKind::RandomDraw { .. },
+                            ..
+                        },
+                        Event {
+                            kind: EventKind::NpcMoved { .. },
+                            ..
+                        }
+                    ]
+                ));
+            } else {
+                assert!(matches!(
+                    left.events(),
+                    [Event {
+                        kind: EventKind::RandomDraw { .. },
+                        ..
+                    }]
+                ));
+            }
+        }
+    }
+
+    #[test]
+    fn timed_npc_move_resolves_after_action_time_advance() {
+        let mut source = draft(vec![simple_action(
+            "wait",
+            Condition::Always,
+            vec![Effect::AdvanceTime { ticks: 1 }],
+        )]);
+        source.timed_events = vec![TimedEventDefinition {
+            id: "move-sava-later".to_owned(),
+            due_time: 1,
+            event_kind: "npc_move".to_owned(),
+            label: "Move Sava".to_owned(),
+            result: "Sava moves to the yard.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![move_npc_effect(
+                StringRef::Literal("sava".to_owned()),
+                StringRef::Literal("yard".to_owned()),
+            )],
+        }];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        initial.world.scheduled_events = vec![crate::ScheduledEvent {
+            id: "move-sava-later".to_owned(),
+            due_time: 1,
+            event_kind: "npc_move".to_owned(),
+        }];
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert!(matches!(
+            transition.events(),
+            [
+                Event {
+                    turn: 0,
+                    kind: EventKind::TimeAdvanced { ticks: 1 }
+                },
+                Event {
+                    turn: 1,
+                    kind: EventKind::ScheduledEventResolved {
+                        event_id,
+                        applied: true,
+                        ..
+                    }
+                },
+                Event {
+                    turn: 1,
+                    kind: EventKind::NpcMoved { npc, from, to }
+                }
+            ] if event_id == "move-sava-later"
+                && npc == "sava"
+                && from == "gate"
+                && to == "yard"
+        ));
+        assert!(transition.state().world.scheduled_events.is_empty());
+        assert_eq!(transition.state().world.npcs["sava"].location, "yard");
+    }
+
+    #[test]
+    fn invalid_npc_move_destination_or_source_index_leaves_input_unchanged() {
+        let content = content(vec![simple_action(
+            "move-sava",
+            Condition::Always,
+            vec![move_npc_effect(
+                StringRef::Literal("sava".to_owned()),
+                StringRef::Literal("yard".to_owned()),
+            )],
+        )]);
+        let mut invalid_destination = state(&content);
+        let before_destination = invalid_destination.clone();
+        let mut entropy = invalid_destination.entropy.clone();
+        let mut entropy_draws = Vec::new();
+        let mut events = Vec::new();
+        let result = apply_effect(
+            &mut invalid_destination,
+            &move_npc_effect(
+                StringRef::Literal("sava".to_owned()),
+                StringRef::Literal("missing".to_owned()),
+            ),
+            &BTreeMap::new(),
+            &content,
+            &mut entropy,
+            &mut entropy_draws,
+            &mut events,
+        );
+        assert!(matches!(
+            result,
+            Err(KernelError::InvalidAction(message)) if message.contains("unknown location")
+        ));
+        assert_eq!(invalid_destination, before_destination);
+        assert_eq!(entropy, before_destination.entropy);
+        assert!(entropy_draws.is_empty());
+        assert!(events.is_empty());
+
+        let valid = state(&content);
+        let action = enumerate_legal_actions(&valid, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let mut invalid_index = valid.clone();
+        invalid_index
+            .world
+            .locations
+            .get_mut("gate")
+            .unwrap()
+            .entities
+            .remove("sava");
+        let before_index = invalid_index.clone();
+        let result = step(&invalid_index, &action, &content, &invalid_index.entropy);
+        assert!(matches!(
+            result,
+            Err(KernelError::InvalidState(message)) if message.contains("location entity index")
+        ));
+        assert_eq!(invalid_index, before_index);
+    }
+
+    #[test]
+    fn later_resource_overflow_rolls_back_prior_npc_move() {
+        let content = content(vec![simple_action(
+            "move-and-overflow",
+            Condition::Always,
+            vec![
+                move_npc_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    StringRef::Literal("yard".to_owned()),
+                ),
+                Effect::AdjustResource {
+                    resource: "coin".to_owned(),
+                    amount: 1,
+                },
+            ],
+        )]);
+        let mut initial = state(&content);
+        initial
+            .character
+            .resources
+            .insert("coin".to_owned(), i64::MAX);
+        let before = initial.clone();
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        let result = step(&initial, &action, &content, &initial.entropy);
+        assert!(matches!(
+            result,
+            Err(KernelError::InvalidState(message)) if message.contains("resource coin overflow")
+        ));
+        assert_eq!(initial, before);
     }
 
     #[test]
@@ -2079,8 +2592,8 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v5".to_owned(),
-            rules_version: "forge-rules-v3".to_owned(),
+            schema_version: "forge-schema-v6".to_owned(),
+            rules_version: "forge-rules-v4".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),

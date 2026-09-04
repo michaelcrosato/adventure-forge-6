@@ -528,11 +528,9 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
             "You sound the market warning. Oren orders every crew uphill; relay his warning at Lowsail Levee so Edrik can open relief."
         )
     );
-    assert!(
-        warning_observation
-            .text
-            .ends_with("The docks stand empty beneath the warning bell.")
-    );
+    assert!(warning_observation.text.ends_with(
+        "The loading crews have cleared the docks; Oren and Yara remain beside the warning bell."
+    ));
     let warned = transition.into_state();
     let warned = travel_to(warned, &content, "lowsail.levee");
     let warned_floor = apply(warned.clone(), &content, "levee.authority_path");
@@ -811,7 +809,7 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     state = apply(state, &content, "world.enter_aftermath");
     assert_eq!(
         content.location_description(&state).unwrap(),
-        "The market stands above calm water while both shores still receive a share."
+        "Oren, Sava, and Mira wait by calm water; both shores still receive a share."
     );
     let return_observation = content
         .observe_action(&state, "return.read_tide")
@@ -892,7 +890,7 @@ fn resolved_phase_closes_old_actions_and_hold_aftermath_stays_truthful() {
     assert_eq!(state.world.current_location, "lowsail.return");
     assert_eq!(
         content.location_description(&state).unwrap(),
-        "Lowsail stays dry while the upland works crack above the lowered water."
+        "Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water."
     );
     assert_eq!(
         content.action_result(&state, "return.read_tide").unwrap(),
@@ -996,6 +994,254 @@ fn every_sluice_outcome_excludes_the_other_four() {
                 .iter()
                 .all(|outcome| !legal_after.contains(*outcome)),
             "an outcome remained legal after {selected}"
+        );
+
+        let returned = apply(resolved, &content, "world.enter_aftermath");
+        for npc in ["oren_pell", "sava_rusk", "mira_kett"] {
+            assert_eq!(returned.world.npcs[npc].location, "lowsail.return");
+            assert!(
+                returned.world.locations["lowsail.return"]
+                    .entities
+                    .contains(npc)
+            );
+        }
+        let (ending, conversation) = match selected {
+            "top.split_flow" => (
+                "return.share_water",
+                "Oren: Both shores kept their water; I can run ferries between them.",
+            ),
+            "top.hold_market" => (
+                "return.count_dry_stalls",
+                "Oren: Lowsail stayed dry, but the upland works lost their water.",
+            ),
+            "top.divert_relief" => (
+                "return.move_inland",
+                "Oren: Families are moving uphill; I'll carry their goods toward the higher market.",
+            ),
+            "top.break_toll" => (
+                "return.open_ferry",
+                "Oren: The old channel is open; Abolish Ferry Toll will make its crossing free.",
+            ),
+            "top.overload" => (
+                "return.face_flood",
+                "Oren: Floodwater fills the stalls; the old market crossing is lost.",
+            ),
+            _ => unreachable!(),
+        };
+        assert!(definitions(&returned, &content).contains(ending));
+        let ask = action_for(&returned, &content, "return.ask_oren");
+        let talked = step(&returned, &ask, &content, &returned.entropy).unwrap();
+        assert_eq!(
+            content
+                .observe_after_transition(&talked)
+                .unwrap()
+                .result
+                .as_deref(),
+            Some(conversation)
+        );
+        assert_eq!(
+            talked.state().character.resources,
+            returned.character.resources
+        );
+        assert_eq!(
+            talked.state().world.npcs["oren_pell"].memories["oren_saw_return"].provenance,
+            forge_kernel::KnowledgeProvenance::Witnessed
+        );
+        assert!(!definitions(talked.state(), &content).contains("return.ask_oren"));
+
+        if selected == "top.break_toll" {
+            let ended = apply(returned, &content, ending);
+            let ask = action_for(&ended, &content, "return.ask_oren");
+            let talked = step(&ended, &ask, &content, &ended.entropy).unwrap();
+            assert_eq!(
+                content
+                    .observe_after_transition(&talked)
+                    .unwrap()
+                    .result
+                    .as_deref(),
+                Some("Oren: The old channel is open, and the ferry now runs without a toll.")
+            );
+        }
+    }
+}
+
+#[test]
+fn aftermath_moves_existing_inhabitants_once_and_keeps_their_history() {
+    let content = content();
+    let mut state = apply(
+        new_game(&content, "ilyan"),
+        &content,
+        "checkpoint.audit_order",
+    );
+    state = travel_to(state, &content, "lowsail.docks");
+    state = apply(state, &content, "docks.audit_ledger");
+    state = apply(state, &content, "docks.ring_warning");
+    state = apply(state, &content, "docks.ask_oren");
+    state = travel_to(state, &content, "lowsail.levee");
+    state = apply(state, &content, "levee.help_worker");
+    state = apply(state, &content, "levee.send_report");
+    state = apply(state, &content, "levee.culvert_path");
+    state = apply(state, &content, "floor.read_harmonics");
+    state = travel_to(state, &content, "red_sluice.top");
+    state = apply(state, &content, "top.check_wheels");
+    state = apply(state, &content, "top.split_flow");
+    assert_eq!(state.world.time, 13);
+    assert!(state.world.npcs["oren_pell"].knows("market_warned"));
+    assert!(state.world.npcs["mira_kett"].remembers("levee_worker_helped"));
+    assert!(state.world.npcs["sava_rusk"].knows("forged_order"));
+
+    let return_action = action_for(&state, &content, "world.enter_aftermath");
+    let transition = step(&state, &return_action, &content, &state.entropy).unwrap();
+    let moved = transition
+        .events()
+        .iter()
+        .filter_map(|event| match &event.kind {
+            EventKind::NpcMoved { npc, from, to } => {
+                Some((event.turn, npc.as_str(), from.as_str(), to.as_str()))
+            }
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(
+        moved,
+        vec![
+            (13, "oren_pell", "lowsail.docks", "lowsail.return"),
+            (13, "sava_rusk", "lowsail_market", "lowsail.return"),
+            (13, "mira_kett", "red_sluice.top", "lowsail.return"),
+        ]
+    );
+    let player_move = transition
+        .events()
+        .iter()
+        .position(|event| matches!(event.kind, EventKind::Moved { .. }))
+        .unwrap();
+    assert!(
+        transition.events()[..player_move]
+            .iter()
+            .filter(|event| matches!(event.kind, EventKind::NpcMoved { .. }))
+            .count()
+            == 3
+    );
+    let mut returned = transition.into_state();
+    assert_eq!(returned.world.time, 14);
+    assert_eq!(returned.entropy, state.entropy);
+    assert_eq!(returned.character, state.character);
+    for (id, npc) in &state.world.npcs {
+        let mut expected = npc.clone();
+        if ["oren_pell", "sava_rusk", "mira_kett"].contains(&id.as_str()) {
+            expected.location = "lowsail.return".to_owned();
+            assert!(
+                !returned.world.locations[&npc.location]
+                    .entities
+                    .contains(id)
+            );
+        }
+        assert_eq!(
+            returned.world.npcs[id], expected,
+            "movement changed other fields for {id}"
+        );
+    }
+    assert_eq!(
+        returned.world.locations["lowsail.return"].entities,
+        BTreeSet::from([
+            "oren_pell".to_owned(),
+            "sava_rusk".to_owned(),
+            "mira_kett".to_owned()
+        ])
+    );
+    assert_eq!(
+        returned.world.npcs["yara_dene"].inventory["split_tide.tide_key"],
+        1
+    );
+    assert_eq!(
+        returned.world.npcs["edrik_voss"].location,
+        "red_sluice.floor"
+    );
+
+    returned = apply(returned, &content, "return.acknowledge_report");
+    let memory = &returned.world.npcs["sava_rusk"].memories["sava_received_return_report"];
+    assert_eq!(memory.turn, 14);
+    assert_eq!(
+        memory.provenance,
+        forge_kernel::KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        memory.subject,
+        "The player confirmed that Edrik received Sava's report."
+    );
+    returned = apply(returned, &content, "return.ask_oren");
+    returned = apply(returned, &content, "return.share_water");
+    let before_revisit = returned.world.npcs.clone();
+    let docks = travel_to(returned, &content, "lowsail.docks");
+    let again = action_for(&docks, &content, "world.enter_aftermath");
+    let revisit = step(&docks, &again, &content, &docks.entropy).unwrap();
+    assert!(
+        !revisit
+            .events()
+            .iter()
+            .any(|event| matches!(event.kind, EventKind::NpcMoved { .. }))
+    );
+    assert_eq!(revisit.state().world.npcs, before_revisit);
+    assert_eq!(revisit.state().world.time, docks.world.time + 1);
+    assert!(revisit.state().world.flags.contains("ending_accord"));
+    assert!(!definitions(revisit.state(), &content).contains("return.acknowledge_report"));
+    content.validate_state(revisit.state()).unwrap();
+}
+
+#[test]
+fn worker_cover_news_reaches_oren_as_a_written_report() {
+    let content = content();
+    let initial = new_game(&content, "rook");
+    let action = action_for(&initial, &content, "checkpoint.blend_workers");
+    let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+    assert_eq!(
+        content
+            .observe_after_transition(&transition)
+            .unwrap()
+            .result
+            .as_deref(),
+        Some("The workers hide your passage and send Oren a note confirming your safe crossing.")
+    );
+    let state = transition.into_state();
+    assert_eq!(state.world.current_location, "lowsail_market");
+    assert_eq!(state.world.npcs["oren_pell"].location, "lowsail.docks");
+    let report = state.world.npcs["oren_pell"].memories["oren_saw_worker_cover"].clone();
+    assert_eq!(report.turn, 0);
+    assert_eq!(
+        report.provenance,
+        forge_kernel::KnowledgeProvenance::Read {
+            source: "the checkpoint workers' crossing note".to_owned()
+        }
+    );
+    assert_eq!(state.world.npcs["oren_pell"].relationships["player"], 2);
+    let docks = travel_to(state, &content, "lowsail.docks");
+    assert_eq!(
+        docks.world.npcs["oren_pell"].memories["oren_saw_worker_cover"],
+        report
+    );
+}
+
+#[test]
+fn every_local_return_interaction_requires_its_inhabitants_presence() {
+    let content = content();
+    for (action_id, npc_id) in [
+        ("return.ask_oren", "oren_pell"),
+        ("return.open_ferry", "oren_pell"),
+        ("return.share_water", "mira_kett"),
+        ("return.move_inland", "mira_kett"),
+        ("return.face_flood", "mira_kett"),
+        ("return.count_dry_stalls", "sava_rusk"),
+        ("return.acknowledge_report", "sava_rusk"),
+    ] {
+        let action = content.action(action_id).unwrap();
+        let forge_kernel::Condition::All { conditions } = &action.condition else {
+            panic!("{action_id} must require its local presence guard");
+        };
+        assert!(
+            conditions.contains(&forge_kernel::Condition::NpcAtLocation {
+                npc: npc_id.to_owned(),
+                location: "lowsail.return".to_owned(),
+            })
         );
     }
 }
@@ -1363,7 +1609,7 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
     assert_eq!(missed_return.world.current_location, "lowsail.return");
     assert_eq!(
         content.location_description(&missed_return).unwrap(),
-        "Water fills the lower stalls while the market pays for the broken gates."
+        "Oren, Sava, and Mira wait beside flooded stalls under the broken gates."
     );
     let ending_page = content.action_page(&missed_return, 0, usize::MAX).unwrap();
     let flood_view = ending_page
