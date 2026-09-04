@@ -502,7 +502,7 @@ run_main() {
         -c 'mcp_servers.forge_player.enabled_tools=["observe","act","finish"]'
     )
 
-    "${codex_sandbox[@]}" login status | grep -F 'Logged in using ChatGPT' >/dev/null || {
+    "${codex_sandbox[@]}" login status 2>&1 | grep -F 'Logged in using ChatGPT' >/dev/null || {
         fail "the sandboxed Codex process cannot reuse the saved subscription login"
         return 1
     }
