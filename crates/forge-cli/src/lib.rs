@@ -563,6 +563,10 @@ fn prompt_for_custom_character<R: BufRead, W: Write>(
                         .map_err(|_| CliError::new("could not render the character preview"))?;
                     writeln!(output, "Preview — {}", observation.title).map_err(io_error)?;
                     writeln!(output, "{}", observation.text).map_err(io_error)?;
+                    let supplies = observation.supplies.summary();
+                    if !supplies.is_empty() {
+                        writeln!(output, "{supplies}").map_err(io_error)?;
+                    }
                     writeln!(output, "{} legal action(s).", observation.action_count)
                         .map_err(io_error)?;
                 }
@@ -930,6 +934,10 @@ fn render_observation<W: Write>(observation: &Observation, output: &mut W) -> Re
     writeln!(output, "\n{}", observation.title).map_err(io_error)?;
     writeln!(output, "{}", public_timing_summary(observation)).map_err(io_error)?;
     writeln!(output, "{}", observation.text).map_err(io_error)?;
+    let supplies = observation.supplies.summary();
+    if !supplies.is_empty() {
+        writeln!(output, "{supplies}").map_err(io_error)?;
+    }
     writeln!(
         output,
         "{} legal action(s) · set {}",
@@ -1168,6 +1176,30 @@ mod tests {
         ))
     }
 
+    fn rendered_observation(observation: &Observation) -> String {
+        let mut output = Vec::new();
+        render_observation(observation, &mut output).unwrap();
+        String::from_utf8(output).unwrap()
+    }
+
+    fn resource_amount(observation: &Observation, id: &str) -> Option<i64> {
+        observation
+            .supplies
+            .resources
+            .iter()
+            .find(|resource| resource.id == id)
+            .map(|resource| resource.amount)
+    }
+
+    fn item_count(observation: &Observation, id: &str) -> Option<u32> {
+        observation
+            .supplies
+            .items
+            .iter()
+            .find(|item| item.id == id)
+            .map(|item| item.count)
+    }
+
     #[test]
     fn argument_parser_is_strict_and_order_independent() {
         assert_eq!(parse_command(&[]).unwrap(), Command::Help);
@@ -1260,10 +1292,101 @@ mod tests {
         assert!(output.contains("Preview — Lowsail Checkpoint"));
         assert!(output.contains("Sava lifts the chain for your council mark"));
         assert!(output.contains("redirect the next surge at Red Sluice"));
+        assert!(output.contains("Coin"));
+        assert!(output.contains("Rope"));
+        assert!(!output.contains("Wire"));
         assert!(output.contains("Session ended."));
         for hidden in ["event_log", "scheduled_events", "entropy", "knowledge"] {
             assert!(!output.contains(hidden), "creator leaked {hidden}");
         }
+    }
+
+    #[test]
+    fn cli_renders_kernel_supplies_for_paid_route_without_hidden_state() {
+        let content = load_content().unwrap();
+        let mut session = Session::new_game("rook", 71, &content).unwrap();
+        let initial = content.observe(session.state()).unwrap();
+        assert_eq!(resource_amount(&initial, "coin"), Some(5));
+        assert_eq!(item_count(&initial, "rope"), Some(1));
+        assert_eq!(item_count(&initial, "wire"), Some(1));
+        assert_eq!(item_count(&initial, "split_tide.tide_key"), None);
+        let initial_render = rendered_observation(&initial);
+        assert!(initial_render.contains(&initial.supplies.summary()));
+        assert!(!initial_render.contains("split_tide.tide_key"));
+
+        record_matching(
+            &mut session,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail.docks")),
+        )
+        .unwrap();
+        record_matching(&mut session, &content, "docks.rig_towline", None).unwrap();
+
+        let paid = session.trace().steps.last().unwrap().observation.clone();
+        assert_eq!(resource_amount(&paid, "coin"), Some(2));
+        assert_eq!(item_count(&paid, "rope"), Some(1));
+        assert_eq!(item_count(&paid, "wire"), Some(1));
+        assert_eq!(item_count(&paid, "split_tide.tide_key"), None);
+        let paid_render = rendered_observation(&paid);
+        assert!(paid_render.contains(&paid.supplies.summary()));
+        assert!(
+            paid_render.find("Supplies:").unwrap() < paid_render.find("legal action(s)").unwrap()
+        );
+        for hidden in [
+            "yara_dene",
+            "split_tide.tide_key",
+            "market_warned",
+            "event_log",
+        ] {
+            assert!(!paid_render.contains(hidden), "player view leaked {hidden}");
+        }
+    }
+
+    #[test]
+    fn cli_supply_rendering_and_observation_are_read_only() {
+        let content = load_content().unwrap();
+        let session = Session::new_game("rook", 71, &content).unwrap();
+        let observation = content.observe(session.state()).unwrap();
+        let before_state = session.state().state_id();
+        let before_receipt = session.trace().final_receipt.clone();
+        let before_save = session.player_trace().unwrap().to_json().unwrap();
+        let first = rendered_observation(&observation);
+        let second = rendered_observation(&observation);
+        assert_eq!(first, second);
+        assert_eq!(session.state().state_id(), before_state);
+        assert_eq!(session.trace().final_receipt, before_receipt);
+        assert_eq!(
+            session.player_trace().unwrap().to_json().unwrap(),
+            before_save
+        );
+        assert_eq!(content.observe(session.state()).unwrap(), observation);
+    }
+
+    #[test]
+    fn cli_shows_tide_key_only_after_canonical_transfer() {
+        let content = load_content().unwrap();
+        let mut session = Session::new_game("rook", 71, &content).unwrap();
+        let start = content.observe(session.state()).unwrap();
+        assert_eq!(item_count(&start, "split_tide.tide_key"), None);
+        assert!(!rendered_observation(&start).contains("Tide Key"));
+
+        record_matching(
+            &mut session,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail.docks")),
+        )
+        .unwrap();
+        let at_docks = session.trace().steps.last().unwrap().observation.clone();
+        assert_eq!(item_count(&at_docks, "split_tide.tide_key"), None);
+        record_matching(&mut session, &content, "docks.press_yara", None).unwrap();
+
+        let after_transfer = session.trace().steps.last().unwrap().observation.clone();
+        assert_eq!(item_count(&after_transfer, "split_tide.tide_key"), Some(1));
+        let rendered = rendered_observation(&after_transfer);
+        assert!(rendered.contains("Tide Key"));
+        assert!(rendered.contains(&after_transfer.supplies.summary()));
     }
 
     #[test]

@@ -464,18 +464,26 @@ fn public_view(
         ));
     }
     let mut view = format!(
-        "Observation canary: {}\nTurn: {}/{}\n\n{}\n{}\n{}\n{} legal action(s) · set {}\nActions 1–{} of {}:\n",
+        "Observation canary: {}\nTurn: {}/{}\n\n{}\n{}\n{}",
         config.observation_canary,
         session.trace().steps.len(),
         config.maximum_turns,
         observation.title,
         public_timing_summary(observation),
-        observation.text,
+        observation.text
+    );
+    let supplies = observation.supplies.summary();
+    if !supplies.is_empty() {
+        view.push('\n');
+        view.push_str(&supplies);
+    }
+    view.push_str(&format!(
+        "\n{} legal action(s) · set {}\nActions 1–{} of {}:\n",
         observation.action_count,
         short_hash(&observation.action_set_digest),
         page.actions.len(),
         page.total
-    );
+    ));
     for (index, action) in page.actions.iter().enumerate() {
         view.push_str(&format!(
             "  {}. {}\n",
@@ -594,6 +602,52 @@ mod tests {
         let _ = fs::remove_file(&config.completion_path);
     }
 
+    fn canonical_ordinal(
+        session: &Session<'_>,
+        content: &CompiledContent,
+        definition_id: &str,
+        parameter: Option<(&str, &str)>,
+    ) -> usize {
+        let page = content.action_page(session.state(), 0, usize::MAX).unwrap();
+        page.actions
+            .iter()
+            .position(|action| {
+                action.definition_id == definition_id
+                    && parameter.is_none_or(|(name, value)| {
+                        action
+                            .parameters
+                            .get(name)
+                            .is_some_and(|found| found == value)
+                    })
+            })
+            .map(|index| index + 1)
+            .expect("canonical action must be legal")
+    }
+
+    fn record_canonical(
+        session: &mut Session<'_>,
+        content: &CompiledContent,
+        definition_id: &str,
+        parameter: Option<(&str, &str)>,
+    ) -> usize {
+        let ordinal = canonical_ordinal(session, content, definition_id, parameter);
+        let page = content.action_page(session.state(), 0, usize::MAX).unwrap();
+        let action_id = page.actions[ordinal - 1].action_id.clone();
+        let action = enumerate_legal_actions(session.state(), content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.action_id == action_id)
+            .expect("paged action must remain in canonical enumeration");
+        session.record(&action).unwrap();
+        ordinal
+    }
+
+    fn response_text(responses: &[Value], index: usize) -> &str {
+        responses[index]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("tool response must contain text")
+    }
+
     #[test]
     fn mcp_exposes_only_public_game_tools_and_writes_a_verifiable_trace() {
         let config = test_config();
@@ -657,6 +711,151 @@ mod tests {
         assert_eq!(
             fs::read_to_string(&config.completion_path).unwrap(),
             "forge-player-mcp-finished-v1\n"
+        );
+        cleanup(&config);
+    }
+
+    #[test]
+    fn mcp_public_view_renders_kernel_supplies_without_mutation_or_hidden_state() {
+        let mut config = test_config();
+        config.character = "rook".to_owned();
+        let content = load_content().unwrap();
+        let session = Session::new_game("rook", 71, &content).unwrap();
+        let observation = content.observe(session.state()).unwrap();
+        let before_state = session.state().state_id();
+        let before_receipt = session.trace().final_receipt.clone();
+        let before_save = session.player_trace().unwrap().to_json().unwrap();
+
+        let first = public_view(&session, &content, &observation, &config).unwrap();
+        let second = public_view(&session, &content, &observation, &config).unwrap();
+        assert_eq!(first, second);
+        assert!(first.contains(&observation.supplies.summary()));
+        assert!(first.contains("Coin 5"));
+        assert!(first.contains("Rope ×1"));
+        assert!(first.contains("Wire ×1"));
+        assert!(!first.contains("Tide Key"));
+        assert!(first.find("Supplies:").unwrap() < first.find("legal action(s)").unwrap());
+        for hidden in [
+            "yara_dene",
+            "split_tide.tide_key",
+            "knowledge",
+            "market_warned",
+        ] {
+            assert!(!first.contains(hidden), "player view leaked {hidden}");
+        }
+        assert_eq!(session.state().state_id(), before_state);
+        assert_eq!(session.trace().final_receipt, before_receipt);
+        assert_eq!(
+            session.player_trace().unwrap().to_json().unwrap(),
+            before_save
+        );
+        cleanup(&config);
+    }
+
+    #[test]
+    fn mcp_protocol_paid_route_and_key_supply_views_are_ordinal_and_replayable() {
+        let mut config = test_config();
+        config.character = "rook".to_owned();
+        config.maximum_turns = 8;
+        let content = load_content().unwrap();
+
+        let mut expected = Session::new_game("rook", 71, &content).unwrap();
+        let travel_to_docks = record_canonical(
+            &mut expected,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail.docks")),
+        );
+        let rig_towline = record_canonical(&mut expected, &content, "docks.rig_towline", None);
+        let travel_to_market = record_canonical(
+            &mut expected,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail_market")),
+        );
+        let travel_back_to_docks = record_canonical(
+            &mut expected,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail.docks")),
+        );
+        let take_key = record_canonical(&mut expected, &content, "docks.press_yara", None);
+        let expected_save = expected.player_trace().unwrap().to_json().unwrap();
+
+        let input = [
+            call(0, "observe", json!({})),
+            call(1, "observe", json!({})),
+            call(2, "act", json!({ "action_number": travel_to_docks })),
+            call(3, "observe", json!({})),
+            call(4, "act", json!({ "action_number": rig_towline })),
+            call(5, "observe", json!({})),
+            call(6, "observe", json!({})),
+            call(7, "act", json!({ "action_number": travel_to_market })),
+            call(8, "act", json!({ "action_number": travel_back_to_docks })),
+            call(9, "observe", json!({})),
+            call(10, "act", json!({ "action_number": take_key })),
+            call(11, "observe", json!({})),
+            call(12, "finish", json!({})),
+        ]
+        .join("\n")
+            + "\n";
+        let mut reader = Cursor::new(input.as_bytes());
+        let mut output = Vec::new();
+        run_player_mcp(&config, &mut reader, &mut output).unwrap();
+        let output = String::from_utf8(output).unwrap();
+        let responses: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(responses.len(), 13);
+        assert_eq!(response_text(&responses, 0), response_text(&responses, 1));
+        assert!(response_text(&responses, 0).contains("Coin 5"));
+        assert!(response_text(&responses, 0).contains("Rope ×1"));
+        assert!(response_text(&responses, 0).contains("Wire ×1"));
+        assert!(!response_text(&responses, 0).contains("Tide Key"));
+
+        assert_eq!(response_text(&responses, 5), response_text(&responses, 6));
+        assert!(response_text(&responses, 5).contains("Coin 2"));
+        assert!(response_text(&responses, 5).contains("Rope ×1"));
+        assert!(response_text(&responses, 5).contains("Wire ×1"));
+        assert!(!response_text(&responses, 5).contains("Tide Key"));
+        assert!(response_text(&responses, 11).contains("Coin 2"));
+        assert!(response_text(&responses, 11).contains("Tide Key ×1"));
+        assert!(
+            response_text(&responses, 5).find("Supplies:").unwrap()
+                < response_text(&responses, 5)
+                    .find("legal action(s)")
+                    .unwrap()
+        );
+        assert_eq!(responses[12]["result"]["isError"], false);
+        assert!(response_text(&responses, 12).contains("Session finished after 5 action(s)."));
+        for hidden in ["yara_dene", "market_warned", "event_log", "knowledge"] {
+            assert!(!output.contains(hidden), "protocol view leaked {hidden}");
+        }
+
+        let saved = fs::read_to_string(&config.trace_path).unwrap();
+        assert_eq!(saved.trim(), expected_save);
+        let trace = PlayerTrace::from_json(&saved).unwrap();
+        assert_eq!(trace.action_count(), 5);
+        let resumed = resume_player_trace(&trace, &content).unwrap();
+        let final_observation = content.observe(resumed.state()).unwrap();
+        assert_eq!(
+            final_observation
+                .supplies
+                .resources
+                .iter()
+                .find(|resource| resource.id == "coin")
+                .map(|resource| resource.amount),
+            Some(2)
+        );
+        assert_eq!(
+            final_observation
+                .supplies
+                .items
+                .iter()
+                .find(|item| item.id == "split_tide.tide_key")
+                .map(|item| (item.name.as_str(), item.count)),
+            Some(("Tide Key", 1))
         );
         cleanup(&config);
     }

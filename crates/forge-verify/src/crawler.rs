@@ -191,6 +191,11 @@ pub fn crawl_production(
             .reached_locations
             .insert(frontier.state.world.current_location.clone());
 
+        let initial_observation = content
+            .observe(&frontier.state)
+            .map_err(|_| VerifyError::new("crawler could not observe a valid frontier state"))?;
+        verify_supply_projection(&frontier.state, content, &initial_observation)?;
+
         let legal = enumerate_legal_actions(&frontier.state, content)
             .map_err(|_| VerifyError::new("crawler could not enumerate a valid state"))?;
         verify_catalog(&frontier.state, content, &legal, budget.catalog_page_size)?;
@@ -230,9 +235,10 @@ pub fn crawl_production(
                         action.definition_id
                     ))
                 })?;
-            content
+            let observation = content
                 .observe_after_transition(&transition)
                 .map_err(|_| VerifyError::new("crawler could not observe a valid transition"))?;
+            verify_supply_projection(transition.state(), content, &observation)?;
             report.execution_receipt = advance_execution_receipt(
                 &report.execution_receipt,
                 &(
@@ -798,6 +804,76 @@ fn verify_catalog(
     }
 }
 
+/// Independently reconstruct the public supply projection from the
+/// authoritative player's maps. This deliberately does not call
+/// `CompiledContent::supply_view`, so a shared projection bug is detectable.
+fn verify_supply_projection(
+    state: &GameState,
+    content: &CompiledContent,
+    observation: &forge_kernel::Observation,
+) -> Result<(), VerifyError> {
+    let expected_resources: Vec<_> = state
+        .character
+        .resources
+        .iter()
+        .map(|(id, amount)| {
+            (
+                id.clone(),
+                content
+                    .supply_labels()
+                    .resources
+                    .get(id)
+                    .map(String::as_str)
+                    .unwrap_or(id)
+                    .to_owned(),
+                *amount,
+            )
+        })
+        .collect();
+    let actual_resources: Vec<_> = observation
+        .supplies
+        .resources
+        .iter()
+        .map(|resource| (resource.id.clone(), resource.name.clone(), resource.amount))
+        .collect();
+    if actual_resources != expected_resources {
+        return Err(VerifyError::new(
+            "crawler supply view does not exactly match player resources",
+        ));
+    }
+
+    let expected_items: Vec<_> = state
+        .character
+        .inventory
+        .iter()
+        .map(|(id, count)| {
+            (
+                id.clone(),
+                content
+                    .supply_labels()
+                    .items
+                    .get(id)
+                    .map(String::as_str)
+                    .unwrap_or(id)
+                    .to_owned(),
+                *count,
+            )
+        })
+        .collect();
+    let actual_items: Vec<_> = observation
+        .supplies
+        .items
+        .iter()
+        .map(|item| (item.id.clone(), item.name.clone(), item.count))
+        .collect();
+    if actual_items != expected_items {
+        return Err(VerifyError::new(
+            "crawler supply view does not exactly match player inventory",
+        ));
+    }
+    Ok(())
+}
+
 fn independent_action_time_cost(definition: &ActionDefinition) -> Result<(u64, u64), VerifyError> {
     definition
         .effects
@@ -918,6 +994,111 @@ mod tests {
 
         let repeated = crawl_production(&content, budget).unwrap();
         assert_eq!(report.execution_receipt, repeated.execution_receipt);
+    }
+
+    #[test]
+    fn supply_oracle_projects_exact_player_stock_and_excludes_npc_stock() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        let state = content.new_game("rook", 71).unwrap();
+        assert!(
+            state.world.npcs["yara_dene"]
+                .inventory
+                .contains_key("split_tide.tide_key")
+        );
+        let observation = content.observe(&state).unwrap();
+        verify_supply_projection(&state, &content, &observation).unwrap();
+        assert_eq!(
+            observation
+                .supplies
+                .resources
+                .iter()
+                .map(|resource| resource.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["coin", "stamina"]
+        );
+        assert_eq!(
+            observation
+                .supplies
+                .items
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["rope", "wire"]
+        );
+        assert!(
+            observation
+                .supplies
+                .items
+                .iter()
+                .all(|item| item.id != "split_tide.tide_key")
+        );
+    }
+
+    #[test]
+    fn supply_oracle_rejects_missing_duplicate_reordered_and_tampered_entries() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        let state = content.new_game("rook", 71).unwrap();
+        let observation = content.observe(&state).unwrap();
+        let rejects = |tampered: forge_kernel::Observation| {
+            assert!(
+                verify_supply_projection(&state, &content, &tampered).is_err(),
+                "tampered supply projection was accepted"
+            );
+        };
+
+        let mut missing_resource = observation.clone();
+        missing_resource.supplies.resources.pop();
+        rejects(missing_resource);
+
+        let mut duplicate_resource = observation.clone();
+        duplicate_resource
+            .supplies
+            .resources
+            .insert(0, observation.supplies.resources[0].clone());
+        rejects(duplicate_resource);
+
+        let mut reordered_resource = observation.clone();
+        reordered_resource.supplies.resources.reverse();
+        rejects(reordered_resource);
+
+        let mut missing_item = observation.clone();
+        missing_item.supplies.items.pop();
+        rejects(missing_item);
+
+        let mut duplicate_item = observation.clone();
+        duplicate_item
+            .supplies
+            .items
+            .insert(0, observation.supplies.items[0].clone());
+        rejects(duplicate_item);
+
+        let mut reordered_item = observation.clone();
+        reordered_item.supplies.items.reverse();
+        rejects(reordered_item);
+
+        let mut wrong_amount = observation.clone();
+        wrong_amount.supplies.resources[0].amount += 1;
+        rejects(wrong_amount);
+
+        let mut wrong_count = observation.clone();
+        wrong_count.supplies.items[0].count += 1;
+        rejects(wrong_count);
+
+        let mut wrong_name = observation.clone();
+        wrong_name.supplies.resources[0].name = "False Coin".to_owned();
+        rejects(wrong_name);
+
+        let mut wrong_id = observation.clone();
+        wrong_id.supplies.items[0].id = "other_item".to_owned();
+        rejects(wrong_id);
+
+        let mut npc_stock = observation;
+        npc_stock.supplies.items.push(forge_kernel::ItemView {
+            id: "split_tide.tide_key".to_owned(),
+            name: "Tide Key".to_owned(),
+            count: 1,
+        });
+        rejects(npc_stock);
     }
 
     #[test]

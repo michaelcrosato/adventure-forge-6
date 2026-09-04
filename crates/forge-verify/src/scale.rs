@@ -7,8 +7,8 @@ use forge_content::{
     ParameterDomain, ParameterSpec, StringRef,
 };
 use forge_kernel::{
-    Character, CompiledContent, Condition, GameState, enumerate_legal_actions, legal_action_digest,
-    sha256_json, step,
+    Character, CompiledContent, Condition, GameState, SupplyLabels, enumerate_legal_actions,
+    legal_action_digest, sha256_json, step,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -1039,8 +1039,8 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
         });
     }
     Ok(ContentDraft {
-        schema_version: "forge-schema-v6".to_owned(),
-        rules_version: "forge-rules-v4".to_owned(),
+        schema_version: "forge-schema-v7".to_owned(),
+        rules_version: "forge-rules-v5".to_owned(),
         world_id: SCALE_WORLD_ID.to_owned(),
         contract: ContentContract::Fixture,
         start_location: SCALE_START_LOCATION.to_owned(),
@@ -1051,6 +1051,7 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
             character: scale_character(),
         }],
         character_creation: None,
+        supply_labels: SupplyLabels::default(),
         locations,
         npcs: Vec::new(),
         timed_events: Vec::new(),

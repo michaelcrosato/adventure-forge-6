@@ -27,6 +27,58 @@ fn new_game(content: &CompiledContent, preset_id: &str) -> GameState {
         .unwrap_or_else(|error| panic!("new game {preset_id} failed: {error}"))
 }
 
+fn assert_owned_supply_view(content: &CompiledContent, state: &GameState) {
+    let before = state.clone();
+    let observation = content.observe(state).expect("public observation");
+    let resources: Vec<_> = observation
+        .supplies
+        .resources
+        .iter()
+        .map(|entry| (entry.id.as_str(), entry.name.as_str(), entry.amount))
+        .collect();
+    let expected_resources: Vec<_> = state
+        .character
+        .resources
+        .iter()
+        .map(|(id, amount)| {
+            let name = content
+                .supply_labels()
+                .resources
+                .get(id)
+                .expect("authored resource label");
+            (id.as_str(), name.as_str(), *amount)
+        })
+        .collect();
+    assert_eq!(resources, expected_resources);
+    let items: Vec<_> = observation
+        .supplies
+        .items
+        .iter()
+        .map(|entry| (entry.id.as_str(), entry.name.as_str(), entry.count))
+        .collect();
+    let expected_items: Vec<_> = state
+        .character
+        .inventory
+        .iter()
+        .map(|(id, count)| {
+            let name = content
+                .supply_labels()
+                .items
+                .get(id)
+                .expect("authored item label");
+            (id.as_str(), name.as_str(), *count)
+        })
+        .collect();
+    assert_eq!(items, expected_items);
+    assert!(
+        observation.text.split_whitespace().count()
+            + observation.supplies.summary().split_whitespace().count()
+            < 100
+    );
+    assert_eq!(content.observe(state).unwrap(), observation);
+    assert_eq!(state, &before);
+}
+
 fn definitions(state: &GameState, content: &CompiledContent) -> BTreeSet<String> {
     enumerate_legal_actions(state, content)
         .expect("valid state must enumerate")
@@ -169,6 +221,54 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
 }
 
 #[test]
+fn public_supplies_show_readable_owned_quantities_across_payment_and_key_transfer() {
+    let content = content();
+    let ilyan = new_game(&content, "ilyan");
+    let rook = new_game(&content, "rook");
+    assert_owned_supply_view(&content, &ilyan);
+    assert_owned_supply_view(&content, &rook);
+    assert_eq!(
+        content.observe(&ilyan).unwrap().supplies.summary(),
+        "Supplies: Coin 10, Stamina 3; Gear: Rope ×1"
+    );
+    assert_eq!(
+        content.observe(&rook).unwrap().supplies.summary(),
+        "Supplies: Coin 5, Stamina 4; Gear: Rope ×1, Wire ×1"
+    );
+    let docks = travel_to(rook, &content, "lowsail.docks");
+    assert_eq!(
+        docks.world.npcs["yara_dene"].inventory["split_tide.tide_key"],
+        1
+    );
+    assert!(
+        !content
+            .observe(&docks)
+            .unwrap()
+            .supplies
+            .summary()
+            .contains("Tide Key")
+    );
+
+    let paid = apply(docks.clone(), &content, "docks.rig_towline");
+    assert_owned_supply_view(&content, &paid);
+    assert_eq!(
+        content.observe(&paid).unwrap().supplies.summary(),
+        "Supplies: Coin 2, Stamina 4; Gear: Rope ×1, Wire ×1"
+    );
+
+    let keyed = apply(docks, &content, "docks.press_yara");
+    assert_owned_supply_view(&content, &keyed);
+    let summary = content.observe(&keyed).unwrap().supplies.summary();
+    assert_eq!(
+        summary,
+        "Supplies: Coin 5, Stamina 4; Gear: Rope ×1, Tide Key ×1, Wire ×1"
+    );
+    assert!(!summary.contains("split_tide.tide_key"));
+    assert!(!summary.contains("gate_fault"));
+    assert!(!summary.contains("stole_permit"));
+}
+
+#[test]
 fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
     let content = content();
     let creation = content.character_creation().expect("creation definition");
@@ -186,6 +286,7 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
         content
             .validate_state(&state)
             .expect("custom state validates");
+        assert_owned_supply_view(&content, &state);
         assert!(matches!(
             state.character_start,
             CharacterStart::Custom { .. }

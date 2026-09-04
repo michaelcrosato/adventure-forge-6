@@ -811,19 +811,21 @@ mod tests {
     use forge_kernel::{
         ActionDefinition, CharacterCreationChoice, CharacterCreationDefinition,
         CharacterCreationSlot, CharacterPatch, CharacterPreset, Condition, ContentDraft, Effect,
-        EntropyError, LocationDefinition, ParameterSpec, WorldState,
+        EntropyError, ItemView, LocationDefinition, ParameterSpec, ResourceView, SupplyLabels,
+        WorldState,
     };
     use std::collections::{BTreeMap, BTreeSet};
 
     fn content_draft() -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v6".to_owned(),
-            rules_version: "forge-rules-v4".to_owned(),
+            schema_version: "forge-schema-v7".to_owned(),
+            rules_version: "forge-rules-v5".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
+            supply_labels: SupplyLabels::default(),
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),
@@ -1190,10 +1192,13 @@ mod tests {
         for hidden in [
             "initial_state",
             "observation",
+            "supplies",
             "events",
             "entropy",
             "knowledge",
             "aptitudes",
+            "inventory",
+            "resources",
         ] {
             assert!(!json.contains(hidden), "custom save leaked {hidden}");
         }
@@ -1293,6 +1298,14 @@ mod tests {
         cases.push(("initial observation", changed));
 
         let mut changed = original.clone();
+        changed.initial_observation.supplies.items.push(ItemView {
+            id: "hidden_item".to_owned(),
+            name: "Hidden Item".to_owned(),
+            count: 1,
+        });
+        cases.push(("initial observation supplies", changed));
+
+        let mut changed = original.clone();
         changed.initial_observation_hash.push('x');
         cases.push(("initial observation hash", changed));
 
@@ -1330,6 +1343,18 @@ mod tests {
         let mut changed = original.clone();
         changed.steps[0].observation.text.push_str(" altered");
         cases.push(("observation", changed));
+
+        let mut changed = original.clone();
+        changed.steps[0]
+            .observation
+            .supplies
+            .resources
+            .push(ResourceView {
+                id: "hidden_resource".to_owned(),
+                name: "Hidden Resource".to_owned(),
+                amount: 1,
+            });
+        cases.push(("observation supplies", changed));
 
         let mut changed = original.clone();
         changed.steps[0].observation_hash.push('x');
@@ -1417,13 +1442,14 @@ mod tests {
         let content = content();
         let trace = two_step_trace(&content);
         let other_draft = ContentDraft {
-            schema_version: "forge-schema-v6".to_owned(),
-            rules_version: "forge-rules-v4".to_owned(),
+            schema_version: "forge-schema-v7".to_owned(),
+            rules_version: "forge-rules-v5".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
+            supply_labels: SupplyLabels::default(),
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),

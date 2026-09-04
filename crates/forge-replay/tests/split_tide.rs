@@ -2,7 +2,7 @@ use forge_content::parse_and_compile_production;
 use forge_kernel::{
     ActionDefinition, CanonicalAction, Character, CompiledContent, Condition, ContentContract,
     ContentDraft, Effect, EntropyState, EventKind, GameState, KnowledgeProvenance,
-    LocationDefinition, ScheduledEvent, TimedEventDefinition, WorldState,
+    LocationDefinition, ScheduledEvent, SupplyLabels, TimedEventDefinition, WorldState,
 };
 use forge_replay::{PlayerTrace, Session, Trace, resume, resume_player_trace, verify};
 use std::collections::{BTreeMap, BTreeSet};
@@ -341,6 +341,36 @@ fn assert_tide_key_inventory(session: &Session<'_>) {
     );
 }
 
+fn assert_supply_view(
+    observation: &forge_kernel::Observation,
+    resources: &[(&str, &str, i64)],
+    items: &[(&str, &str, u32)],
+) {
+    let expected_resources: Vec<_> = resources
+        .iter()
+        .map(|(id, name, amount)| ((*id).to_owned(), (*name).to_owned(), *amount))
+        .collect();
+    let actual_resources: Vec<_> = observation
+        .supplies
+        .resources
+        .iter()
+        .map(|resource| (resource.id.clone(), resource.name.clone(), resource.amount))
+        .collect();
+    assert_eq!(actual_resources, expected_resources);
+
+    let expected_items: Vec<_> = items
+        .iter()
+        .map(|(id, name, count)| ((*id).to_owned(), (*name).to_owned(), *count))
+        .collect();
+    let actual_items: Vec<_> = observation
+        .supplies
+        .items
+        .iter()
+        .map(|item| (item.id.clone(), item.name.clone(), item.count))
+        .collect();
+    assert_eq!(actual_items, expected_items);
+}
+
 fn assert_npc_fields_unchanged(before: &forge_kernel::NpcState, after: &forge_kernel::NpcState) {
     assert_eq!(after.id, before.id);
     assert_eq!(after.goals, before.goals);
@@ -433,6 +463,30 @@ fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
         }
     }
 
+    assert_supply_view(
+        &uninterrupted.trace().initial_observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[("rope", "Rope", 1), ("wire", "Wire", 1)],
+    );
+    assert_supply_view(
+        &uninterrupted.trace().steps[1].observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[
+            ("rope", "Rope", 1),
+            ("split_tide.tide_key", "Tide Key", 1),
+            ("wire", "Wire", 1),
+        ],
+    );
+    assert_supply_view(
+        &uninterrupted.trace().steps[5].observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[
+            ("rope", "Rope", 1),
+            ("split_tide.tide_key", "Tide Key", 1),
+            ("wire", "Wire", 1),
+        ],
+    );
+
     let mut resumed_after_transfer = after_transfer.expect("transfer checkpoint");
     assert_eq!(resumed_after_transfer.trace().steps.len(), 2);
     assert_eq!(resumed_after_transfer.state().world.time, 2);
@@ -462,6 +516,15 @@ fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
             .contains("calibrated_with_tide_key")
     );
     assert_tide_key_inventory(&resumed_after_calibration);
+    assert_supply_view(
+        &resumed_after_calibration.trace().steps[5].observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[
+            ("rope", "Rope", 1),
+            ("split_tide.tide_key", "Tide Key", 1),
+            ("wire", "Wire", 1),
+        ],
+    );
     assert_not_legal(
         &resumed_after_calibration,
         &content,
@@ -502,6 +565,15 @@ fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
     assert!(uninterrupted.state().world.flags.contains("flow_split"));
     assert!(uninterrupted.state().world.flags.contains("ending_accord"));
     assert_tide_key_inventory(&uninterrupted);
+    assert_supply_view(
+        &uninterrupted.trace().steps[10].observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[
+            ("rope", "Rope", 1),
+            ("split_tide.tide_key", "Tide Key", 1),
+            ("wire", "Wire", 1),
+        ],
+    );
 
     let transfers = uninterrupted
         .trace()
@@ -559,9 +631,19 @@ fn rook_paid_towline_relief_path_resumes_across_purchase_and_return() {
         }
     }
 
+    assert_supply_view(
+        &uninterrupted.trace().initial_observation,
+        &[("coin", "Coin", 5), ("stamina", "Stamina", 4)],
+        &[("rope", "Rope", 1), ("wire", "Wire", 1)],
+    );
     let purchase_step = &uninterrupted.trace().steps[2];
     assert_eq!(purchase_step.action.definition_id, "docks.rig_towline");
     assert_eq!(purchase_step.observation.location_id, "lowsail.levee");
+    assert_supply_view(
+        &purchase_step.observation,
+        &[("coin", "Coin", 2), ("stamina", "Stamina", 4)],
+        &[("rope", "Rope", 1), ("wire", "Wire", 1)],
+    );
     assert_eq!(uninterrupted.state().world.time, 11);
     assert_eq!(
         uninterrupted.state().character.resources.get("coin"),
@@ -1307,13 +1389,14 @@ fn timed_event_fixture_content() -> CompiledContent {
     };
 
     CompiledContent::try_compile(ContentDraft {
-        schema_version: "forge-schema-v6".to_owned(),
-        rules_version: "forge-rules-v4".to_owned(),
+        schema_version: "forge-schema-v7".to_owned(),
+        rules_version: "forge-rules-v5".to_owned(),
         world_id: "timed-fixture".to_owned(),
         contract: ContentContract::Fixture,
         start_location: "room".to_owned(),
         character_presets: Vec::new(),
         character_creation: None,
+        supply_labels: SupplyLabels::default(),
         locations: vec![LocationDefinition {
             id: "room".to_owned(),
             name: "Room".to_owned(),

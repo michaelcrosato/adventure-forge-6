@@ -38,6 +38,8 @@ The first return also brings Oren, Sava, and Mira into the changed market. Their
 
 `Rig Towline (3 coin)` uses rope and wire to hire a one-step tow from the docks to the levee, revealing the Culvert Path. The fee is spent, but the gear is returned. Asking Oren and then walking remains a free two-step alternative from the same docks.
 
+Normal observations and creation previews show your own resources and gear with readable names and exact quantities. The kernel derives this read-only supply line; payments and item transfers update it through canonical actions. NPC stock and hidden world records remain private, and replay binds the same public readout.
+
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.

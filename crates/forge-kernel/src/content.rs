@@ -156,6 +156,54 @@ pub struct TimedEventView {
     pub remaining_ticks: u64,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ResourceView {
+    pub id: String,
+    pub name: String,
+    pub amount: i64,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ItemView {
+    pub id: String,
+    pub name: String,
+    pub count: u32,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct SupplyView {
+    pub resources: Vec<ResourceView>,
+    pub items: Vec<ItemView>,
+}
+
+impl SupplyView {
+    /// Render the canonical compact supply readout. The vectors are already
+    /// sorted by their authored map keys by the kernel projection.
+    pub fn summary(&self) -> String {
+        let resources = self
+            .resources
+            .iter()
+            .map(|resource| format!("{} {}", resource.name, resource.amount))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let items = self
+            .items
+            .iter()
+            .map(|item| format!("{} ×{}", item.name, item.count))
+            .collect::<Vec<_>>()
+            .join(", ");
+        match (resources.is_empty(), items.is_empty()) {
+            (true, true) => String::new(),
+            (false, true) => format!("Supplies: {resources}"),
+            (true, false) => format!("Gear: {items}"),
+            (false, false) => format!("Supplies: {resources}; Gear: {items}"),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Observation {
@@ -165,6 +213,7 @@ pub struct Observation {
     pub title: String,
     /// Result-first, then the current location description.
     pub text: String,
+    pub supplies: SupplyView,
     pub result: Option<String>,
     pub world_time: u64,
     pub upcoming_events: Vec<TimedEventView>,
@@ -211,6 +260,13 @@ pub struct ActionPage {
     pub next_offset: Option<usize>,
 }
 
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct SupplyLabels {
+    pub items: BTreeMap<String, String>,
+    pub resources: BTreeMap<String, String>,
+}
+
 /// Untrusted authoring input. A `CompiledContent` can only be created by
 /// `try_compile`, which performs all semantic checks in the kernel.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -227,6 +283,8 @@ pub struct ContentDraft {
     pub character_presets: Vec<CharacterPreset>,
     #[serde(default)]
     pub character_creation: Option<CharacterCreationDefinition>,
+    #[serde(default)]
+    pub supply_labels: SupplyLabels,
     #[serde(default)]
     pub locations: Vec<LocationDefinition>,
     #[serde(default)]
@@ -709,6 +767,7 @@ struct ContentIdentity<'a> {
     start_location: &'a LocationId,
     character_presets: &'a BTreeMap<String, CharacterPreset>,
     character_creation: &'a Option<CharacterCreationDefinition>,
+    supply_labels: &'a SupplyLabels,
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
     timed_events: &'a BTreeMap<String, TimedEventDefinition>,
@@ -725,6 +784,8 @@ pub struct CompiledContent {
     start_location: LocationId,
     character_presets: BTreeMap<String, CharacterPreset>,
     character_creation: Option<CharacterCreationDefinition>,
+    #[serde(default)]
+    supply_labels: SupplyLabels,
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
     timed_events: BTreeMap<String, TimedEventDefinition>,
@@ -763,6 +824,7 @@ impl CompiledContent {
             }
             definition
         });
+        let supply_labels = draft.supply_labels;
         let locations = draft
             .locations
             .into_iter()
@@ -813,6 +875,7 @@ impl CompiledContent {
             start_location: &start_location,
             character_presets: &character_presets,
             character_creation: &character_creation,
+            supply_labels: &supply_labels,
             locations: &locations,
             npcs: &npcs,
             timed_events: &timed_events,
@@ -826,6 +889,7 @@ impl CompiledContent {
             start_location,
             character_presets,
             character_creation,
+            supply_labels,
             locations,
             npcs,
             timed_events,
@@ -874,6 +938,32 @@ impl CompiledContent {
         self.character_creation.as_ref()
     }
 
+    pub fn supply_labels(&self) -> &SupplyLabels {
+        &self.supply_labels
+    }
+
+    /// Return an authored label when present, otherwise the exact canonical
+    /// identifier. Identifiers are never humanized implicitly.
+    pub fn supply_item_label(&self, id: &str) -> String {
+        self.supply_labels
+            .items
+            .get(id)
+            .map(String::as_str)
+            .unwrap_or(id)
+            .to_owned()
+    }
+
+    /// Return an authored label when present, otherwise the exact canonical
+    /// identifier. Identifiers are never humanized implicitly.
+    pub fn supply_resource_label(&self, id: &str) -> String {
+        self.supply_labels
+            .resources
+            .get(id)
+            .map(String::as_str)
+            .unwrap_or(id)
+            .to_owned()
+    }
+
     pub fn location(&self, id: &str) -> Option<&LocationDefinition> {
         self.locations.get(id)
     }
@@ -914,6 +1004,34 @@ impl CompiledContent {
         self.npcs.contains_key(id)
     }
 
+    /// Project only the player's owned resources and inventory into the
+    /// public observation view. NPC, world, and hidden knowledge state never
+    /// contributes to this view.
+    pub fn supply_view(&self, state: &GameState) -> SupplyView {
+        SupplyView {
+            resources: state
+                .character
+                .resources
+                .iter()
+                .map(|(id, amount)| ResourceView {
+                    id: id.clone(),
+                    name: self.supply_resource_label(id),
+                    amount: *amount,
+                })
+                .collect(),
+            items: state
+                .character
+                .inventory
+                .iter()
+                .map(|(id, count)| ItemView {
+                    id: id.clone(),
+                    name: self.supply_item_label(id),
+                    count: *count,
+                })
+                .collect(),
+        }
+    }
+
     pub fn has_valid_build_id(&self) -> bool {
         let identity = ContentIdentity {
             manifest: &self.manifest,
@@ -922,6 +1040,7 @@ impl CompiledContent {
             start_location: &self.start_location,
             character_presets: &self.character_presets,
             character_creation: &self.character_creation,
+            supply_labels: &self.supply_labels,
             locations: &self.locations,
             npcs: &self.npcs,
             timed_events: &self.timed_events,
@@ -1367,7 +1486,12 @@ impl CompiledContent {
             Some(result) => format!("{result} {location_text}"),
             None => location_text,
         };
-        if word_count(&text) >= ROUTINE_OBSERVATION_WORD_LIMIT {
+        let supplies = self.supply_view(state);
+        let supply_summary = supplies.summary();
+        let combined_words = word_count(&text)
+            .checked_add(word_count(&supply_summary))
+            .unwrap_or(ROUTINE_OBSERVATION_WORD_LIMIT);
+        if combined_words >= ROUTINE_OBSERVATION_WORD_LIMIT {
             return Err(single_validation_error(
                 "combined routine observation must stay below 100 words",
             ));
@@ -1391,6 +1515,7 @@ impl CompiledContent {
             location_id: state.world.current_location.clone(),
             title: location.name.clone(),
             text,
+            supplies,
             result,
             world_time: state.world.time,
             upcoming_events,
@@ -1914,6 +2039,26 @@ fn validate_npc_provenance_source(
     }
 }
 
+fn validate_supply_labels(labels: &SupplyLabels, errors: &mut ContentValidationError) {
+    for (kind, entries) in [("item", &labels.items), ("resource", &labels.resources)] {
+        for (id, name) in entries {
+            if id.trim().is_empty() {
+                errors.push(format!("supply {kind} label has an empty id"));
+            }
+            if name.trim().is_empty() {
+                errors.push(format!("supply {kind} {id} label has an empty name"));
+            } else if word_count(name) > 4 {
+                errors.push(format!("supply {kind} {id} label exceeds 4 words"));
+            }
+            if name.chars().any(char::is_control) {
+                errors.push(format!(
+                    "supply {kind} {id} label contains a control character"
+                ));
+            }
+        }
+    }
+}
+
 fn validate_draft(
     draft: &ContentDraft,
     manifest: &BuildManifest,
@@ -1936,6 +2081,7 @@ fn validate_draft(
     if draft.world_id.trim().is_empty() {
         errors.push("world_id cannot be empty");
     }
+    validate_supply_labels(&draft.supply_labels, &mut errors);
     let production = matches!(draft.contract, ContentContract::Production);
     let mut location_ids = BTreeSet::new();
     for location in &draft.locations {
@@ -2143,6 +2289,125 @@ fn maximum_text_words(base: &str, variants: &[TextVariant]) -> usize {
         .unwrap_or_default()
 }
 
+fn collect_character_supply_ids(
+    character: &Character,
+    resources: &mut BTreeSet<String>,
+    items: &mut BTreeSet<String>,
+) {
+    resources.extend(character.resources.keys().cloned());
+    items.extend(character.inventory.keys().cloned());
+}
+
+fn collect_patch_supply_ids(
+    patch: &CharacterPatch,
+    resources: &mut BTreeSet<String>,
+    items: &mut BTreeSet<String>,
+) {
+    resources.extend(patch.resources.keys().cloned());
+    items.extend(patch.inventory.keys().cloned());
+}
+
+fn collect_effect_supply_ids(
+    effect: &Effect,
+    resources: &mut BTreeSet<String>,
+    items: &mut BTreeSet<String>,
+) {
+    match effect {
+        Effect::AdjustResource { resource, .. } => {
+            resources.insert(resource.clone());
+        }
+        Effect::TransferNpcItemToCharacter { item, .. } => {
+            items.insert(item.clone());
+        }
+        Effect::RandomChance {
+            on_success,
+            on_failure,
+            ..
+        } => {
+            collect_effect_supply_ids(on_success, resources, items);
+            collect_effect_supply_ids(on_failure, resources, items);
+        }
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::MoveNpc { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. }
+        | Effect::AdvanceTime { .. } => {}
+    }
+}
+
+fn potential_supply_ids(draft: &ContentDraft) -> (BTreeSet<String>, BTreeSet<String>) {
+    let mut resources = BTreeSet::new();
+    let mut items = BTreeSet::new();
+    for preset in &draft.character_presets {
+        collect_character_supply_ids(&preset.character, &mut resources, &mut items);
+    }
+    if let Some(creation) = &draft.character_creation {
+        collect_patch_supply_ids(&creation.base, &mut resources, &mut items);
+        for slot in &creation.slots {
+            for choice in &slot.choices {
+                collect_patch_supply_ids(&choice.patch, &mut resources, &mut items);
+            }
+        }
+    }
+    for npc in &draft.npcs {
+        items.extend(npc.inventory.keys().cloned());
+    }
+    for action in &draft.actions {
+        for effect in &action.effects {
+            collect_effect_supply_ids(effect, &mut resources, &mut items);
+        }
+    }
+    for event in &draft.timed_events {
+        for effect in &event.effects {
+            collect_effect_supply_ids(effect, &mut resources, &mut items);
+        }
+    }
+    (resources, items)
+}
+
+fn potential_supply_summary_words(draft: &ContentDraft) -> usize {
+    let (resources, items) = potential_supply_ids(draft);
+    let resource_words = if resources.is_empty() {
+        0
+    } else {
+        1 + resources
+            .iter()
+            .map(|id| {
+                word_count(
+                    draft
+                        .supply_labels
+                        .resources
+                        .get(id)
+                        .map_or(id.as_str(), String::as_str),
+                ) + 1
+            })
+            .sum::<usize>()
+    };
+    let item_words = if items.is_empty() {
+        0
+    } else {
+        1 + items
+            .iter()
+            .map(|id| {
+                word_count(
+                    draft
+                        .supply_labels
+                        .items
+                        .get(id)
+                        .map_or(id.as_str(), String::as_str),
+                ) + 1
+            })
+            .sum::<usize>()
+    };
+    resource_words.saturating_add(item_words)
+}
+
 // Called only after the individual texts, time costs, and event count validate.
 // Conservative co-occurrence is intentional: no legal action may yield a
 // transition whose complete result cannot be shown within the routine budget.
@@ -2160,6 +2425,20 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
         .collect();
     timed_words.sort_unstable();
     let mut event_budget_by_ticks = BTreeMap::new();
+    let supply_words = if draft.contract == ContentContract::Production {
+        potential_supply_summary_words(draft)
+    } else {
+        // Fixture characters are intentionally mutable test inputs, so their
+        // eventual raw resource and item keys are not knowable at compile
+        // time. The runtime observation check remains authoritative for them.
+        0
+    };
+    let initial_combined = location_words.saturating_add(supply_words);
+    if initial_combined >= ROUTINE_OBSERVATION_WORD_LIMIT {
+        errors.push(format!(
+            "initial routine observation may reach {initial_combined} words; must stay below 100 (location {location_words}, supplies {supply_words})"
+        ));
+    }
     for action in &draft.actions {
         let time_cost = action_time_cost(&action.effects).expect("validated action time cost");
         let event_words = *event_budget_by_ticks
@@ -2171,11 +2450,14 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
             &action.result
         };
         let result_words = maximum_text_words(result, &action.result_variants);
-        let combined = result_words + location_words + event_words;
+        let combined = result_words
+            .saturating_add(location_words)
+            .saturating_add(event_words)
+            .saturating_add(supply_words);
         if combined >= ROUTINE_OBSERVATION_WORD_LIMIT {
             errors.push(format!(
-                "action {} combined routine observation may reach {combined} words; must stay below 100 (result {result_words}, location {location_words}, timed events {event_words})",
-                action.id
+                "action {} combined routine observation may reach {combined} words; must stay below 100 (result {result_words}, location {location_words}, timed events {event_words}, supplies {supply_words})",
+                action.id,
             ));
         }
     }
@@ -3762,6 +4044,7 @@ mod tests {
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
+            supply_labels: SupplyLabels::default(),
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
@@ -4324,23 +4607,301 @@ mod tests {
     }
 
     #[test]
-    fn compilation_bounds_the_combined_action_event_and_location_text() {
-        let content = compile(observation_budget_draft(1, &[(1, 3)])).unwrap();
+    fn compilation_bounds_text_and_known_owned_supply_readout() {
+        let mut source = observation_budget_draft(1, &[(1, 3)]);
+        source.actions[0].result = budget_text(54);
+        source.character_presets[0]
+            .character
+            .resources
+            .insert("coin".to_owned(), 5);
+        source.character_presets[0]
+            .character
+            .inventory
+            .insert("rope".to_owned(), 1);
+        source
+            .supply_labels
+            .resources
+            .insert("coin".to_owned(), "Coin".to_owned());
+        source
+            .supply_labels
+            .items
+            .insert("rope".to_owned(), "Rope".to_owned());
+        let content = compile(source).unwrap();
         let state = content.new_game("hero", 9).unwrap();
         let action = crate::enumerate_legal_actions(&state, &content)
             .unwrap()
             .remove(0);
         let transition = crate::step(&state, &action, &content, &state.entropy).unwrap();
+        let observation = content.observe_after_transition(&transition).unwrap();
+        assert_eq!(word_count(&observation.text), 93);
+        assert_eq!(word_count(&observation.supplies.summary()), 6);
         assert_eq!(
-            word_count(&content.observe_after_transition(&transition).unwrap().text),
+            word_count(&observation.text) + word_count(&observation.supplies.summary()),
             99
         );
 
         for event_words in [4, 5] {
-            let error = compile(observation_budget_draft(1, &[(1, event_words)]))
+            let mut over_limit = observation_budget_draft(1, &[(1, event_words)]);
+            over_limit.actions[0].result = budget_text(54);
+            over_limit.character_presets[0]
+                .character
+                .resources
+                .insert("coin".to_owned(), 5);
+            over_limit.character_presets[0]
+                .character
+                .inventory
+                .insert("rope".to_owned(), 1);
+            over_limit
+                .supply_labels
+                .resources
+                .insert("coin".to_owned(), "Coin".to_owned());
+            over_limit
+                .supply_labels
+                .items
+                .insert("rope".to_owned(), "Rope".to_owned());
+            let error = compile(over_limit)
                 .expect_err("100-word and longer observations must fail compilation");
             assert!(error.to_string().contains("combined routine observation"));
         }
+    }
+
+    #[test]
+    fn runtime_budget_includes_unknown_fixture_supply_readout() {
+        let content = compile(draft(Vec::new())).unwrap();
+        let mut state = state(&content);
+        state.character.resources.insert("coin".to_owned(), 5);
+        state.character.inventory.insert("rope".to_owned(), 1);
+        let accepted = content
+            .observe_with_result(&state, Some(budget_text(89)))
+            .expect("99 combined words should remain legal at runtime");
+        assert_eq!(word_count(&accepted.text), 93);
+        assert_eq!(word_count(&accepted.supplies.summary()), 6);
+        assert!(
+            content
+                .observe_with_result(&state, Some(budget_text(90)))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn supply_projection_is_owned_deterministic_and_read_only() {
+        assert!(SupplyView::default().summary().is_empty());
+        let mut source = draft(Vec::new());
+        source
+            .supply_labels
+            .resources
+            .insert("coin".to_owned(), "Coin".to_owned());
+        source
+            .supply_labels
+            .resources
+            .insert("stamina".to_owned(), "Stamina".to_owned());
+        source
+            .supply_labels
+            .items
+            .insert("rope".to_owned(), "Rope".to_owned());
+        source
+            .supply_labels
+            .items
+            .insert("wire".to_owned(), "Wire".to_owned());
+        source.npcs[0].inventory.insert("tide-key".to_owned(), 1);
+        let content = compile(source).unwrap();
+        let mut state = state(&content);
+        state.character.resources.insert("stamina".to_owned(), 4);
+        state.character.resources.insert("coin".to_owned(), 5);
+        state.character.inventory.insert("wire".to_owned(), 1);
+        state.character.inventory.insert("rope".to_owned(), 1);
+        state.world.npcs.get_mut("sava").unwrap().knowledge.insert(
+            "hidden-route".to_owned(),
+            Knowledge {
+                id: "hidden-route".to_owned(),
+                subject: "A hidden route".to_owned(),
+                turn: 0,
+                provenance: KnowledgeProvenance::Witnessed,
+            },
+        );
+        let before = state.clone();
+        let observation = content.observe(&state).unwrap();
+        assert_eq!(
+            observation
+                .supplies
+                .resources
+                .iter()
+                .map(|resource| resource.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["coin", "stamina"]
+        );
+        assert_eq!(
+            observation
+                .supplies
+                .items
+                .iter()
+                .map(|item| item.id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["rope", "wire"]
+        );
+        assert_eq!(
+            observation.supplies.summary(),
+            "Supplies: Coin 5, Stamina 4; Gear: Rope ×1, Wire ×1"
+        );
+        assert!(!observation.supplies.summary().contains("tide-key"));
+        assert_eq!(state, before);
+        assert_eq!(observation, content.observe(&state).unwrap());
+        assert_eq!(content.supply_item_label("rope"), "Rope");
+        assert_eq!(
+            content.supply_resource_label("unknown-resource"),
+            "unknown-resource"
+        );
+    }
+
+    #[test]
+    fn supply_labels_validate_and_change_build_identity() {
+        let mut source = draft(Vec::new());
+        source
+            .supply_labels
+            .items
+            .insert("rope".to_owned(), "Rope".to_owned());
+        let content = compile(source.clone()).unwrap();
+        assert_eq!(content.supply_item_label("rope"), "Rope");
+        let mut changed = source.clone();
+        changed
+            .supply_labels
+            .items
+            .insert("rope".to_owned(), "Tow Rope".to_owned());
+        assert_ne!(content.build_id(), compile(changed).unwrap().build_id());
+
+        let mut empty_id = source.clone();
+        empty_id
+            .supply_labels
+            .items
+            .insert(" ".to_owned(), "Item".to_owned());
+        assert!(
+            compile(empty_id)
+                .unwrap_err()
+                .to_string()
+                .contains("supply item label has an empty id")
+        );
+
+        let mut empty_name = source.clone();
+        empty_name
+            .supply_labels
+            .items
+            .insert("wire".to_owned(), "  ".to_owned());
+        assert!(
+            compile(empty_name)
+                .unwrap_err()
+                .to_string()
+                .contains("label has an empty name")
+        );
+
+        let mut too_many_words = source.clone();
+        let mut four_words = source.clone();
+        four_words
+            .supply_labels
+            .items
+            .insert("wire".to_owned(), "One Two Three Four".to_owned());
+        assert!(compile(four_words).is_ok());
+        too_many_words
+            .supply_labels
+            .items
+            .insert("wire".to_owned(), "One Two Three Four Five".to_owned());
+        assert!(
+            compile(too_many_words)
+                .unwrap_err()
+                .to_string()
+                .contains("label exceeds 4 words")
+        );
+
+        let mut control = source;
+        control
+            .supply_labels
+            .items
+            .insert("wire".to_owned(), "Wire\nLine".to_owned());
+        assert!(
+            compile(control)
+                .unwrap_err()
+                .to_string()
+                .contains("control character")
+        );
+    }
+
+    #[test]
+    fn production_budget_collects_custom_and_transfer_supply_keys() {
+        let mut source = production_draft(Vec::new());
+        let creation = source.character_creation.as_mut().unwrap();
+        creation.base.resources.insert("base-water".to_owned(), 1);
+        creation.slots[0].choices[0]
+            .patch
+            .inventory
+            .insert("choice-rope".to_owned(), 1);
+        source.npcs[0].inventory.insert("stock-key".to_owned(), 1);
+        source.actions.push(action(
+            "transfer",
+            Condition::Always,
+            vec![Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava".to_owned()),
+                item: "gift-map".to_owned(),
+                count: 1,
+            }],
+        ));
+        let (resources, items) = potential_supply_ids(&source);
+        assert!(resources.contains("base-water"));
+        assert!(items.contains("choice-rope"));
+        assert!(items.contains("stock-key"));
+        assert!(items.contains("gift-map"));
+        assert!(potential_supply_summary_words(&source) >= 9);
+    }
+
+    #[test]
+    fn production_budget_accounts_for_nested_adjusted_supply_keys() {
+        let mut source = observation_budget_draft(1, &[(1, 3)]);
+        source.actions[0].result = budget_text(51);
+        source.actions[0].effects.push(Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(Effect::AdjustResource {
+                resource: "stamina".to_owned(),
+                amount: 1,
+            }),
+            on_failure: Box::new(Effect::Noop),
+        });
+        source.timed_events[0].effects = vec![Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(Effect::AdjustResource {
+                resource: "water".to_owned(),
+                amount: 1,
+            }),
+            on_failure: Box::new(Effect::Noop),
+        }];
+        source
+            .supply_labels
+            .resources
+            .insert("stamina".to_owned(), "Stamina".to_owned());
+        source
+            .supply_labels
+            .resources
+            .insert("water".to_owned(), "Clean Water".to_owned());
+        source.npcs[0].inventory.insert("rope".to_owned(), 1);
+        source
+            .supply_labels
+            .items
+            .insert("rope".to_owned(), "Rope".to_owned());
+        assert!(compile(source.clone()).is_ok());
+        source.actions[0].result = budget_text(52);
+        let error = compile(source).expect_err("potential supply readout must count");
+        assert!(error.to_string().contains("supplies 9"));
+    }
+
+    #[test]
+    fn production_budget_checks_initial_observation_without_actions() {
+        let mut source = production_draft(Vec::new());
+        source.locations[0].description = budget_text(36);
+        for index in 0..32 {
+            source.character_presets[0]
+                .character
+                .resources
+                .insert(format!("resource-{index}"), 1);
+        }
+        let error = compile(source).expect_err("initial supply readout must be budgeted");
+        assert!(error.to_string().contains("initial routine observation"));
     }
 
     #[test]

@@ -1,9 +1,20 @@
 {
-  "schema_version": "forge-schema-v6",
-  "rules_version": "forge-rules-v4",
+  "schema_version": "forge-schema-v7",
+  "rules_version": "forge-rules-v5",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
+  "supply_labels": {
+    "items": {
+      "rope": "Rope",
+      "wire": "Wire",
+      "split_tide.tide_key": "Tide Key"
+    },
+    "resources": {
+      "coin": "Coin",
+      "stamina": "Stamina"
+    }
+  },
   "character_presets": [
     {
       "id": "ilyan",

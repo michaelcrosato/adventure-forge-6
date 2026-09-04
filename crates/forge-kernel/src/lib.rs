@@ -17,8 +17,9 @@ pub use content::{
     ActionDefinition, ActionPage, ActionTimeCost, ActionView, CharacterCreationChoice,
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
     CompiledContent, Condition, ContentContract, ContentDraft, ContentValidationError, Effect,
-    LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef,
-    TextVariant, TimedEventDefinition, TimedEventView,
+    ItemView, LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec,
+    ResourceView, StringRef, SupplyLabels, SupplyView, TextVariant, TimedEventDefinition,
+    TimedEventView,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,

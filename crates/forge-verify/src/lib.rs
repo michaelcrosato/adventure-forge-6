@@ -393,6 +393,16 @@ mod tests {
         assert!(check_witness(&changed).is_err());
 
         let mut changed = original.clone();
+        changed
+            .initial_observation
+            .supplies
+            .resources
+            .first_mut()
+            .unwrap()
+            .amount += 1;
+        assert!(check_witness(&changed).is_err());
+
+        let mut changed = original.clone();
         changed.steps.pop();
         assert!(check_witness(&changed).is_err());
 
@@ -428,6 +438,7 @@ mod tests {
                 .to_pretty_json()
                 .unwrap();
             assert!(json.contains("scenario_binding"));
+            assert!(json.contains("\"supplies\""));
             for hidden in [
                 "initial_state\"",
                 "scheduled_events",
