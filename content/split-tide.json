@@ -298,7 +298,7 @@
           "id": "warning_rung",
           "priority": 15,
           "condition": {"kind": "world_flag", "flag": "market_warned"},
-          "text": "The warning bell rings over empty berths as Oren sends ferries toward higher water."
+          "text": "The docks stand empty beneath the warning bell."
         },
         {
           "id": "yara_trusts",
@@ -337,6 +337,12 @@
       "description": "Water pounds the lower gate. Edrik holds a broken gauge above the intake.",
       "description_variants": [
         {
+          "id": "surge_missed",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "surge_missed"},
+          "text": "The missed surge has passed the lower gate; return through Red Sluice Top to face Lowsail's flood."
+        },
+        {
           "id": "market_warning",
           "priority": 10,
           "condition": {"kind": "world_flag", "flag": "market_warned"},
@@ -369,6 +375,12 @@
       "name": "Red Sluice Top",
       "description": "Mira waits beside the control wheels. A hot service ladder climbs into steam.",
       "description_variants": [
+        {
+          "id": "surge_missed",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "surge_missed"},
+          "text": "The missed surge has flooded Lowsail; the return route is open."
+        },
         {
           "id": "relief_ready",
           "priority": 15,
@@ -668,9 +680,9 @@
     },
     {
       "id": "checkpoint.recall_worker",
-      "label": "Recall Saved Worker",
+      "label": "Recall Earlier Rescue",
       "category": "History",
-      "result": "Sava recalls the worker you saved.",
+      "result": "Sava recalls your earlier rescue at the levee.",
       "locations": ["lowsail_market"],
       "condition": {
         "kind": "all",
@@ -764,7 +776,7 @@
       "id": "docks.ring_warning",
       "label": "Ring Warning",
       "category": "Warn",
-      "result": "The warning bell sends ferries toward higher water.",
+      "result": "You sound the market warning. Oren orders every crew toward high water.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "not",
@@ -1090,8 +1102,11 @@
       ],
       "locations": ["red_sluice.floor"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "pressure_read", "value": true},
@@ -1111,7 +1126,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "gauge_stable"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "gauge_stable"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1137,7 +1153,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "has_tag", "tag": "tide-ear"},
           {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "harmonics_read"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "harmonics_read"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1163,7 +1180,8 @@
         "conditions": [
           {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "fenborn"}},
           {"kind": "has_tag", "tag": "tide-ear"},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "intake_mapped"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "intake_mapped"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1190,7 +1208,8 @@
           {"kind": "has_tag", "tag": "heat-sense"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
           {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "high_route_open"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "high_route_open"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1222,7 +1241,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "relief_channel_open"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "relief_channel_open"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1248,7 +1268,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "facet_at_least", "axis": "aptitude.might", "value": 7},
           {"kind": "has_tag", "tag": "wanted"},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_breached"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_breached"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1272,7 +1293,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "report_sent"},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "report_received"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "report_received"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1293,8 +1315,11 @@
       "result": "The control wheels turn, but the split still needs a choice.",
       "locations": ["red_sluice.top"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "wheels_checked", "value": true},
@@ -1494,7 +1519,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "signal_sent"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "signal_sent"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [

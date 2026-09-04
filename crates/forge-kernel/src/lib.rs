@@ -14,11 +14,11 @@ mod reducer;
 
 pub use build_manifest::BuildManifest;
 pub use content::{
-    ActionDefinition, ActionPage, ActionView, CharacterCreationChoice, CharacterCreationDefinition,
-    CharacterCreationSlot, CharacterPatch, CharacterPreset, CompiledContent, Condition,
-    ContentContract, ContentDraft, ContentValidationError, Effect, LocationDefinition,
-    NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
-    TimedEventDefinition, TimedEventView,
+    ActionDefinition, ActionPage, ActionTimeCost, ActionView, CharacterCreationChoice,
+    CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
+    CompiledContent, Condition, ContentContract, ContentDraft, ContentValidationError, Effect,
+    LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef,
+    TextVariant, TimedEventDefinition, TimedEventView,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,

@@ -5,10 +5,11 @@
 //! from bypassing the kernel's trust boundary.
 
 pub use forge_kernel::{
-    ActionDefinition, ActionPage, ActionView, CharacterCreationChoice, CharacterCreationDefinition,
-    CharacterCreationSlot, CharacterPatch, CharacterPreset, CharacterSelection, Condition,
-    ContentContract, ContentDraft, Effect, LocationDefinition, NpcDefinition, Observation,
-    ParameterDomain, ParameterSpec, StringRef, TextVariant, TimedEventDefinition, TimedEventView,
+    ActionDefinition, ActionPage, ActionTimeCost, ActionView, CharacterCreationChoice,
+    CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
+    CharacterSelection, Condition, ContentContract, ContentDraft, Effect, LocationDefinition,
+    NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
+    TimedEventDefinition, TimedEventView,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;

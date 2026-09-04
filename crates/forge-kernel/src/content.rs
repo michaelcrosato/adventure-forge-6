@@ -175,10 +175,21 @@ pub struct ActionView {
     pub definition_id: String,
     pub label: String,
     pub category: String,
+    pub time_cost: ActionTimeCost,
     /// Player-facing names for canonical parameter values. The canonical
     /// values remain in `parameters` and continue to define action identity.
     pub parameter_display_values: BTreeMap<String, String>,
     pub parameters: BTreeMap<String, String>,
+}
+
+/// The complete range of world-time advancement possible for one canonical
+/// action. Most actions have an exact cost; randomized branches may expose a
+/// bounded range without revealing which branch entropy will select.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ActionTimeCost {
+    pub minimum_ticks: u64,
+    pub maximum_ticks: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -603,6 +614,60 @@ impl Effect {
             | Self::AdvanceTime { .. } => true,
         }
     }
+}
+
+fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
+    match effect {
+        Effect::AdvanceTime { ticks } => Some(ActionTimeCost {
+            minimum_ticks: *ticks,
+            maximum_ticks: *ticks,
+        }),
+        Effect::RandomChance {
+            success_percent,
+            on_success,
+            on_failure,
+        } => {
+            let success = effect_time_cost(on_success)?;
+            let failure = effect_time_cost(on_failure)?;
+            match success_percent {
+                0 => Some(failure),
+                100 => Some(success),
+                _ => Some(ActionTimeCost {
+                    minimum_ticks: success.minimum_ticks.min(failure.minimum_ticks),
+                    maximum_ticks: success.maximum_ticks.max(failure.maximum_ticks),
+                }),
+            }
+        }
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::AdjustResource { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. } => Some(ActionTimeCost {
+            minimum_ticks: 0,
+            maximum_ticks: 0,
+        }),
+    }
+}
+
+fn action_time_cost(effects: &[Effect]) -> Option<ActionTimeCost> {
+    effects.iter().try_fold(
+        ActionTimeCost {
+            minimum_ticks: 0,
+            maximum_ticks: 0,
+        },
+        |total, effect| {
+            let cost = effect_time_cost(effect)?;
+            Some(ActionTimeCost {
+                minimum_ticks: total.minimum_ticks.checked_add(cost.minimum_ticks)?,
+                maximum_ticks: total.maximum_ticks.checked_add(cost.maximum_ticks)?,
+            })
+        },
+    )
 }
 
 #[derive(Serialize)]
@@ -1232,6 +1297,8 @@ impl CompiledContent {
                 definition_id: action.definition_id.clone(),
                 label: definition.label.clone(),
                 category: definition.category.clone(),
+                time_cost: action_time_cost(&definition.effects)
+                    .expect("validated action time cost must fit in world time"),
                 parameter_display_values,
                 parameters: action.parameters.clone(),
             });
@@ -2319,6 +2386,12 @@ fn validate_action(
     if action.meaningful && !action.effects.iter().any(Effect::changes_state) {
         errors.push(format!(
             "meaningful action {} has no state-changing effect",
+            action.id
+        ));
+    }
+    if action_time_cost(&action.effects).is_none() {
+        errors.push(format!(
+            "action {} time cost overflows world time",
             action.id
         ));
     }
@@ -3879,6 +3952,58 @@ mod tests {
             text: "First sentence. Second sentence.".to_owned(),
         }];
         assert!(compile(draft(vec![over_variant])).is_err());
+    }
+
+    #[test]
+    fn action_pages_expose_complete_time_cost_ranges_and_reject_overflow() {
+        assert_eq!(
+            effect_time_cost(&Effect::RandomChance {
+                success_percent: 100,
+                on_success: Box::new(Effect::AdvanceTime { ticks: 2 }),
+                on_failure: Box::new(Effect::AdvanceTime { ticks: 9 }),
+            }),
+            Some(ActionTimeCost {
+                minimum_ticks: 2,
+                maximum_ticks: 2,
+            })
+        );
+        let ranged = action(
+            "ranged-time",
+            Condition::Always,
+            vec![
+                Effect::AdvanceTime { ticks: 2 },
+                Effect::RandomChance {
+                    success_percent: 50,
+                    on_success: Box::new(Effect::AdvanceTime { ticks: 1 }),
+                    on_failure: Box::new(Effect::AdvanceTime { ticks: 4 }),
+                },
+            ],
+        );
+        let content = compile(draft(vec![ranged])).unwrap();
+        let state = state(&content);
+        let page = content.action_page(&state, 0, 1).unwrap();
+        assert_eq!(
+            page.actions[0].time_cost,
+            ActionTimeCost {
+                minimum_ticks: 3,
+                maximum_ticks: 6,
+            }
+        );
+
+        let overflow = action(
+            "overflow-time",
+            Condition::Always,
+            vec![
+                Effect::AdvanceTime { ticks: u64::MAX },
+                Effect::AdvanceTime { ticks: 1 },
+            ],
+        );
+        assert!(
+            compile(draft(vec![overflow]))
+                .unwrap_err()
+                .to_string()
+                .contains("time cost overflows world time")
+        );
     }
 
     #[test]

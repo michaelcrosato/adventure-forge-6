@@ -600,11 +600,14 @@ fn verify_catalog(
             let definition = content.action(&expected.definition_id).ok_or_else(|| {
                 VerifyError::new("crawler catalog referenced an unknown definition")
             })?;
+            let (minimum_ticks, maximum_ticks) = independent_action_time_cost(definition)?;
             if view.action_id != expected.action_id
                 || view.definition_id != expected.definition_id
                 || view.parameters != expected.parameters
                 || view.label != definition.label
                 || view.category != definition.category
+                || view.time_cost.minimum_ticks != minimum_ticks
+                || view.time_cost.maximum_ticks != maximum_ticks
             {
                 return Err(VerifyError::new(
                     "crawler catalog view does not match kernel enumeration",
@@ -624,6 +627,52 @@ fn verify_catalog(
         Err(VerifyError::new(
             "crawler paged catalog does not equal kernel enumeration",
         ))
+    }
+}
+
+fn independent_action_time_cost(definition: &ActionDefinition) -> Result<(u64, u64), VerifyError> {
+    definition
+        .effects
+        .iter()
+        .try_fold((0_u64, 0_u64), |(total_minimum, total_maximum), effect| {
+            let (minimum, maximum) = independent_effect_time_cost(effect)?;
+            Ok((
+                total_minimum.checked_add(minimum).ok_or_else(|| {
+                    VerifyError::new("crawler action minimum time cost overflowed")
+                })?,
+                total_maximum.checked_add(maximum).ok_or_else(|| {
+                    VerifyError::new("crawler action maximum time cost overflowed")
+                })?,
+            ))
+        })
+}
+
+fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyError> {
+    match effect {
+        Effect::AdvanceTime { ticks } => Ok((*ticks, *ticks)),
+        Effect::RandomChance {
+            success_percent,
+            on_success,
+            on_failure,
+        } => {
+            let success = independent_effect_time_cost(on_success)?;
+            let failure = independent_effect_time_cost(on_failure)?;
+            match success_percent {
+                0 => Ok(failure),
+                100 => Ok(success),
+                _ => Ok((success.0.min(failure.0), success.1.max(failure.1))),
+            }
+        }
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::AdjustResource { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. } => Ok((0, 0)),
     }
 }
 

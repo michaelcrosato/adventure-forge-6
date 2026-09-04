@@ -624,8 +624,8 @@ mod tests {
             .collect();
         assert_eq!(tool_names, ["observe", "act", "finish"]);
         assert!(output.contains(&config.observation_canary));
-        assert!(output.contains("[Travel] Travel — Lowsail Docks"));
-        assert!(output.contains("[Travel] Travel — Lowsail Levee"));
+        assert!(output.contains("[Travel · 1 tide step] Travel — Lowsail Docks"));
+        assert!(output.contains("[Travel · 1 tide step] Travel — Lowsail Levee"));
         assert!(!output.contains("destination=lowsail.docks"));
         assert!(!output.contains("destination=lowsail.levee"));
         for forbidden in [

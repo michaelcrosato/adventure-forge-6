@@ -881,10 +881,23 @@ fn public_action_label(action: &ActionView) -> String {
         })
         .collect::<Vec<_>>()
         .join(", ");
+    let time_cost = match (
+        action.time_cost.minimum_ticks,
+        action.time_cost.maximum_ticks,
+    ) {
+        (minimum, maximum) if minimum == maximum => {
+            let unit = if minimum == 1 { "step" } else { "steps" };
+            format!("{minimum} tide {unit}")
+        }
+        (minimum, maximum) => format!("{minimum}–{maximum} tide steps"),
+    };
     if parameters.is_empty() {
-        format!("[{}] {}", action.category, action.label)
+        format!("[{} · {time_cost}] {}", action.category, action.label)
     } else {
-        format!("[{}] {} — {parameters}", action.category, action.label)
+        format!(
+            "[{} · {time_cost}] {} — {parameters}",
+            action.category, action.label
+        )
     }
 }
 
@@ -1317,6 +1330,7 @@ mod tests {
         ));
         assert!(output.contains("Tide step 0 · Lowsail surge: 16 tide steps remaining"));
         assert!(output.contains("Tide step 1 · Lowsail surge: 15 tide steps remaining"));
+        assert!(output.contains("[Records · 1 tide step] Audit Order"));
         assert!(output.contains("legal action(s)"));
         assert!(!output.contains("event_log"));
         assert!(!output.contains("scheduled_events"));
@@ -1347,13 +1361,13 @@ mod tests {
         assert!(paged.contains(&format!("Actions 1–{} of {}", all.total, all.total)));
         for action in &all.actions {
             assert!(
-                paged.contains(&format!("[{}] {}", action.category, action.label)),
+                paged.contains(&public_action_label(action)),
                 "all omitted {}",
                 action.action_id
             );
         }
-        assert!(paged.contains("[Travel] Travel — Lowsail Docks"));
-        assert!(paged.contains("[Travel] Travel — Lowsail Levee"));
+        assert!(paged.contains("[Travel · 1 tide step] Travel — Lowsail Docks"));
+        assert!(paged.contains("[Travel · 1 tide step] Travel — Lowsail Levee"));
         assert!(!paged.contains("destination=lowsail.docks"));
         assert!(!paged.contains("destination=lowsail.levee"));
 
@@ -1378,7 +1392,7 @@ mod tests {
         assert!(!travel.is_empty());
         for action in travel {
             assert!(
-                searched.contains(&format!("[{}] {}", action.category, action.label)),
+                searched.contains(&public_action_label(action)),
                 "find omitted {}",
                 action.action_id
             );

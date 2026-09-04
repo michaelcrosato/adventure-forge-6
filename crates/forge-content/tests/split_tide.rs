@@ -488,7 +488,19 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
         "checkpoint.show_charter",
     );
     let warned = travel_to(warned, &content, "lowsail.docks");
-    let warned = apply(warned, &content, "docks.ring_warning");
+    let warning = action_for(&warned, &content, "docks.ring_warning");
+    let transition = step(&warned, &warning, &content, &warned.entropy).unwrap();
+    let warning_observation = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(
+        warning_observation.result.as_deref(),
+        Some("You sound the market warning. Oren orders every crew toward high water.")
+    );
+    assert!(
+        warning_observation
+            .text
+            .ends_with("The docks stand empty beneath the warning bell.")
+    );
+    let warned = transition.into_state();
     let warned = travel_to(warned, &content, "lowsail.levee");
     let warned_floor = apply(warned, &content, "levee.authority_path");
     assert!(warned_floor.world.flags.contains("market_warned"));
@@ -802,6 +814,8 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
     assert!(enumerate_legal_actions(&missing_schedule, &content).is_err());
 
     state = apply(state, &content, "checkpoint.show_charter");
+    state = travel_to(state, &content, "lowsail.docks");
+    state = apply(state, &content, "docks.ring_warning");
     state = travel_to(state, &content, "lowsail.levee");
     state = apply(state, &content, "levee.authority_path");
     state = travel_to(state, &content, "red_sluice.top");
@@ -840,10 +854,42 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
     );
     let after_deadline = definitions(&missed, &content);
     assert!(after_deadline.contains("top.return_lowsail"));
+    assert!(!after_deadline.contains("top.check_wheels"));
+    assert!(!after_deadline.contains("top.signal_market"));
     assert!(
         SLUICE_OUTCOMES
             .iter()
             .all(|outcome| !after_deadline.contains(*outcome))
+    );
+    assert!(
+        content
+            .location_description(&missed)
+            .unwrap()
+            .contains("return route is open")
+    );
+
+    let missed_floor = travel_to(missed, &content, "red_sluice.floor");
+    let floor_after_deadline = definitions(&missed_floor, &content);
+    for closed in [
+        "floor.test_pressure",
+        "floor.stabilize_gauge",
+        "floor.read_harmonics",
+        "floor.dive_intake",
+        "floor.climb_hot_face",
+        "floor.open_relief",
+        "floor.force_wheel",
+        "floor.ack_report",
+    ] {
+        assert!(
+            !floor_after_deadline.contains(closed),
+            "deadline preparation remained legal: {closed}"
+        );
+    }
+    assert!(
+        content
+            .location_description(&missed_floor)
+            .unwrap()
+            .contains("return through Red Sluice Top")
     );
 
     let mut protected = new_game(&content, "ilyan");
@@ -877,6 +923,16 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
 fn discoveries_retire_and_the_intake_map_unlocks_a_safe_split() {
     let content = content();
     let mut state = new_game(&content, "ilyan");
+    assert_eq!(
+        content.action("checkpoint.recall_worker").unwrap().label,
+        "Recall Earlier Rescue"
+    );
+    assert_eq!(
+        content
+            .action_result(&state, "checkpoint.recall_worker")
+            .unwrap(),
+        "Sava recalls your earlier rescue at the levee."
+    );
     state = apply(state, &content, "checkpoint.ask_sava");
     assert!(!definitions(&state, &content).contains("checkpoint.ask_sava"));
 
