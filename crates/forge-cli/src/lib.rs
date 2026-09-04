@@ -864,6 +864,10 @@ fn action_matches(action: &ActionView, lowercase_query: &str) -> bool {
             name.to_lowercase().contains(lowercase_query)
                 || value.to_lowercase().contains(lowercase_query)
         })
+        || action
+            .consequence_preview
+            .as_ref()
+            .is_some_and(|preview| preview.to_lowercase().contains(lowercase_query))
 }
 
 fn public_action_label(action: &ActionView) -> String {
@@ -1374,6 +1378,77 @@ mod tests {
             public_action_label(&ordinary),
             "[Rescue · 1 tide step] Rescue Worker"
         );
+    }
+
+    #[test]
+    fn find_matches_authored_consequence_preview_in_real_hold_market_catalog() {
+        let content = load_content().unwrap();
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        record_matching(&mut session, &content, "checkpoint.show_charter", None).unwrap();
+        record_matching(
+            &mut session,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "lowsail.levee")),
+        )
+        .unwrap();
+        record_matching(&mut session, &content, "levee.authority_path", None).unwrap();
+        record_matching(
+            &mut session,
+            &content,
+            "travel_adjacent",
+            Some(("destination", "red_sluice.top")),
+        )
+        .unwrap();
+
+        let page = content.action_page(session.state(), 0, usize::MAX).unwrap();
+        let hold_market = page
+            .actions
+            .iter()
+            .find(|action| action.definition_id == "top.hold_market")
+            .expect("Hold Market should be legal at Red Sluice Top");
+        assert_eq!(
+            hold_market.consequence_preview.as_deref(),
+            Some("The market stays dry while the upland works lose water.")
+        );
+        assert!(action_matches(hold_market, "upland"));
+
+        let path = temp_trace();
+        let path_text = path.to_string_lossy().into_owned();
+        let input = format!(
+            concat!(
+                "find Show Charter\n",
+                "1\n",
+                "find Lowsail Levee\n",
+                "1\n",
+                "find Authority Path\n",
+                "1\n",
+                "find Red Sluice Top\n",
+                "1\n",
+                "find UPLAND\n",
+                "save {}\n",
+                "quit\n"
+            ),
+            path_text
+        );
+        let searched = invoke(&["play", "--character", "ilyan", "--seed", "71"], &input).unwrap();
+        let final_catalog = searched
+            .rsplit_once("Actions 1–1 of 1:")
+            .map(|(_, suffix)| suffix)
+            .expect("find UPLAND should render one matching action");
+        assert_eq!(
+            final_catalog.matches(
+                "  1. [Outcome · 1 tide step] Hold Market — The market stays dry while the upland works lose water."
+            ).count(),
+            1
+        );
+        assert!(!final_catalog.contains("No current legal action matches"));
+        assert!(final_catalog.contains("Saved 4 step(s)."));
+        assert_eq!(read_trace(&path).unwrap().action_count(), 4);
+        std::fs::remove_file(path).unwrap();
+        assert!(searched.contains(
+            "[Outcome · 1 tide step] Hold Market — The market stays dry while the upland works lose water."
+        ));
     }
 
     #[test]

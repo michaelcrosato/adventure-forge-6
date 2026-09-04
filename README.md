@@ -28,6 +28,8 @@ cargo run -p forge-verify -- check-player rook.trace.json
 ./verify
 ```
 
+Catalog search includes the visible consequence previews. NPC information also has a delivery path: ringing Lowsail's warning teaches Oren, and relaying it from the levee teaches Edrik and unlocks his relief-channel help. Discovering a distant event does not automatically make an NPC know it.
+
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.

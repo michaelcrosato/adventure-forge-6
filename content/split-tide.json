@@ -411,7 +411,7 @@
         {
           "id": "market_warning",
           "priority": 10,
-          "condition": {"kind": "world_flag", "flag": "market_warned"},
+          "condition": {"kind": "npc_knows", "npc": "edrik_voss", "knowledge_id": "market_warned"},
           "text": "Water pounds the lower gate while Edrik knows Lowsail has been warned."
         },
         {
@@ -430,7 +430,7 @@
               {"kind": "has_tag", "tag": "heat-sense"}
             ]
           },
-          "text": "Heat marks reveal a climb above the intake, and Rook can use the service face."
+          "text": "Heat marks reveal stress above the intake."
         }
       ],
       "exits": ["lowsail.levee", "red_sluice.top"],
@@ -875,7 +875,7 @@
       "id": "docks.ring_warning",
       "label": "Ring Warning",
       "category": "Warn",
-      "result": "You sound the market warning. Oren orders every crew toward high water.",
+      "result": "You sound the market warning. Oren orders every crew uphill; relay his warning at Lowsail Levee so Edrik can open relief.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "all",
@@ -886,6 +886,7 @@
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "market_warned", "value": true},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "market_warned", "subject": "Lowsail expects a surge.", "provenance": {"kind": "witnessed"}},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_heard_warning", "subject": "The player rang the market warning bell.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -951,7 +952,7 @@
       "id": "docks.audit_ledger",
       "label": "Audit Ledger",
       "category": "Records",
-      "result": "The ledger exposes a false order.",
+      "result": "The ledger exposes a false order; Oren sends the evidence to Sava.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "all",
@@ -966,7 +967,8 @@
       "effects": [
         {"kind": "set_world_flag", "flag": "forged_order_found", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "ledger_read", "value": true},
-        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "read", "source": "lowsail_tide_ledger"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "read", "source": "lowsail_tide_ledger"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "told", "by": "oren_pell"}},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_ledger", "subject": "The player read the tide ledger.", "provenance": {"kind": "told", "by": "oren_pell"}},
         {"kind": "add_character_deed", "deed_id": "read_forged_order"},
         {"kind": "advance_time", "ticks": 1}
@@ -1014,6 +1016,7 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "npc_knows", "npc": "oren_pell", "knowledge_id": "market_warned"},
           {"kind": "has_tag", "tag": "freedom"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "ferry_aid"}},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
@@ -1022,7 +1025,7 @@
       "effects": [
         {"kind": "set_world_flag", "flag": "ferry_aid", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
-        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "market_warned", "subject": "The market has been warned of the surge.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "market_warned", "subject": "Lowsail expects a surge.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_aided_warning", "subject": "The player helped Oren warn the ferries.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -1086,6 +1089,7 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "forged_order_found"},
+          {"kind": "npc_knows", "npc": "sava_rusk", "knowledge_id": "forged_order"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "report_sent"}},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
@@ -1105,12 +1109,13 @@
       "id": "levee.relay_warning",
       "label": "Relay Warning",
       "category": "Signal",
-      "result": "Edrik hears that Lowsail expects the surge.",
+      "result": "Oren's warning reaches Edrik; he can now help open relief at Red Sluice Floor.",
       "locations": ["lowsail.levee"],
       "condition": {
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "npc_knows", "npc": "oren_pell", "knowledge_id": "market_warned"},
           {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "warning_received"}},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
@@ -1279,7 +1284,7 @@
       "id": "floor.read_harmonics",
       "label": "Read Harmonics",
       "category": "Craft",
-      "result": "You hear a safe pattern in the gate.",
+      "result": "You hear a safe split in the gate. Check the wheels at Red Sluice Top, then choose Split Flow.",
       "locations": ["red_sluice.floor"],
       "condition": {
         "kind": "all",
@@ -1376,6 +1381,7 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "npc_knows", "npc": "edrik_voss", "knowledge_id": "market_warned"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "relief_channel_open"}},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
@@ -1383,7 +1389,7 @@
       "effects": [
         {"kind": "set_world_flag", "flag": "relief_channel_open", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "relief_ready", "value": true},
-        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "relief_plan", "subject": "A relief channel can spare the market.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "relief_plan", "subject": "A relief channel can spare the market.", "provenance": {"kind": "witnessed"}},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_opened_relief", "subject": "The player opened a relief channel after the warning.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
       ],
@@ -1651,7 +1657,7 @@
       "id": "top.signal_market",
       "label": "Signal Market",
       "category": "Signal",
-      "result": "A warning signal reaches Oren before the surge.",
+      "result": "Mira sends a warning signal to Oren before the surge.",
       "locations": ["red_sluice.top"],
       "condition": {
         "kind": "all",
@@ -1663,8 +1669,9 @@
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "signal_sent", "value": true},
-        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "sluice_signal", "subject": "The Sluice sent a signal before the surge.", "provenance": {"kind": "told", "by": "edrik_voss"}},
-        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_received_signal", "subject": "Oren received a Sluice signal.", "provenance": {"kind": "told", "by": "edrik_voss"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "mira_kett"}, "knowledge_id": "sluice_signal", "subject": "The Sluice sent a signal before the surge.", "provenance": {"kind": "witnessed"}},
+        {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "sluice_signal", "subject": "The Sluice sent a signal before the surge.", "provenance": {"kind": "told", "by": "mira_kett"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_received_signal", "subject": "Oren received a Sluice signal.", "provenance": {"kind": "told", "by": "mira_kett"}},
         {"kind": "advance_time", "ticks": 1}
       ],
       "parameters": [],

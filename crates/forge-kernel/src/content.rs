@@ -1443,6 +1443,7 @@ impl CompiledContent {
                 state.world.current_location
             ));
         }
+        let known_npc_ids = self.npcs.keys().collect::<BTreeSet<_>>();
         for (key, npc) in &state.world.npcs {
             if key != &npc.id {
                 errors.push(format!(
@@ -1479,6 +1480,38 @@ impl CompiledContent {
                 if item.trim().is_empty() || *count == 0 {
                     errors.push(format!("NPC {key} has an invalid inventory entry"));
                 }
+            }
+            for (record_key, memory) in &npc.memories {
+                validate_npc_record(
+                    key,
+                    "memory",
+                    NpcRecordView {
+                        map_key: record_key,
+                        id: &memory.id,
+                        subject: &memory.subject,
+                        turn: memory.turn,
+                        provenance: &memory.provenance,
+                    },
+                    state.world.time,
+                    &known_npc_ids,
+                    &mut errors,
+                );
+            }
+            for (record_key, knowledge) in &npc.knowledge {
+                validate_npc_record(
+                    key,
+                    "knowledge",
+                    NpcRecordView {
+                        map_key: record_key,
+                        id: &knowledge.id,
+                        subject: &knowledge.subject,
+                        turn: knowledge.turn,
+                        provenance: &knowledge.provenance,
+                    },
+                    state.world.time,
+                    &known_npc_ids,
+                    &mut errors,
+                );
             }
         }
         if state.world.npcs.len() != self.npcs.len() {
@@ -1584,6 +1617,107 @@ impl CompiledContent {
         } else {
             Err(errors)
         }
+    }
+}
+
+struct NpcRecordView<'a> {
+    map_key: &'a str,
+    id: &'a str,
+    subject: &'a str,
+    turn: u64,
+    provenance: &'a KnowledgeProvenance,
+}
+
+fn validate_npc_record(
+    npc_id: &str,
+    record_kind: &str,
+    record: NpcRecordView<'_>,
+    world_time: u64,
+    known_npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+) {
+    if record.map_key.trim().is_empty() {
+        errors.push(format!("NPC {npc_id} {record_kind} has an empty map key"));
+    }
+    if record.map_key != record.id {
+        errors.push(format!(
+            "NPC {npc_id} {record_kind} map key {} does not match embedded id {}",
+            record.map_key, record.id
+        ));
+    }
+    if record.id.trim().is_empty() {
+        errors.push(format!(
+            "NPC {npc_id} {record_kind} {} has an empty id",
+            record.map_key
+        ));
+    }
+    if record.subject.trim().is_empty() {
+        errors.push(format!(
+            "NPC {npc_id} {record_kind} {} has an empty subject",
+            record.map_key
+        ));
+    }
+    if record.turn > world_time {
+        errors.push(format!(
+            "NPC {npc_id} {record_kind} {} has future turn {} at world time {world_time}",
+            record.map_key, record.turn
+        ));
+    }
+    match record.provenance {
+        KnowledgeProvenance::Told { by } => {
+            validate_npc_provenance_source(
+                npc_id,
+                record_kind,
+                record.map_key,
+                by,
+                known_npc_ids,
+                errors,
+            );
+        }
+        KnowledgeProvenance::Rumor { from: Some(from) } => {
+            validate_npc_provenance_source(
+                npc_id,
+                record_kind,
+                record.map_key,
+                from,
+                known_npc_ids,
+                errors,
+            );
+        }
+        KnowledgeProvenance::Read { source } if source.trim().is_empty() => {
+            errors.push(format!(
+                "NPC {npc_id} {record_kind} {} has an empty provenance descriptor",
+                record.map_key
+            ));
+        }
+        KnowledgeProvenance::Inferred { from } if from.trim().is_empty() => {
+            errors.push(format!(
+                "NPC {npc_id} {record_kind} {} has an empty provenance descriptor",
+                record.map_key
+            ));
+        }
+        KnowledgeProvenance::Witnessed
+        | KnowledgeProvenance::Rumor { from: None }
+        | KnowledgeProvenance::Read { .. }
+        | KnowledgeProvenance::Inferred { .. } => {}
+    }
+}
+
+fn validate_npc_provenance_source(
+    npc_id: &str,
+    record_kind: &str,
+    record_id: &str,
+    source: &str,
+    known_npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+) {
+    if !known_npc_ids
+        .iter()
+        .any(|candidate| candidate.as_str() == source)
+    {
+        errors.push(format!(
+            "NPC {npc_id} {record_kind} {record_id} provenance references unknown NPC {source}"
+        ));
     }
 }
 
@@ -2357,6 +2491,14 @@ fn validate_action(
         errors,
         0,
     );
+    let owner = format!("action {}", action.id);
+    validate_knowledge_transfer_guarantees(
+        &action.condition,
+        &action.effects,
+        &owner,
+        npc_ids,
+        errors,
+    );
     let referenced_parameters: BTreeSet<_> = roles.keys().cloned().collect();
     for parameter in &action.parameters {
         if !referenced_parameters.contains(&parameter.name) {
@@ -2444,7 +2586,7 @@ fn validate_timed_event(
     }
 
     let validation_action = ActionDefinition {
-        id: owner,
+        id: owner.clone(),
         label: event.label.clone(),
         category: event.event_kind.clone(),
         result: event.result.clone(),
@@ -2467,6 +2609,13 @@ fn validate_timed_event(
         &mut roles,
         errors,
         0,
+    );
+    validate_knowledge_transfer_guarantees(
+        &event.condition,
+        &event.effects,
+        &owner,
+        npc_ids,
+        errors,
     );
 }
 
@@ -2712,6 +2861,177 @@ fn validate_effects(
     }
 }
 
+type KnowledgeFact = (String, String);
+
+fn guaranteed_npc_knowledge(condition: &Condition) -> BTreeSet<KnowledgeFact> {
+    guaranteed_npc_knowledge_at_depth(condition, 0)
+}
+
+fn guaranteed_npc_knowledge_at_depth(
+    condition: &Condition,
+    depth: usize,
+) -> BTreeSet<KnowledgeFact> {
+    if depth > 64 {
+        return BTreeSet::new();
+    }
+    match condition {
+        Condition::All { conditions } => conditions
+            .iter()
+            .flat_map(|child| guaranteed_npc_knowledge_at_depth(child, depth + 1))
+            .collect(),
+        Condition::Any { conditions } => {
+            let Some(first) = conditions.first() else {
+                return BTreeSet::new();
+            };
+            conditions[1..].iter().fold(
+                guaranteed_npc_knowledge_at_depth(first, depth + 1),
+                |guaranteed, child| {
+                    let child_guaranteed = guaranteed_npc_knowledge_at_depth(child, depth + 1);
+                    guaranteed
+                        .intersection(&child_guaranteed)
+                        .cloned()
+                        .collect()
+                },
+            )
+        }
+        Condition::NpcKnows { npc, knowledge_id }
+        | Condition::NpcKnowsWithProvenance {
+            npc, knowledge_id, ..
+        } => BTreeSet::from([(npc.clone(), knowledge_id.clone())]),
+        Condition::Always
+        | Condition::Never
+        | Condition::Not { .. }
+        | Condition::FacetEquals { .. }
+        | Condition::FacetAtLeast { .. }
+        | Condition::HasTag { .. }
+        | Condition::HasItem { .. }
+        | Condition::ResourceAtLeast { .. }
+        | Condition::CharacterKnows { .. }
+        | Condition::CharacterHasDeed { .. }
+        | Condition::WorldFlag { .. }
+        | Condition::LocationFlag { .. }
+        | Condition::AtLocation { .. }
+        | Condition::NpcRemembers { .. }
+        | Condition::NpcRelationshipAtLeast { .. } => BTreeSet::new(),
+    }
+}
+
+fn validate_knowledge_transfer_guarantees(
+    condition: &Condition,
+    effects: &[Effect],
+    owner: &str,
+    npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+) {
+    let guaranteed = guaranteed_npc_knowledge(condition);
+    let _ = guaranteed_npc_knowledge_after_effects(effects, guaranteed, owner, npc_ids, errors, 0);
+}
+
+fn guaranteed_npc_knowledge_after_effects(
+    effects: &[Effect],
+    mut guaranteed: BTreeSet<KnowledgeFact>,
+    owner: &str,
+    npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+    depth: usize,
+) -> BTreeSet<KnowledgeFact> {
+    if depth > 64 {
+        return guaranteed;
+    }
+    for effect in effects {
+        match effect {
+            Effect::TeachNpc {
+                npc,
+                knowledge_id,
+                provenance,
+                ..
+            } => {
+                if let Some(source) = npc_knowledge_source(provenance)
+                    && !knowledge_id.trim().is_empty()
+                    && !source.trim().is_empty()
+                    && npc_ids.iter().any(|candidate| candidate.as_str() == source)
+                    && !guaranteed.contains(&(source.to_owned(), knowledge_id.clone()))
+                {
+                    errors.push(format!(
+                        "{owner} transfers knowledge {knowledge_id} from NPC {source} without guaranteed source possession"
+                    ));
+                }
+                if let StringRef::Literal(target) = npc
+                    && !target.trim().is_empty()
+                    && !knowledge_id.trim().is_empty()
+                {
+                    guaranteed.insert((target.clone(), knowledge_id.clone()));
+                }
+            }
+            Effect::RandomChance {
+                success_percent,
+                on_success,
+                on_failure,
+            } => {
+                guaranteed = match success_percent {
+                    0 => guaranteed_npc_knowledge_after_effects(
+                        std::slice::from_ref(on_failure),
+                        guaranteed,
+                        owner,
+                        npc_ids,
+                        errors,
+                        depth + 1,
+                    ),
+                    100 => guaranteed_npc_knowledge_after_effects(
+                        std::slice::from_ref(on_success),
+                        guaranteed,
+                        owner,
+                        npc_ids,
+                        errors,
+                        depth + 1,
+                    ),
+                    _ => {
+                        let success = guaranteed_npc_knowledge_after_effects(
+                            std::slice::from_ref(on_success),
+                            guaranteed.clone(),
+                            owner,
+                            npc_ids,
+                            errors,
+                            depth + 1,
+                        );
+                        let failure = guaranteed_npc_knowledge_after_effects(
+                            std::slice::from_ref(on_failure),
+                            guaranteed,
+                            owner,
+                            npc_ids,
+                            errors,
+                            depth + 1,
+                        );
+                        success.intersection(&failure).cloned().collect()
+                    }
+                };
+            }
+            Effect::Noop
+            | Effect::SetFlag { .. }
+            | Effect::SetWorldFlag { .. }
+            | Effect::SetLocationFlag { .. }
+            | Effect::AdjustResource { .. }
+            | Effect::MoveCharacter { .. }
+            | Effect::AdjustNpcRelationship { .. }
+            | Effect::AddNpcMemory { .. }
+            | Effect::AddCharacterDeed { .. }
+            | Effect::AdvanceTime { .. } => {}
+        }
+    }
+    guaranteed
+}
+
+fn npc_knowledge_source(provenance: &KnowledgeProvenance) -> Option<&str> {
+    match provenance {
+        KnowledgeProvenance::Told { by } => Some(by),
+        KnowledgeProvenance::Rumor { from: Some(from) } => Some(from),
+        KnowledgeProvenance::Witnessed
+        | KnowledgeProvenance::Read { .. }
+        | KnowledgeProvenance::Inferred { .. }
+        | KnowledgeProvenance::Rumor { from: None } => None,
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum ReferenceRole {
     Npc,
@@ -2784,20 +3104,39 @@ fn validate_provenance(
     npc_ids: &BTreeSet<&String>,
     errors: &mut ContentValidationError,
 ) {
-    let source = match provenance {
-        KnowledgeProvenance::Told { by } => Some(by),
-        KnowledgeProvenance::Rumor { from } => from.as_ref(),
+    match provenance {
+        KnowledgeProvenance::Told { by } => {
+            if !npc_ids.iter().any(|candidate| candidate.as_str() == by) {
+                errors.push(format!(
+                    "action {} provenance references unknown NPC {}",
+                    action.id, by
+                ));
+            }
+        }
+        KnowledgeProvenance::Rumor { from: Some(from) } => {
+            if !npc_ids.iter().any(|candidate| candidate.as_str() == from) {
+                errors.push(format!(
+                    "action {} provenance references unknown NPC {}",
+                    action.id, from
+                ));
+            }
+        }
+        KnowledgeProvenance::Read { source } if source.trim().is_empty() => {
+            errors.push(format!(
+                "action {} has an empty provenance descriptor",
+                action.id
+            ));
+        }
+        KnowledgeProvenance::Inferred { from } if from.trim().is_empty() => {
+            errors.push(format!(
+                "action {} has an empty provenance descriptor",
+                action.id
+            ));
+        }
         KnowledgeProvenance::Witnessed
+        | KnowledgeProvenance::Rumor { from: None }
         | KnowledgeProvenance::Read { .. }
-        | KnowledgeProvenance::Inferred { .. } => None,
-    };
-    if let Some(source) = source
-        && !npc_ids.iter().any(|candidate| candidate.as_str() == source)
-    {
-        errors.push(format!(
-            "action {} provenance references unknown NPC {}",
-            action.id, source
-        ));
+        | KnowledgeProvenance::Inferred { .. } => {}
     }
 }
 
@@ -3077,7 +3416,10 @@ fn select_variant_text(fallback: &str, variants: &[TextVariant], state: &GameSta
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Character, EntropyState, GameState, KnowledgeProvenance, NpcState, WorldState};
+    use crate::{
+        Character, EntropyState, GameState, Knowledge, KnowledgeProvenance, Memory, NpcState,
+        WorldState,
+    };
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         let manifest = BuildManifest::generated();
@@ -3408,6 +3750,100 @@ mod tests {
     }
 
     #[test]
+    fn rejects_malformed_npc_knowledge_and_memory_records() {
+        let content = compile(draft(Vec::new())).unwrap();
+        let mut state = state(&content);
+        let sava = state.world.npcs.get_mut("sava").unwrap();
+        sava.knowledge.insert(
+            "knowledge-key".to_owned(),
+            Knowledge {
+                id: "embedded-id".to_owned(),
+                subject: "A known fact.".to_owned(),
+                turn: 0,
+                provenance: KnowledgeProvenance::Witnessed,
+            },
+        );
+        sava.knowledge.insert(
+            "empty-record".to_owned(),
+            Knowledge {
+                id: String::new(),
+                subject: String::new(),
+                turn: 1,
+                provenance: KnowledgeProvenance::Read {
+                    source: String::new(),
+                },
+            },
+        );
+        sava.memories.insert(
+            String::new(),
+            Memory {
+                id: "future-memory".to_owned(),
+                subject: "A remembered fact.".to_owned(),
+                turn: 1,
+                provenance: KnowledgeProvenance::Inferred {
+                    from: String::new(),
+                },
+            },
+        );
+        sava.memories.insert(
+            "unknown-source".to_owned(),
+            Memory {
+                id: "unknown-source".to_owned(),
+                subject: "A rumor.".to_owned(),
+                turn: 0,
+                provenance: KnowledgeProvenance::Rumor {
+                    from: Some("ghost".to_owned()),
+                },
+            },
+        );
+
+        let error = content
+            .validate_state(&state)
+            .expect_err("malformed NPC records must be rejected");
+        let issues = error.to_string();
+        assert!(issues.contains("knowledge map key knowledge-key does not match embedded id"));
+        assert!(issues.contains("knowledge empty-record has an empty id"));
+        assert!(issues.contains("knowledge empty-record has an empty subject"));
+        assert!(issues.contains("knowledge empty-record has future turn 1"));
+        assert!(issues.contains("memory has an empty map key"));
+        assert!(issues.contains("memory  has future turn 1"));
+        assert!(issues.contains("has an empty provenance descriptor"));
+        assert!(issues.contains("provenance references unknown NPC ghost"));
+    }
+
+    #[test]
+    fn admits_structurally_valid_npc_knowledge_and_memory_records() {
+        let content = compile(draft(Vec::new())).unwrap();
+        let mut state = state(&content);
+        let sava = state.world.npcs.get_mut("sava").unwrap();
+        sava.knowledge.insert(
+            "known-fact".to_owned(),
+            Knowledge {
+                id: "known-fact".to_owned(),
+                subject: "A known fact.".to_owned(),
+                turn: 0,
+                // Structural admission intentionally does not require source possession yet.
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            },
+        );
+        sava.memories.insert(
+            "remembered-fact".to_owned(),
+            Memory {
+                id: "remembered-fact".to_owned(),
+                subject: "A remembered fact.".to_owned(),
+                turn: 0,
+                provenance: KnowledgeProvenance::Rumor { from: None },
+            },
+        );
+
+        content
+            .validate_state(&state)
+            .expect("structurally valid records must be admitted");
+    }
+
+    #[test]
     fn rejects_disconnected_graph() {
         let mut content = draft(Vec::new());
         for location in &mut content.locations {
@@ -3499,6 +3935,287 @@ mod tests {
                 .iter()
                 .any(|issue| issue.contains("provenance references unknown NPC"))
         );
+    }
+
+    #[test]
+    fn rejects_empty_action_provenance_descriptors() {
+        let error = compile(draft(vec![
+            action(
+                "teach-empty-read",
+                Condition::Always,
+                vec![Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "ledger-fact".to_owned(),
+                    subject: "The ledger has been read.".to_owned(),
+                    provenance: KnowledgeProvenance::Read {
+                        source: " ".to_owned(),
+                    },
+                }],
+            ),
+            action(
+                "remember-empty-inference",
+                Condition::Always,
+                vec![Effect::AddNpcMemory {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    memory_id: "inferred-fact".to_owned(),
+                    subject: "The tide pattern is inferred.".to_owned(),
+                    provenance: KnowledgeProvenance::Inferred {
+                        from: String::new(),
+                    },
+                }],
+            ),
+        ]))
+        .unwrap_err();
+        assert_eq!(
+            error
+                .issues
+                .iter()
+                .filter(|issue| issue.contains("has an empty provenance descriptor"))
+                .count(),
+            2
+        );
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("action teach-empty-read"))
+        );
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("action remember-empty-inference"))
+        );
+    }
+
+    #[test]
+    fn rejects_unowned_npc_knowledge_transfers() {
+        let error = compile(draft(vec![action(
+            "relay",
+            Condition::Always,
+            vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            }],
+        )]))
+        .unwrap_err();
+        assert!(error.issues.iter().any(|issue| {
+            issue.contains(
+                "action relay transfers knowledge tide-key from NPC sava without guaranteed source possession"
+            )
+        }));
+    }
+
+    #[test]
+    fn admits_guarded_and_same_list_npc_knowledge_transfers() {
+        let guarded = action(
+            "guarded-relay",
+            Condition::All {
+                conditions: vec![
+                    Condition::Always,
+                    Condition::NpcKnows {
+                        npc: "sava".to_owned(),
+                        knowledge_id: "tide-key".to_owned(),
+                    },
+                ],
+            },
+            vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            }],
+        );
+        let stronger_guard = action(
+            "provenance-guarded-relay",
+            Condition::NpcKnowsWithProvenance {
+                npc: "sava".to_owned(),
+                knowledge_id: "tide-key".to_owned(),
+                provenance: KnowledgeProvenanceKind::Witnessed,
+            },
+            vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Rumor {
+                    from: Some("sava".to_owned()),
+                },
+            }],
+        );
+        let same_list_seed = action(
+            "seeded-relay",
+            Condition::Always,
+            vec![
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Witnessed,
+                },
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Told {
+                        by: "sava".to_owned(),
+                    },
+                },
+            ],
+        );
+        assert!(compile(draft(vec![guarded, stronger_guard, same_list_seed])).is_ok());
+    }
+
+    #[test]
+    fn rejects_unproven_any_and_random_knowledge_transfers() {
+        let unsound_any = action(
+            "any-relay",
+            Condition::Any {
+                conditions: vec![
+                    Condition::NpcKnows {
+                        npc: "sava".to_owned(),
+                        knowledge_id: "tide-key".to_owned(),
+                    },
+                    Condition::Always,
+                ],
+            },
+            vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            }],
+        );
+        let unsound_random = action(
+            "random-relay",
+            Condition::Always,
+            vec![
+                Effect::RandomChance {
+                    success_percent: 50,
+                    on_success: Box::new(Effect::TeachNpc {
+                        npc: StringRef::Literal("sava".to_owned()),
+                        knowledge_id: "tide-key".to_owned(),
+                        subject: "The Tide Key is safe.".to_owned(),
+                        provenance: KnowledgeProvenance::Witnessed,
+                    }),
+                    on_failure: Box::new(Effect::Noop),
+                },
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Told {
+                        by: "sava".to_owned(),
+                    },
+                },
+            ],
+        );
+        let error = compile(draft(vec![unsound_any, unsound_random])).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("action any-relay transfers knowledge tide-key"))
+        );
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("action random-relay transfers knowledge tide-key"))
+        );
+    }
+
+    #[test]
+    fn ignores_unreachable_random_knowledge_transfer_branches() {
+        let zero = action(
+            "zero-relay",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 0,
+                on_success: Box::new(Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Told {
+                        by: "sava".to_owned(),
+                    },
+                }),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        );
+        let hundred = action(
+            "hundred-relay",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 100,
+                on_success: Box::new(Effect::Noop),
+                on_failure: Box::new(Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Told {
+                        by: "sava".to_owned(),
+                    },
+                }),
+            }],
+        );
+        assert!(compile(draft(vec![zero, hundred])).is_ok());
+    }
+
+    #[test]
+    fn validates_timed_event_knowledge_transfer_guarantees() {
+        let mut unguarded = draft(Vec::new());
+        unguarded.timed_events.push(TimedEventDefinition {
+            id: "relay-event".to_owned(),
+            due_time: 1,
+            event_kind: "Signal".to_owned(),
+            label: "Relay Event".to_owned(),
+            result: "The event resolves.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            }],
+        });
+        let error = compile(unguarded).unwrap_err();
+        assert!(error.issues.iter().any(|issue| {
+            issue.contains(
+                "timed event relay-event transfers knowledge tide-key from NPC sava without guaranteed source possession"
+            )
+        }));
+
+        let mut guarded = draft(Vec::new());
+        guarded.timed_events.push(TimedEventDefinition {
+            id: "guarded-event".to_owned(),
+            due_time: 1,
+            event_kind: "Signal".to_owned(),
+            label: "Guarded Event".to_owned(),
+            result: "The event resolves.".to_owned(),
+            condition: Condition::NpcKnows {
+                npc: "sava".to_owned(),
+                knowledge_id: "tide-key".to_owned(),
+            },
+            effects: vec![Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance: KnowledgeProvenance::Told {
+                    by: "sava".to_owned(),
+                },
+            }],
+        });
+        assert!(compile(guarded).is_ok());
     }
 
     #[test]
@@ -3605,10 +4322,13 @@ mod tests {
         }
         assert!(compile(draft(vec![action("shallow", shallow, vec![Effect::Noop],)])).is_ok());
 
-        let mut deep = Condition::Always;
+        let mut deep = Condition::NpcKnows {
+            npc: "sava".to_owned(),
+            knowledge_id: "tide-key".to_owned(),
+        };
         for _ in 0..65 {
-            deep = Condition::Not {
-                condition: Box::new(deep),
+            deep = Condition::All {
+                conditions: vec![deep],
             };
         }
         let error = compile(draft(vec![action("deep", deep, vec![Effect::Noop])])).unwrap_err();

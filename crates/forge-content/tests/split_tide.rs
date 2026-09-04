@@ -225,6 +225,9 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
         );
         let routed = apply(routed, &content, "levee.culvert_path");
         assert_eq!(routed.world.current_location, "red_sluice.floor");
+        let observation = content.observe(&routed).unwrap();
+        assert!(!observation.text.contains("Rook"));
+        assert!(!observation.text.contains("Ilyan"));
     }
 
     assert_eq!(character_ids.len(), combination_count);
@@ -521,7 +524,9 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
     let warning_observation = content.observe_after_transition(&transition).unwrap();
     assert_eq!(
         warning_observation.result.as_deref(),
-        Some("You sound the market warning. Oren orders every crew toward high water.")
+        Some(
+            "You sound the market warning. Oren orders every crew uphill; relay his warning at Lowsail Levee so Edrik can open relief."
+        )
     );
     assert!(
         warning_observation
@@ -530,9 +535,71 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
     );
     let warned = transition.into_state();
     let warned = travel_to(warned, &content, "lowsail.levee");
-    let warned_floor = apply(warned, &content, "levee.authority_path");
+    let warned_floor = apply(warned.clone(), &content, "levee.authority_path");
     assert!(warned_floor.world.flags.contains("market_warned"));
-    assert!(definitions(&warned_floor, &content).contains("floor.open_relief"));
+    assert!(!warned_floor.world.npcs["edrik_voss"].knows("market_warned"));
+    assert!(
+        !content
+            .observe(&warned_floor)
+            .unwrap()
+            .text
+            .contains("Edrik knows Lowsail has been warned")
+    );
+    assert!(!definitions(&warned_floor, &content).contains("floor.open_relief"));
+
+    assert!(warned.world.npcs["oren_pell"].knows("market_warned"));
+    assert_eq!(
+        warned.world.npcs["oren_pell"].knowledge["market_warned"]
+            .provenance
+            .kind(),
+        KnowledgeProvenanceKind::Witnessed
+    );
+    let relayed = apply(warned, &content, "levee.relay_warning");
+    let relay_turn = relayed.world.npcs["edrik_voss"].knowledge["market_warned"].turn;
+    assert_eq!(
+        relayed.world.npcs["edrik_voss"].knowledge["market_warned"].provenance,
+        forge_kernel::KnowledgeProvenance::Rumor {
+            from: Some("oren_pell".to_owned())
+        }
+    );
+    let relayed_floor = apply(relayed, &content, "levee.authority_path");
+    assert!(
+        content
+            .observe(&relayed_floor)
+            .unwrap()
+            .text
+            .contains("Edrik knows Lowsail has been warned")
+    );
+    assert!(definitions(&relayed_floor, &content).contains("floor.open_relief"));
+    let relief_action = action_for(&relayed_floor, &content, "floor.open_relief");
+    let relief = step(
+        &relayed_floor,
+        &relief_action,
+        &content,
+        &relayed_floor.entropy,
+    )
+    .unwrap();
+    assert_eq!(
+        content
+            .observe_after_transition(&relief)
+            .unwrap()
+            .result
+            .as_deref(),
+        Some("Edrik follows the warning and opens the safer channel.")
+    );
+    let returned_levee = travel_to(relief.into_state(), &content, "lowsail.levee");
+    assert!(!definitions(&returned_levee, &content).contains("levee.relay_warning"));
+    let revisited = apply(returned_levee, &content, "levee.authority_path");
+    assert_eq!(
+        revisited.world.npcs["edrik_voss"].knowledge["market_warned"].turn,
+        relay_turn
+    );
+    assert_eq!(
+        revisited.world.npcs["edrik_voss"].knowledge["relief_plan"]
+            .provenance
+            .kind(),
+        KnowledgeProvenanceKind::Witnessed
+    );
 
     let reported = apply(
         new_game(&content, "ilyan"),
@@ -569,6 +636,12 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     state = travel_to(state, &content, "lowsail.levee");
     state = apply(state, &content, "levee.authority_path");
     state = apply(state, &content, "floor.read_harmonics");
+    assert!(
+        content
+            .action_result(&state, "floor.read_harmonics")
+            .unwrap()
+            .contains("Check the wheels at Red Sluice Top, then choose Split Flow")
+    );
     state = travel_to(state, &content, "red_sluice.top");
     state = apply(state, &content, "top.check_wheels");
     let available_outcomes = definitions(&state, &content);
@@ -755,6 +828,7 @@ fn every_sluice_outcome_excludes_the_other_four() {
     relief = apply(relief, &content, "docks.ring_warning");
     relief = apply(relief, &content, "docks.ask_oren");
     relief = travel_to(relief, &content, "lowsail.levee");
+    relief = apply(relief, &content, "levee.relay_warning");
     relief = apply(relief, &content, "levee.culvert_path");
     relief = apply(relief, &content, "floor.open_relief");
     relief = travel_to(relief, &content, "red_sluice.top");

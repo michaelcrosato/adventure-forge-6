@@ -24,6 +24,8 @@ const REQUIRED_SCENARIO_IDS: &[&str] = &[
     "m1-outcome-overload-disaster",
     "m1-area-lowsail-market",
     "m1-area-red-sluice",
+    "m1-warning-unrelayed",
+    "m1-warning-relayed",
 ];
 
 const OUTCOME_DEFINITIONS: &[&str] = &[
@@ -41,16 +43,42 @@ pub(super) struct ScenarioStep {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum ScenarioKnowledgeProvenance {
+    Witnessed,
+    Rumor { from: &'static str },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcKnowledgeExpectation {
+    npc: &'static str,
+    knowledge_id: &'static str,
+    provenance: ScenarioKnowledgeProvenance,
+    turn: u64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcKnowledgeAbsence {
+    npc: &'static str,
+    knowledge_id: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(super) struct ScenarioExpectations {
     final_location: &'static str,
     final_action_definition: &'static str,
     final_observation_contains: &'static str,
+    forbidden_observation_contains: &'static [&'static str],
+    final_world_time: Option<u64>,
     exclusive_after_action: &'static str,
     required_world_flags: &'static [&'static str],
     forbidden_world_flags: &'static [&'static str],
     required_location_flags: &'static [(&'static str, &'static str)],
     required_deeds: &'static [&'static str],
     required_visited_locations: &'static [&'static str],
+    required_npc_knowledge: &'static [ScenarioNpcKnowledgeExpectation],
+    forbidden_npc_knowledge: &'static [ScenarioNpcKnowledgeAbsence],
+    required_legal_definitions: &'static [&'static str],
     forbidden_legal_definitions: &'static [&'static str],
 }
 
@@ -173,11 +201,59 @@ const HOLD_MARKET_STEPS: &[ScenarioStep] = &[
     action!("return.count_dry_stalls"),
 ];
 
+const WARNING_UNRELAYED_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.show_charter"),
+    action!("travel_adjacent", "destination" => "lowsail.docks"),
+    action!("docks.ring_warning"),
+    action!("travel_adjacent", "destination" => "lowsail.levee"),
+    action!("wait_tide"),
+    action!("levee.authority_path"),
+];
+
+const WARNING_RELAYED_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.show_charter"),
+    action!("travel_adjacent", "destination" => "lowsail.docks"),
+    action!("docks.ring_warning"),
+    action!("travel_adjacent", "destination" => "lowsail.levee"),
+    action!("levee.relay_warning"),
+    action!("levee.authority_path"),
+];
+
+const OREN_MARKET_WARNING_KNOWLEDGE: &[ScenarioNpcKnowledgeExpectation] =
+    &[ScenarioNpcKnowledgeExpectation {
+        npc: "oren_pell",
+        knowledge_id: "market_warned",
+        provenance: ScenarioKnowledgeProvenance::Witnessed,
+        turn: 2,
+    }];
+
+const UNRELAYED_FORBIDDEN_NPC_KNOWLEDGE: &[ScenarioNpcKnowledgeAbsence] =
+    &[ScenarioNpcKnowledgeAbsence {
+        npc: "edrik_voss",
+        knowledge_id: "market_warned",
+    }];
+
+const RELAYED_REQUIRED_NPC_KNOWLEDGE: &[ScenarioNpcKnowledgeExpectation] = &[
+    ScenarioNpcKnowledgeExpectation {
+        npc: "oren_pell",
+        knowledge_id: "market_warned",
+        provenance: ScenarioKnowledgeProvenance::Witnessed,
+        turn: 2,
+    },
+    ScenarioNpcKnowledgeExpectation {
+        npc: "edrik_voss",
+        knowledge_id: "market_warned",
+        provenance: ScenarioKnowledgeProvenance::Rumor { from: "oren_pell" },
+        turn: 4,
+    },
+];
+
 const RELIEF_CHANNEL_STEPS: &[ScenarioStep] = &[
     action!("travel_adjacent", "destination" => "lowsail.docks"),
     action!("docks.ring_warning"),
     action!("docks.ask_oren"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
+    action!("levee.relay_warning"),
     action!("levee.culvert_path"),
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
@@ -213,6 +289,7 @@ const LOWSAIL_AREA_STEPS: &[ScenarioStep] = &[
     action!("docks.press_yara"),
     action!("docks.ring_warning"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
+    action!("levee.relay_warning"),
     action!("levee.culvert_path"),
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
@@ -252,12 +329,17 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "",
             required_world_flags: &["forged_order_found"],
             forbidden_world_flags: &[],
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
     },
@@ -273,12 +355,17 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "",
             required_world_flags: &["culvert_revealed"],
             forbidden_world_flags: &[],
             required_location_flags: &[("lowsail_market", "worker_cover")],
             required_deeds: &["found_worker_cover"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
     },
@@ -295,12 +382,17 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "",
             required_world_flags: &["forged_order_found", "stolen_route"],
             forbidden_world_flags: &[],
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["stole_permit", "read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
     },
@@ -317,12 +409,17 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "",
             required_world_flags: &["worker_credit"],
             forbidden_world_flags: &[],
             required_location_flags: &[],
             required_deeds: &["saved_worker"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
     },
@@ -338,6 +435,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "",
             required_world_flags: &[
                 "sluice_outcome_chosen",
@@ -358,6 +457,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[("lowsail.return", "market_flooded")],
             required_deeds: &["faced_flood"],
             required_visited_locations: &["lowsail_market", "lowsail.return"],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
     },
@@ -373,6 +475,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.split_flow",
             required_world_flags: &[
                 "sluice_calibrated",
@@ -403,6 +507,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -418,6 +525,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.count_dry_stalls",
             final_observation_contains: "You enforce council control while the upland works absorb the loss.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.hold_market",
             required_world_flags: &[
                 "council_route",
@@ -449,7 +558,75 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
+        },
+    },
+    ScenarioSpec {
+        id: "m1-warning-unrelayed",
+        claim_id: "split-tide.warning.unrelayed",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: WARNING_UNRELAYED_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "red_sluice.floor",
+            final_action_definition: "levee.authority_path",
+            final_observation_contains: "",
+            forbidden_observation_contains: &["Edrik knows Lowsail has been warned"],
+            final_world_time: Some(6),
+            exclusive_after_action: "",
+            required_world_flags: &["market_warned"],
+            forbidden_world_flags: &[],
+            required_location_flags: &[("red_sluice.floor", "authorized_entry")],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail_market",
+                "lowsail.docks",
+                "lowsail.levee",
+                "red_sluice.floor",
+            ],
+            required_npc_knowledge: OREN_MARKET_WARNING_KNOWLEDGE,
+            forbidden_npc_knowledge: UNRELAYED_FORBIDDEN_NPC_KNOWLEDGE,
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: &["floor.open_relief"],
+        },
+    },
+    ScenarioSpec {
+        id: "m1-warning-relayed",
+        claim_id: "split-tide.warning.relayed",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: WARNING_RELAYED_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "red_sluice.floor",
+            final_action_definition: "levee.authority_path",
+            final_observation_contains: "Edrik knows Lowsail has been warned",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(6),
+            exclusive_after_action: "",
+            required_world_flags: &["market_warned"],
+            forbidden_world_flags: &[],
+            required_location_flags: &[
+                ("red_sluice.floor", "authorized_entry"),
+                ("red_sluice.floor", "warning_received"),
+            ],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail_market",
+                "lowsail.docks",
+                "lowsail.levee",
+                "red_sluice.floor",
+            ],
+            required_npc_knowledge: RELAYED_REQUIRED_NPC_KNOWLEDGE,
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &["floor.open_relief"],
+            forbidden_legal_definitions: &[],
         },
     },
     ScenarioSpec {
@@ -464,6 +641,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.divert_relief",
             required_world_flags: &[
                 "market_warned",
@@ -496,6 +675,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -511,6 +693,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.open_ferry",
             final_observation_contains: "You abolish the toll and launch a free ferry between both shores.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.break_toll",
             required_world_flags: &[
                 "culvert_revealed",
@@ -540,6 +724,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -555,6 +742,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.overload",
             required_world_flags: &[
                 "stolen_route",
@@ -586,6 +775,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -601,6 +793,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.divert_relief",
             required_world_flags: &[
                 "culvert_revealed",
@@ -641,6 +835,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -656,6 +853,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
+            forbidden_observation_contains: &[],
+            final_world_time: None,
             exclusive_after_action: "top.split_flow",
             required_world_flags: &[
                 "forged_order_found",
@@ -700,6 +899,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "red_sluice.top",
                 "lowsail.return",
             ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
     },
@@ -816,6 +1018,14 @@ pub(super) fn validate_session(
             "scenario did not reach its claimed final location",
         ));
     }
+    if expected
+        .final_world_time
+        .is_some_and(|time| state.world.time != time)
+    {
+        return Err(VerifyError::new(
+            "scenario did not reach its claimed final world time",
+        ));
+    }
     for flag in expected.required_world_flags {
         if !state.world.flags.contains(*flag) {
             return Err(VerifyError::new(
@@ -888,7 +1098,25 @@ pub(super) fn validate_session(
         ));
     }
 
-    validate_forbidden_actions(state, content, expected.forbidden_legal_definitions)
+    for phrase in expected.forbidden_observation_contains {
+        if final_step.observation.text.contains(*phrase) {
+            return Err(VerifyError::new(
+                "scenario final observation contains a forbidden phase detail",
+            ));
+        }
+    }
+
+    validate_npc_knowledge(
+        state,
+        expected.required_npc_knowledge,
+        expected.forbidden_npc_knowledge,
+    )?;
+    validate_legal_set(
+        state,
+        content,
+        expected.required_legal_definitions,
+        expected.forbidden_legal_definitions,
+    )
 }
 
 fn validate_forbidden_actions(
@@ -896,11 +1124,27 @@ fn validate_forbidden_actions(
     content: &CompiledContent,
     forbidden: &[&str],
 ) -> Result<(), VerifyError> {
+    validate_legal_set(state, content, &[], forbidden)
+}
+
+fn validate_legal_set(
+    state: &forge_kernel::GameState,
+    content: &CompiledContent,
+    required: &[&str],
+    forbidden: &[&str],
+) -> Result<(), VerifyError> {
     let final_definitions: BTreeSet<_> = enumerate_legal_actions(state, content)
         .map_err(|_| VerifyError::new("could not enumerate final scenario actions"))?
         .into_iter()
         .map(|action| action.definition_id)
         .collect();
+    for definition in required {
+        if !final_definitions.contains(*definition) {
+            return Err(VerifyError::new(
+                "scenario did not leave a required legal action available",
+            ));
+        }
+    }
     for definition in forbidden {
         if final_definitions.contains(*definition) {
             return Err(VerifyError::new(
@@ -909,6 +1153,62 @@ fn validate_forbidden_actions(
         }
     }
     Ok(())
+}
+
+fn validate_npc_knowledge(
+    state: &forge_kernel::GameState,
+    required: &[ScenarioNpcKnowledgeExpectation],
+    forbidden: &[ScenarioNpcKnowledgeAbsence],
+) -> Result<(), VerifyError> {
+    for expected in required {
+        let npc = state.world.npcs.get(expected.npc).ok_or_else(|| {
+            VerifyError::new(format!("scenario references unknown NPC {}", expected.npc))
+        })?;
+        let knowledge = npc.knowledge.get(expected.knowledge_id).ok_or_else(|| {
+            VerifyError::new(format!(
+                "scenario did not establish {} knowledge for {}",
+                expected.knowledge_id, expected.npc
+            ))
+        })?;
+        if knowledge.turn != expected.turn
+            || !knowledge_provenance_matches(&expected.provenance, &knowledge.provenance)
+        {
+            return Err(VerifyError::new(format!(
+                "scenario established {} knowledge for {} with the wrong turn or provenance",
+                expected.knowledge_id, expected.npc
+            )));
+        }
+    }
+    for expected in forbidden {
+        let npc = state.world.npcs.get(expected.npc).ok_or_else(|| {
+            VerifyError::new(format!("scenario references unknown NPC {}", expected.npc))
+        })?;
+        if npc.knowledge.contains_key(expected.knowledge_id) {
+            return Err(VerifyError::new(format!(
+                "scenario established forbidden {} knowledge for {}",
+                expected.knowledge_id, expected.npc
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn knowledge_provenance_matches(
+    expected: &ScenarioKnowledgeProvenance,
+    actual: &forge_kernel::KnowledgeProvenance,
+) -> bool {
+    match (expected, actual) {
+        (ScenarioKnowledgeProvenance::Witnessed, forge_kernel::KnowledgeProvenance::Witnessed) => {
+            true
+        }
+        (
+            ScenarioKnowledgeProvenance::Rumor {
+                from: expected_from,
+            },
+            forge_kernel::KnowledgeProvenance::Rumor { from: actual_from },
+        ) => actual_from.as_deref() == Some(*expected_from),
+        _ => false,
+    }
 }
 
 fn validate_recipe(
@@ -1050,10 +1350,7 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
             .iter()
             .filter(|step| step.definition_id == spec.expectations.exclusive_after_action)
             .count();
-        if (!spec.expectations.forbidden_legal_definitions.is_empty()
-            && spec.expectations.exclusive_after_action.is_empty())
-            || (!spec.expectations.exclusive_after_action.is_empty() && exclusivity_checks != 1)
-        {
+        if !spec.expectations.exclusive_after_action.is_empty() && exclusivity_checks != 1 {
             return Err(VerifyError::new(
                 "scenario exclusivity assertion is not bound to exactly one recipe action",
             ));
@@ -1173,5 +1470,140 @@ mod tests {
         })
         .unwrap();
         assert_eq!(ordered_hash, reordered_hash);
+    }
+
+    #[test]
+    fn warning_scenarios_bind_real_npc_provenance_and_legal_sets() {
+        let content = crate::load_content().unwrap();
+        let unrelayed_spec = get("m1-warning-unrelayed").unwrap();
+        let unrelayed = run(unrelayed_spec, &content).unwrap();
+        assert_eq!(unrelayed.state().world.time, 6);
+        assert!(
+            validate_npc_knowledge(
+                unrelayed.state(),
+                unrelayed_spec.expectations.required_npc_knowledge,
+                unrelayed_spec.expectations.forbidden_npc_knowledge,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_legal_set(
+                unrelayed.state(),
+                &content,
+                unrelayed_spec.expectations.required_legal_definitions,
+                unrelayed_spec.expectations.forbidden_legal_definitions,
+            )
+            .is_ok()
+        );
+
+        let relayed_spec = get("m1-warning-relayed").unwrap();
+        let relayed = run(relayed_spec, &content).unwrap();
+        assert_eq!(relayed.state().world.time, 6);
+        assert!(
+            validate_npc_knowledge(
+                relayed.state(),
+                relayed_spec.expectations.required_npc_knowledge,
+                relayed_spec.expectations.forbidden_npc_knowledge,
+            )
+            .is_ok()
+        );
+        assert!(
+            validate_legal_set(
+                relayed.state(),
+                &content,
+                relayed_spec.expectations.required_legal_definitions,
+                relayed_spec.expectations.forbidden_legal_definitions,
+            )
+            .is_ok()
+        );
+
+        assert!(
+            validate_legal_set(unrelayed.state(), &content, &["floor.open_relief"], &[],).is_err()
+        );
+        assert!(
+            validate_legal_set(relayed.state(), &content, &[], &["floor.open_relief"],).is_err()
+        );
+    }
+
+    #[test]
+    fn warning_knowledge_checks_reject_wrong_provenance_and_forbidden_presence() {
+        let content = crate::load_content().unwrap();
+        let unrelayed_spec = get("m1-warning-unrelayed").unwrap();
+        let unrelayed = run(unrelayed_spec, &content).unwrap();
+        let mut forbidden_presence = unrelayed.state().clone();
+        let oren_knowledge =
+            forbidden_presence.world.npcs["oren_pell"].knowledge["market_warned"].clone();
+        forbidden_presence
+            .world
+            .npcs
+            .get_mut("edrik_voss")
+            .unwrap()
+            .knowledge
+            .insert("market_warned".to_owned(), oren_knowledge);
+        assert!(
+            validate_npc_knowledge(
+                &forbidden_presence,
+                unrelayed_spec.expectations.required_npc_knowledge,
+                unrelayed_spec.expectations.forbidden_npc_knowledge,
+            )
+            .is_err()
+        );
+
+        let relayed_spec = get("m1-warning-relayed").unwrap();
+        let relayed = run(relayed_spec, &content).unwrap();
+        let mut wrong_source = relayed.state().clone();
+        wrong_source
+            .world
+            .npcs
+            .get_mut("edrik_voss")
+            .unwrap()
+            .knowledge
+            .get_mut("market_warned")
+            .unwrap()
+            .provenance = forge_kernel::KnowledgeProvenance::Rumor {
+            from: Some("mira_kett".to_owned()),
+        };
+        assert!(
+            validate_npc_knowledge(
+                &wrong_source,
+                relayed_spec.expectations.required_npc_knowledge,
+                relayed_spec.expectations.forbidden_npc_knowledge,
+            )
+            .is_err()
+        );
+
+        let mut wrong_kind = relayed.state().clone();
+        wrong_kind
+            .world
+            .npcs
+            .get_mut("edrik_voss")
+            .unwrap()
+            .knowledge
+            .get_mut("market_warned")
+            .unwrap()
+            .provenance = forge_kernel::KnowledgeProvenance::Witnessed;
+        assert!(
+            validate_npc_knowledge(
+                &wrong_kind,
+                relayed_spec.expectations.required_npc_knowledge,
+                relayed_spec.expectations.forbidden_npc_knowledge,
+            )
+            .is_err()
+        );
+
+        let wrong_timestamp = [ScenarioNpcKnowledgeExpectation {
+            npc: "edrik_voss",
+            knowledge_id: "market_warned",
+            provenance: ScenarioKnowledgeProvenance::Rumor { from: "oren_pell" },
+            turn: 5,
+        }];
+        assert!(validate_npc_knowledge(relayed.state(), &wrong_timestamp, &[],).is_err());
+
+        let original_binding = binding(relayed_spec).unwrap();
+        let mut changed = *relayed_spec;
+        let mut changed_expectations = changed.expectations;
+        changed_expectations.final_world_time = Some(7);
+        changed.expectations = changed_expectations;
+        assert_ne!(original_binding, binding(&changed).unwrap());
     }
 }

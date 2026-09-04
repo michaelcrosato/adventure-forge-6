@@ -1,6 +1,6 @@
 use crate::content::{CompiledContent, Effect, ParameterDomain, StringRef};
 use crate::hash::{HashError, sha256_json};
-use crate::model::{ActionId, Event, EventKind, GameState, Knowledge, Memory};
+use crate::model::{ActionId, Event, EventKind, GameState, Knowledge, KnowledgeProvenance, Memory};
 use crate::{EntropyDraw, EntropyError, EntropyState};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
@@ -777,6 +777,17 @@ fn apply_effect(
             subject,
             provenance,
         } => {
+            if let Some(source) = npc_knowledge_source(provenance)
+                && !state
+                    .world
+                    .npcs
+                    .get(source)
+                    .is_some_and(|npc_state| npc_state.knows(knowledge_id))
+            {
+                return Err(KernelError::InvalidAction(format!(
+                    "NPC {source} cannot transfer knowledge {knowledge_id} it does not possess"
+                )));
+            }
             let npc = resolve_ref(npc, parameters)?;
             let npc_state = state
                 .world
@@ -857,6 +868,17 @@ fn apply_effect(
     Ok(())
 }
 
+fn npc_knowledge_source(provenance: &KnowledgeProvenance) -> Option<&str> {
+    match provenance {
+        KnowledgeProvenance::Told { by } => Some(by),
+        KnowledgeProvenance::Rumor { from: Some(from) } => Some(from),
+        KnowledgeProvenance::Witnessed
+        | KnowledgeProvenance::Read { .. }
+        | KnowledgeProvenance::Inferred { .. }
+        | KnowledgeProvenance::Rumor { from: None } => None,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -891,8 +913,8 @@ mod tests {
         }
     }
 
-    fn content(actions: Vec<ActionDefinition>) -> CompiledContent {
-        CompiledContent::try_compile(ContentDraft {
+    fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
+        ContentDraft {
             schema_version: "forge-schema-v4".to_owned(),
             rules_version: "forge-rules-v2".to_owned(),
             world_id: "world-1".to_owned(),
@@ -928,8 +950,11 @@ mod tests {
             }],
             timed_events: Vec::new(),
             actions,
-        })
-        .unwrap()
+        }
+    }
+
+    fn content(actions: Vec<ActionDefinition>) -> CompiledContent {
+        CompiledContent::try_compile(draft(actions)).unwrap()
     }
 
     fn state(content: &CompiledContent) -> GameState {
@@ -1112,6 +1137,88 @@ mod tests {
         );
         assert!(matches!(overflow_result, Err(KernelError::InvalidState(_))));
         assert_eq!(overflowing, overflowing_before);
+    }
+
+    #[test]
+    fn raw_unowned_told_transfer_is_rejected_without_mutation() {
+        let content = content(Vec::new());
+        for provenance in [
+            KnowledgeProvenance::Told {
+                by: "sava".to_owned(),
+            },
+            KnowledgeProvenance::Rumor {
+                from: Some("sava".to_owned()),
+            },
+        ] {
+            let mut state = state(&content);
+            let before = state.clone();
+            let mut entropy = state.entropy.clone();
+            let mut entropy_draws = Vec::new();
+            let mut events = Vec::new();
+            let effect = Effect::TeachNpc {
+                npc: StringRef::Literal("sava".to_owned()),
+                knowledge_id: "tide-key".to_owned(),
+                subject: "The Tide Key is safe.".to_owned(),
+                provenance,
+            };
+
+            let result = apply_effect(
+                &mut state,
+                &effect,
+                &BTreeMap::new(),
+                &content,
+                &mut entropy,
+                &mut entropy_draws,
+                &mut events,
+            );
+            assert!(matches!(
+                result,
+                Err(KernelError::InvalidAction(message))
+                    if message.contains("NPC sava cannot transfer knowledge tide-key")
+            ));
+            assert_eq!(state, before);
+            assert_eq!(entropy, before.entropy);
+            assert!(entropy_draws.is_empty());
+            assert!(events.is_empty());
+        }
+    }
+
+    #[test]
+    fn same_list_source_seed_is_legal_and_applied_in_order() {
+        let content = content(vec![simple_action(
+            "seed-and-relay",
+            Condition::Always,
+            vec![
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Witnessed,
+                },
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    knowledge_id: "tide-key".to_owned(),
+                    subject: "The Tide Key is safe.".to_owned(),
+                    provenance: KnowledgeProvenance::Told {
+                        by: "sava".to_owned(),
+                    },
+                },
+            ],
+        )]);
+        let initial = state(&content);
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .expect("same-list source seed should make the transfer legal");
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        let next = transition.into_state();
+        assert_eq!(
+            next.world.npcs["sava"].knowledge["tide-key"].provenance,
+            KnowledgeProvenance::Told {
+                by: "sava".to_owned()
+            }
+        );
     }
 
     #[test]
