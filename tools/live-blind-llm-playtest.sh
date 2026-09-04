@@ -602,7 +602,11 @@ run_main() {
     verifier_id="$(sed -n 's/^Verifier: //p' "$trusted_check" | sed -n '1p')"
     final_state_id="$(sed -n 's/^Final state: //p' "$trusted_check" | sed -n '1p')"
     final_receipt="$(sed -n 's/^Final receipt: //p' "$trusted_check" | sed -n '1p')"
-    thread_id="$(jq -rs '[.[] | select(.type == "thread.started") | .thread_id][0] // null' "$events_path")"
+    thread_id="$(jq -rs '[.[] | select(.type == "thread.started") | .thread_id][0] // empty' "$events_path")"
+    [[ "$thread_id" =~ ^[0-9a-f-]{36}$ ]] || {
+        fail "the Codex event log omitted a valid thread id"
+        return 1
+    }
     input_tokens="$(jq -rs '[.[] | select(.type == "turn.completed") | .usage.input_tokens // 0] | add // 0' "$events_path")"
     cached_input_tokens="$(jq -rs '[.[] | select(.type == "turn.completed") | .usage.cached_input_tokens // 0] | add // 0' "$events_path")"
     output_tokens="$(jq -rs '[.[] | select(.type == "turn.completed") | .usage.output_tokens // 0] | add // 0' "$events_path")"
@@ -642,7 +646,7 @@ run_main() {
         --argjson maximum_turns "$maximum_turns" \
         --argjson turn_count "$turn_count" \
         --argjson elapsed_ms "$elapsed_ms" \
-        --argjson thread_id "$thread_id" \
+        --arg thread_id "$thread_id" \
         --argjson input_tokens "$input_tokens" \
         --argjson cached_input_tokens "$cached_input_tokens" \
         --argjson output_tokens "$output_tokens" \
