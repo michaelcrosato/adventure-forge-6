@@ -532,8 +532,8 @@ run_main() {
         fail "the live session omitted a required artifact"
         return 1
     }
-    [[ "$(<"$completion_path")" == "forge-player-mcp-complete-v1" ]] || {
-        fail "the locked game adapter omitted its clean completion marker"
+    [[ "$(<"$completion_path")" == "forge-player-mcp-finished-v1" ]] || {
+        fail "the locked game adapter omitted its successful finish marker"
         return 1
     }
     jq -e . "$events_path" >/dev/null || {
@@ -684,7 +684,7 @@ run_main() {
                 maximum_turns: $maximum_turns,
                 completed_turns: $turn_count,
                 explicit_finish: true,
-                clean_adapter_completion: true,
+                successful_finish_marker: true,
                 uid: 65534,
                 gid: 65534,
                 no_new_privs: true,
@@ -749,7 +749,7 @@ run_main() {
                 model_visible_prompt_sha256: $prompt_audit_sha256,
                 player_trace_sha256: $trace_sha256,
                 public_transcript_sha256: $transcript_sha256,
-                clean_completion_sha256: $completion_sha256,
+                successful_finish_marker_sha256: $completion_sha256,
                 tool_config_sha256: $tool_config_sha256,
                 trusted_check_sha256: $trusted_check_sha256
             },

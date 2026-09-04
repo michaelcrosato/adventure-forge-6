@@ -196,7 +196,7 @@ pub fn run_player_mcp<R: BufRead, W: Write>(
         let Some(line) = read_mcp_line(input)? else {
             persist_public_session(config, &session, &transcript)?;
             return if finished {
-                atomic_write(&config.completion_path, b"forge-player-mcp-complete-v1\n")
+                Ok(())
             } else {
                 Err(CliError::new("player adapter disconnected before finish"))
             };
@@ -428,6 +428,7 @@ fn tool_call_response(
                 append_view(transcript, "Finish", &ending)?;
                 *finished = true;
                 persist_public_session(config, session, transcript)?;
+                atomic_write(&config.completion_path, b"forge-player-mcp-finished-v1\n")?;
             }
             Ok(tool_success(
                 id,
@@ -655,7 +656,7 @@ mod tests {
         assert!(transcript.contains(&config.observation_canary));
         assert_eq!(
             fs::read_to_string(&config.completion_path).unwrap(),
-            "forge-player-mcp-complete-v1\n"
+            "forge-player-mcp-finished-v1\n"
         );
         cleanup(&config);
     }
