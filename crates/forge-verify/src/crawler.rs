@@ -8,6 +8,8 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::VerifyError;
 
+const CRAWL_EXECUTION_RECEIPT_FORMAT: &str = "forge-crawl-execution-v1";
+
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 pub struct CrawlBudget {
     pub max_depth: usize,
@@ -41,6 +43,10 @@ pub struct CrawlReport {
     pub reached_locations: BTreeSet<String>,
     pub covered_definitions: BTreeSet<String>,
     pub advertised_definitions: BTreeSet<String>,
+    /// Opaque hash chain over ordered starts, expansions, legal catalogs, and
+    /// transitions. This makes the checked report sensitive to traversal or
+    /// catalog-order drift even when its aggregate coverage totals match.
+    pub execution_receipt: String,
 }
 
 impl CrawlReport {
@@ -113,6 +119,13 @@ pub fn crawl_production(
 ) -> Result<CrawlReport, VerifyError> {
     validate_budget(budget)?;
     let advertised_definitions: BTreeSet<_> = content.actions().map(|(id, _)| id.clone()).collect();
+    let execution_receipt = sha256_json(&(
+        CRAWL_EXECUTION_RECEIPT_FORMAT,
+        "genesis",
+        content.build_id(),
+        budget,
+    ))
+    .map_err(|_| VerifyError::new("crawler could not create its execution receipt"))?;
     let mut report = CrawlReport {
         verifier_id: crate::VERIFIER_ID.to_owned(),
         build_id: content.build_id().to_owned(),
@@ -124,6 +137,7 @@ pub fn crawl_production(
         reached_locations: BTreeSet::new(),
         covered_definitions: BTreeSet::new(),
         advertised_definitions,
+        execution_receipt,
     };
     let mut pending = Vec::new();
     let mut dominance: BTreeMap<String, Vec<BTreeSet<ActionShape>>> = BTreeMap::new();
@@ -144,10 +158,15 @@ pub fn crawl_production(
             pending
                 .try_reserve(1)
                 .map_err(|_| VerifyError::new("crawler frontier allocation failed"))?;
+            let ordinal = report.discovered_frontiers;
+            report.execution_receipt = advance_execution_receipt(
+                &report.execution_receipt,
+                &("start", preset_id.as_str(), state.state_id(), ordinal),
+            )?;
             pending.push(Frontier {
                 state,
                 depth: 0,
-                ordinal: report.discovered_frontiers,
+                ordinal,
                 used_actions,
             });
             report.discovered_frontiers += 1;
@@ -172,8 +191,26 @@ pub fn crawl_production(
             .map_err(|_| VerifyError::new("crawler could not enumerate a valid state"))?;
         verify_catalog(&frontier.state, content, &legal, budget.catalog_page_size)?;
         report.max_legal_actions = report.max_legal_actions.max(legal.len());
+        let expanded_index = report.expanded_states - 1;
+        let state_id = frontier.state.state_id();
+        let mut ordered_action_ids = Vec::new();
+        ordered_action_ids
+            .try_reserve(legal.len())
+            .map_err(|_| VerifyError::new("crawler receipt catalog allocation failed"))?;
+        ordered_action_ids.extend(legal.iter().map(|action| action.action_id.as_str()));
+        report.execution_receipt = advance_execution_receipt(
+            &report.execution_receipt,
+            &(
+                "expansion",
+                expanded_index,
+                frontier.ordinal,
+                frontier.depth,
+                state_id.as_str(),
+                &ordered_action_ids,
+            ),
+        )?;
 
-        for action in legal {
+        for (action_index, action) in legal.into_iter().enumerate() {
             if report.successful_actions >= budget.max_action_executions {
                 return Err(VerifyError::new(format!(
                     "crawler exhausted its {}-action budget with uncovered definitions: {}",
@@ -192,6 +229,20 @@ pub fn crawl_production(
             content
                 .observe_after_transition(&transition)
                 .map_err(|_| VerifyError::new("crawler could not observe a valid transition"))?;
+            report.execution_receipt = advance_execution_receipt(
+                &report.execution_receipt,
+                &(
+                    "transition",
+                    expanded_index,
+                    action_index,
+                    &action,
+                    transition.events(),
+                    transition.entropy_before(),
+                    transition.entropy_draws(),
+                    transition.entropy_after(),
+                    transition.post_state_id(),
+                ),
+            )?;
             let next_state = transition.into_state();
             content
                 .validate_state(&next_state)
@@ -244,6 +295,11 @@ pub fn crawl_production(
         "crawler exhausted its frontier with uncovered definitions: {}",
         join_ids(&report.uncovered_definitions())
     )))
+}
+
+fn advance_execution_receipt<T: Serialize>(prior: &str, entry: &T) -> Result<String, VerifyError> {
+    sha256_json(&(CRAWL_EXECUTION_RECEIPT_FORMAT, prior, entry))
+        .map_err(|_| VerifyError::new("crawler could not extend its execution receipt"))
 }
 
 fn validate_budget(budget: CrawlBudget) -> Result<(), VerifyError> {
@@ -395,6 +451,14 @@ fn verify_catalog(
     legal: &[CanonicalAction],
     page_size: usize,
 ) -> Result<(), VerifyError> {
+    if legal
+        .windows(2)
+        .any(|pair| pair[0].action_id.as_str() >= pair[1].action_id.as_str())
+    {
+        return Err(VerifyError::new(
+            "crawler kernel enumeration is not in canonical action-ID order",
+        ));
+    }
     let expected_digest = legal_action_digest(legal)
         .map_err(|_| VerifyError::new("crawler could not hash the legal catalog"))?;
     let expected_ids: Vec<_> = legal
@@ -519,6 +583,10 @@ mod tests {
         assert!(report.successful_actions >= report.advertised_definitions.len());
         assert!(report.expanded_states <= 64);
         assert!(report.discovered_frontiers <= 512);
+        assert_eq!(report.execution_receipt.len(), 64);
+
+        let repeated = crawl_production(&content, CrawlBudget::default()).unwrap();
+        assert_eq!(report.execution_receipt, repeated.execution_receipt);
     }
 
     #[test]

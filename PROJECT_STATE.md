@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 8
+Manager cycle: 9
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -20,6 +20,7 @@ Active milestone: 1 — Complete Split Tide slice
 - Nine checked scenario witnesses cover the two Milestone 0 character paths, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
 - Every scenario is bound to a reviewed ID, preset, seed, exact full-parameter recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
 - A checked, clean-process crawl expands 44 states from both presets, reaches all 6 locations, executes 283 advertised canonical actions, and covers all 47 authored definitions within explicit depth, state, frontier, and action budgets.
+- The crawl carries an opaque ordered execution receipt over starts, expansions, complete action catalogs, events, entropy, and transitions; an independent ascending action-ID oracle rejects self-consistent catalog permutations.
 - A separate checked capacity fixture compiles exactly 500 terminal synthetic locations, proves the same location-ID set through source, compiled content, runtime admission, independent graph traversal, and 500 canonical travel transitions, and stays within reviewed graph-frontier, catalog-work, and serialization ceilings.
 - Choosing one of the five Sluice outcomes now closes the other four, preventing contradictory persistent results in one playthrough while preserving branch coverage across separate states.
 - Milestone 0 exit evidence passes. Milestone 1 outcome, representative area, save/resume, catalog, crawl, and synthetic scale evidence now pass; broader player evidence still remains.
@@ -36,7 +37,7 @@ Active milestone: 1 — Complete Split Tide slice
 | BG3-like area depth | Not built | Representative checked paths through both authored areas; no comparative depth claim | Blindly sampled Split Tide approaches and outcomes |
 | Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
 | No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog; the scale fixture consumes its complete paged travel catalog | Independent large-catalog process witness |
-| Deterministic authority | Partial | Fresh processes independently emit nine byte-identical scenarios, the bounded production crawl, and the checked 500-location capacity report | Nondeterminism mutants and broader property exploration |
+| Deterministic authority | Partial | Fresh processes reproduce the witnesses, crawl, and scale report; a neutral-controlled source-copy gate kills ambient kernel order, page order, frontier order, and process-ID receipt mutants | Broader property exploration plus hash, manifest, entropy, and persistence mutants |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
 | Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and nine checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
 | Blind play | Partial | A fail-closed release-only Bubblewrap rehearsal clears the environment, confines writes, isolates network access, rejects source/symlink probes, scans hidden fields, reproduces two sessions byte-for-byte, and verifies the save afterward | Run an actual blind-capable player/model inside the proven boundary with an embedded observation canary |
@@ -45,9 +46,9 @@ Active milestone: 1 — Complete Split Tide slice
 ## Active queue
 
 1. Run the first actual blind-capable player session through the proven locked boundary, with an embedded observation canary.
-2. Add nondeterminism mutants against the verifier and crawler.
-3. Add a creation flow beyond the two authored proof presets.
-4. Add broader text-policy and long-session checks before expanding authored regions.
+2. Add a creation flow beyond the two authored proof presets.
+3. Add broader text-policy and long-session checks before expanding authored regions.
+4. Extend the mutation corpus to hash canonicalization, manifest sensitivity, entropy, stale-action bypass, remote memory, prose checks, and hidden-state leakage.
 5. Define the first authored expansion wave only after blind Split Tide findings are replayed.
 
 ## Delegation ledger
@@ -80,6 +81,9 @@ Active milestone: 1 — Complete Split Tide slice
 | 8 | Sandbox capability review | `gpt-5.6-luna` / max | Probe available Linux isolation and CI portability without changing the tree | Tested launcher profile and fail-closed recommendation | Accepted; Bubblewrap works locally and Docker remains only a pinned fallback |
 | 8 | Blind-boundary threat model | `gpt-5.6-luna` / max | Audit leakage, escape, prompt, provenance, and false-claim risks | Severity-ranked P0/P1 findings | Accepted; CLI input and diagnostic leaks hardened before the sandbox harness |
 | 8 | Locked-boundary candidate audit | `gpt-5.6-luna` / max | Review the integrated sandbox, canaries, CI, claims, and provenance | SHIP/NO-SHIP with only concrete blockers | Initial NO-SHIP; accepted after replacing circular player self-checking with a separately identified verifier and scanning persisted traces |
+| 9 | Nondeterminism architecture | `gpt-5.6-luna` / max | Design representative ordering, entropy, hash, and manifest mutants | Exact seams, expected killers, and false-kill controls | Accepted; ordered crawl receipt and source-copy strategy integrated, broader corpus queued |
+| 9 | Nondeterminism threat model | `gpt-5.6-luna` / max | Find permutations and process drift the existing evidence could miss | Severity-ranked gaps and independent-oracle criteria | Accepted; order-insensitive crawl projection closed before mutation claims |
+| 9 | Mutation harness review | `gpt-5.6-luna` / max | Compare safe, fast mutation strategies for the existing CI bar | Maintainable commands with no production mutant hooks | Accepted; disposable source patch, shared target cache, locked builds, and focused process test selected |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -155,6 +159,12 @@ The generated local report identifies itself as a locked CLI surface and isolati
 
 The sandboxed player does not certify its own result. A separately built `forge-verify check-player` executable reconstructs the exact player-safe trace through production content and the authoritative kernel, verifies its final commitments, and emits its compile-time verifier identity. The local report binds that checker identity and binary hash independently from the player binary hash.
 
+### D-017: Nondeterminism mutants run only in disposable source copies
+
+The mechanical bar copies current workspace inputs into a temporary directory, applies reviewed mutation hooks there, and builds them with a separate target. Production crates contain no feature-gated or dormant mutant branch. The mutated verifier first regenerates a selector-free crawl and must pass the same fresh-process check; this neutral control prevents changed game or verifier identities from becoming false mutation kills.
+
+Four selectors then introduce undeclared ambient dependence into kernel action order, paged catalog order, first-frontier scheduling, and a process-specific crawl receipt. The checked process test must fail for an expected crawl-contract reason in every case. The production crawler independently requires strictly ascending canonical action IDs, checks every page against that vector, and chains ordered starts, expansions, catalogs, events, entropy, and transitions into its checked execution receipt. Aggregate coverage equality alone is no longer sufficient evidence of deterministic exploration.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -168,7 +178,7 @@ The sandboxed player does not certify its own result. A separately built `forge-
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, the locked-player process rehearsal, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 12 CLI tests, 17 evidence-verifier unit tests, and 3 clean-process integration tests: 80 Rust tests plus 19 isolated process invocations. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, exact save-size and player-input boundaries, sanitized public failures, session line limits, resume parity, independent player-trace checking, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, byte-identical checked witness, crawl, and scale evidence from separate processes, and the locked boundary probes described in D-016. The boundary harness emits a player-safe local transcript, trace, independent trusted check, bundle hash manifest, and limitation-bearing report under `artifacts/local/locked-player-boundary/`. The nine checked scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, comparative area depth, or an actual blind-player session. The project does not yet cover a blind-capable model process, an embedded observation canary, the full text policy, final game scale, or comparative area depth.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, four source-copy nondeterminism mutants after a passing neutral control, the locked-player process rehearsal, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 12 CLI tests, 17 evidence-verifier unit tests, and 3 clean-process integration tests: 80 Rust tests plus 19 isolated player-boundary process invocations and 4 deliberately killed mutants. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, exact save-size and player-input boundaries, sanitized public failures, session line limits, resume parity, independent player-trace checking, complete current-catalog CLI paging/search, independent canonical catalog ordering, ordered crawl execution receipts, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, byte-identical checked witness, crawl, and scale evidence from separate processes, and the locked boundary probes described in D-016. The boundary harness emits a player-safe local transcript, trace, independent trusted check, bundle hash manifest, and limitation-bearing report under `artifacts/local/locked-player-boundary/`. The nine checked scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, comparative area depth, or an actual blind-player session. The project does not yet cover a blind-capable model process, an embedded observation canary, the full mutation corpus, the full text policy, final game scale, or comparative area depth.
 
 ## Next reassessment trigger
 

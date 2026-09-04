@@ -1217,6 +1217,10 @@ mod tests {
 
         let unique_ids: BTreeSet<_> = all.iter().map(|action| action.action_id.as_str()).collect();
         assert_eq!(unique_ids.len(), 256);
+        let ordered_ids: Vec<_> = all.iter().map(|action| action.action_id.as_str()).collect();
+        let mut independently_sorted_ids = ordered_ids.clone();
+        independently_sorted_ids.sort_unstable();
+        assert_eq!(ordered_ids, independently_sorted_ids);
 
         let mut paged = Vec::new();
         for page in all.chunks(17) {

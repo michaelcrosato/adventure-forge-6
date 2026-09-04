@@ -7,5 +7,6 @@ cd "$REPO_DIR"
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
+./tools/verify-nondeterminism-mutants.sh
 ./tools/verify-locked-player.sh
 git diff --check

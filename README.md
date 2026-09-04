@@ -29,6 +29,8 @@ cargo run -p forge-verify -- check-player rook.trace.json
 
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
+The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.
+
 On Linux, the same gate builds a stripped release-only player bundle and runs a locked CLI boundary rehearsal with Bubblewrap. The player process receives only its executable, required runtime libraries, and one writable save directory; the repository and all other host paths remain unmounted. The test clears its environment, isolates its network, enforces resource limits, exercises canary reads and writes, compares two deterministic sessions, and verifies the resulting save outside the sandbox. Its local report is written under `artifacts/local/locked-player-boundary/`.
 
 This scripted rehearsal is process-isolation evidence, not an actual blind-AI playtest, a model prompt-injection test, or proof against binary reverse engineering. Those claims remain separate milestone requirements.

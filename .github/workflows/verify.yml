@@ -27,7 +27,7 @@ jobs:
       - name: Install locked-player sandbox
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends bubblewrap binutils
+          sudo apt-get install -y --no-install-recommends bubblewrap binutils patch
           bwrap --version
 
       - name: Run verification bar

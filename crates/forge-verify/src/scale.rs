@@ -549,6 +549,14 @@ fn verify_paged_catalog(
     page_size: usize,
     max_pages: usize,
 ) -> Result<PageEvidence, crate::VerifyError> {
+    if legal
+        .windows(2)
+        .any(|pair| pair[0].action_id.as_str() >= pair[1].action_id.as_str())
+    {
+        return Err(crate::VerifyError::new(
+            "scale kernel enumeration is not in canonical action-ID order",
+        ));
+    }
     if page_size == 0 || max_pages == 0 {
         return Err(crate::VerifyError::new(
             "scale paging budgets must be positive",

@@ -1,0 +1,58 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -243,6 +243,9 @@ pub fn enumerate_legal_actions(
+         )?;
+     }
+     actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
++    if std::env::var_os("FORGE_MUTANT_ACTION_ORDER").is_some() {
++        actions.reverse();
++    }
+     if actions.len() != total_actions {
+         return Err(KernelError::InvalidContent(format!(
+             "legal action enumeration count mismatch: expected {total_actions}, emitted {}",
+diff --git a/crates/forge-verify/src/crawler.rs b/crates/forge-verify/src/crawler.rs
+--- a/crates/forge-verify/src/crawler.rs
++++ b/crates/forge-verify/src/crawler.rs
+@@ -327,6 +327,12 @@ fn pop_best_frontier(
+             best_score = score;
+         }
+     }
++    if std::env::var_os("FORGE_MUTANT_FRONTIER_ORDER").is_some()
++        && report.expanded_states == 0
++        && pending.len() > 1
++    {
++        best_index = (best_index + 1) % pending.len();
++    }
+     Ok(pending.swap_remove(best_index))
+ }
+
+diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/content.rs
+--- a/crates/forge-kernel/src/content.rs
++++ b/crates/forge-kernel/src/content.rs
+@@ -882,6 +882,9 @@ impl CompiledContent {
+                 parameters: action.parameters.clone(),
+             });
+         }
++        if std::env::var_os("FORGE_MUTANT_PAGE_ORDER").is_some() {
++            views.reverse();
++        }
+         let next_offset = (end < total).then_some(end);
+         Ok(ActionPage {
+             build_id: self.build_id.clone(),
+diff --git a/crates/forge-verify/src/crawler.rs b/crates/forge-verify/src/crawler.rs
+--- a/crates/forge-verify/src/crawler.rs
++++ b/crates/forge-verify/src/crawler.rs
+@@ -120,9 +120,12 @@ pub fn crawl_production(
+     validate_budget(budget)?;
+     let advertised_definitions: BTreeSet<_> = content.actions().map(|(id, _)| id.clone()).collect();
++    let process_nonce =
++        std::env::var_os("FORGE_MUTANT_PROCESS_RECEIPT").map(|_| std::process::id());
+     let execution_receipt = sha256_json(&(
+         CRAWL_EXECUTION_RECEIPT_FORMAT,
+         "genesis",
+         content.build_id(),
+         budget,
++        process_nonce,
+     ))
+     .map_err(|_| VerifyError::new("crawler could not create its execution receipt"))?;
