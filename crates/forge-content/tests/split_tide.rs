@@ -332,7 +332,17 @@ fn presets_change_same_scene_observation_and_legal_action_definitions() {
     );
     assert_ne!(ilyan_observation.text, rook_observation.text);
     assert!(ilyan_observation.text.contains("council mark"));
-    assert!(rook_observation.text.contains("wanted runner"));
+    assert!(rook_observation.text.contains("wanted face"));
+    assert!(
+        ilyan_observation
+            .text
+            .contains("redirect the next surge at Red Sluice")
+    );
+    assert!(
+        rook_observation
+            .text
+            .contains("reach Red Sluice before the next surge")
+    );
 
     let ilyan_definitions = definitions(&ilyan, &content);
     let rook_definitions = definitions(&rook, &content);
@@ -396,6 +406,11 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
         sava_result,
         "Sava points east: the levee road reaches the Red Sluice."
     );
+    let opening_description = content.location_description(&authority).unwrap();
+    authority = apply(authority, &content, "checkpoint.ask_sava");
+    let guided_description = content.location_description(&authority).unwrap();
+    assert_ne!(guided_description, opening_description);
+    assert!(guided_description.contains("follow the levee road to Red Sluice"));
     authority = apply(authority, &content, "checkpoint.show_charter");
     let charter_observation = content
         .observe_action(&authority, "checkpoint.show_charter")
@@ -404,6 +419,9 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
         charter_observation.result.as_deref(),
         Some("Sava honors your charter, opening the Authority Path at Lowsail Levee.")
     );
+    assert!(charter_observation.text.ends_with(
+        "The chain stands open; Sava directs you to the Authority Path at Lowsail Levee."
+    ));
     authority = travel_to(authority, &content, "lowsail.levee");
     assert!(definitions(&authority, &content).contains("levee.authority_path"));
     assert!(
@@ -429,7 +447,7 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
     assert_eq!(
         oren_observation.result.as_deref(),
         Some(
-            "Oren reveals the submerged culvert beneath Lowsail Levee and asks you to break the toll."
+            "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll."
         )
     );
     assert!(culvert.world.flags.contains("culvert_revealed"));
@@ -479,6 +497,16 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
         "checkpoint.show_charter",
     );
     let baseline = travel_to(baseline, &content, "lowsail.levee");
+    let inspect = action_for(&baseline, &content, "levee.inspect_damage");
+    let transition = step(&baseline, &inspect, &content, &baseline.entropy).unwrap();
+    let damage_observation = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(damage_observation.text.matches("Fresh marks").count(), 1);
+    assert!(
+        damage_observation
+            .text
+            .ends_with("Workers brace the wet embankment.")
+    );
+    let baseline = transition.into_state();
     let baseline_floor = apply(baseline, &content, "levee.authority_path");
     assert!(!definitions(&baseline_floor, &content).contains("floor.open_relief"));
 

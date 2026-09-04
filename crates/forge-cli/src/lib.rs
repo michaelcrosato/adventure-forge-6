@@ -1249,7 +1249,8 @@ mod tests {
         assert!(output.contains("Review — Mara Venn"));
         assert!(output.contains("Guiding Value: Order"));
         assert!(output.contains("Preview — Lowsail Checkpoint"));
-        assert!(output.contains("Sava lifts the chain for a clerk"));
+        assert!(output.contains("Sava lifts the chain for your council mark"));
+        assert!(output.contains("redirect the next surge at Red Sluice"));
         assert!(output.contains("Session ended."));
         for hidden in ["event_log", "scheduled_events", "entropy", "knowledge"] {
             assert!(!output.contains(hidden), "creator leaked {hidden}");
@@ -1434,7 +1435,7 @@ mod tests {
 
         let resumed = invoke(&["resume", &path_text], "quit\n").unwrap();
         assert!(resumed.contains("Verified 2 recorded step(s)"));
-        assert!(resumed.contains("Flood marks show fresh damage."));
+        assert!(resumed.contains("Workers brace the wet embankment."));
         std::fs::remove_file(path).unwrap();
     }
 

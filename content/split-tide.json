@@ -251,8 +251,32 @@
     {
       "id": "lowsail_market",
       "name": "Lowsail Checkpoint",
-      "description": "A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
+      "description": "A red warning orders you to redirect the next surge at Red Sluice. Sava guards Lowsail's dry checkpoint.",
       "description_variants": [
+        {
+          "id": "charter_path_open",
+          "priority": 60,
+          "condition": {"kind": "world_flag", "flag": "council_route"},
+          "text": "The chain stands open; Sava directs you to the Authority Path at Lowsail Levee."
+        },
+        {
+          "id": "order_exposed",
+          "priority": 50,
+          "condition": {"kind": "world_flag", "flag": "forged_order_found"},
+          "text": "Sava studies the forged order beside the raised chain; Red Sluice still needs your answer."
+        },
+        {
+          "id": "warning_read",
+          "priority": 40,
+          "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "warning_seen"},
+          "text": "The posted warning points to Red Sluice; Sava keeps both roads open."
+        },
+        {
+          "id": "sava_guidance",
+          "priority": 30,
+          "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "met_player_checkpoint"},
+          "text": "Sava points east from the raised chain; follow the levee road to Red Sluice."
+        },
         {
           "id": "ilyan_mark",
           "priority": 20,
@@ -264,7 +288,7 @@
               {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
             ]
           },
-          "text": "Sava lifts the chain for a clerk with a council mark."
+          "text": "Sava lifts the chain for your council mark; redirect the next surge at Red Sluice."
         },
         {
           "id": "rook_wanted",
@@ -277,13 +301,13 @@
               {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
             ]
           },
-          "text": "Sava watches the wanted runner while workers leave a gap by the wall."
+          "text": "Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge."
         },
         {
           "id": "sava_angered",
-          "priority": 25,
+          "priority": 70,
           "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "sava_was_pressured"},
-          "text": "Sava bars the chain because his memory of the threat still shapes the checkpoint."
+          "text": "Sava bars the chain after your threat; find another way to Red Sluice before the surge."
         }
       ],
       "exits": ["lowsail.docks", "lowsail.levee"],
@@ -313,13 +337,13 @@
     {
       "id": "lowsail.levee",
       "name": "Lowsail Levee",
-      "description": "The levee road runs east to the Sluice. Flood marks show fresh damage.",
+      "description": "The levee road runs east to Red Sluice. Workers brace the wet embankment.",
       "description_variants": [
         {
           "id": "report_sent",
           "priority": 15,
           "condition": {"kind": "world_flag", "flag": "report_sent"},
-          "text": "A sealed report leaves for Edrik while the levee crew waits for his answer."
+          "text": "The levee crew watches the eastern road, waiting for Edrik's reply."
         },
         {
           "id": "market_warned",
@@ -795,7 +819,7 @@
       "id": "docks.ask_oren",
       "label": "Ask Oren",
       "category": "Talk",
-      "result": "Oren reveals the submerged culvert beneath Lowsail Levee and asks you to break the toll.",
+      "result": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "not",
