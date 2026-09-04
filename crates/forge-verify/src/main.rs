@@ -1,5 +1,5 @@
 use forge_verify::{
-    EvidenceWitness, SCENARIO_IDS, check_witness, generate_crawl_report, generate_witness,
+    EvidenceWitness, check_witness, generate_crawl_report, generate_witness, scenario_ids,
 };
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -38,7 +38,10 @@ fn run(args: Vec<String>) -> Result<String, String> {
                 witness.steps.len()
             ))
         }
-        [command] if command == "scenarios" => Ok(format!("{}\n", SCENARIO_IDS.join("\n"))),
+        [command] if command == "scenarios" => Ok(format!(
+            "{}\n",
+            scenario_ids().collect::<Vec<_>>().join("\n")
+        )),
         [] | [_] => Err(usage()),
         _ => Err(format!("unexpected arguments\n{}", usage())),
     }

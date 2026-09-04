@@ -1,4 +1,4 @@
-use forge_verify::SCENARIO_IDS;
+use forge_verify::scenario_ids;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
@@ -21,7 +21,29 @@ fn crawl_path() -> PathBuf {
 
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
-    for scenario in SCENARIO_IDS {
+    let expected_files: Vec<_> = scenario_ids()
+        .map(|scenario| format!("{scenario}.json"))
+        .collect();
+    let mut checked_files: Vec<_> =
+        std::fs::read_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/witnesses"))
+            .expect("witness directory exists")
+            .map(|entry| {
+                entry
+                    .expect("witness directory entry is readable")
+                    .file_name()
+                    .into_string()
+                    .expect("witness filename is UTF-8")
+            })
+            .collect();
+    checked_files.sort();
+    let mut expected_files = expected_files;
+    expected_files.sort();
+    assert_eq!(
+        checked_files, expected_files,
+        "checked witness set is stale"
+    );
+
+    for scenario in scenario_ids() {
         let first = verifier(&["emit", scenario]);
         let second = verifier(&["emit", scenario]);
         assert!(first.status.success(), "first emit failed");

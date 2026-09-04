@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 5
+Manager cycle: 6
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -15,10 +15,11 @@ Active milestone: 1 — Complete Split Tide slice
 - Replay receipts bind authored preset genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
 - Players can start as Ilyan or Rook, page or search every current legal action, save atomically, resume, and render a verified replay.
 - Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from canonical action identities.
-- Checked Ilyan and Rook witnesses expose distinct public choices and reactions; fresh verifier processes reproduce their legal-set, event, entropy, state, observation, and receipt fingerprints byte for byte.
+- Nine checked scenario witnesses cover the two Milestone 0 character paths, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
+- Every scenario is bound to a reviewed ID, preset, seed, exact full-parameter recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
 - A checked, clean-process crawl expands 44 states from both presets, reaches all 6 locations, executes 283 advertised canonical actions, and covers all 47 authored definitions within explicit depth, state, frontier, and action budgets.
 - Choosing one of the five Sluice outcomes now closes the other four, preventing contradictory persistent results in one playthrough while preserving branch coverage across separate states.
-- Milestone 0 exit evidence now passes. Milestone 1 remains incomplete until every advertised Split Tide outcome and area contract has a checked witness.
+- Milestone 0 exit evidence passes. Milestone 1 outcome and representative area evidence now pass; the milestone remains incomplete pending the 500-location scale fixture and broader play evidence.
 - This is a playable tested slice, not a public release or evidence of final scale.
 
 ## Constraint evidence
@@ -29,22 +30,22 @@ Active milestone: 1 — Complete Split Tide slice
 | Concise language | Partial | Compiler enforces category, label, sentence, result, variant, and routine-observation budgets | Dialogue, readability, active-voice, and reading tests |
 | One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return; consequential outcomes are mutually exclusive | Long-session and broader cross-region continuity |
 | Skyrim breadth | Not built | Honest expansion strategy only | 500-node capacity fixture, then authored comparative evidence |
-| BG3-like area depth | Not built | Two-area contract only | Blindly sampled Split Tide approaches and outcomes |
+| BG3-like area depth | Not built | Representative checked paths through both authored areas; no comparative depth claim | Blindly sampled Split Tide approaches and outcomes |
 | Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
 | No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog | Larger scale fixture and independent union witness |
-| Deterministic authority | Partial | Fresh processes independently emit byte-identical Ilyan/Rook witnesses and a bounded crawl covering all 47 definitions across 44 expanded states | Nondeterminism mutants and broader outcome witnesses |
+| Deterministic authority | Partial | Fresh processes independently emit nine byte-identical scenario witnesses and a bounded crawl covering all 47 definitions across 44 expanded states | Nondeterminism mutants and broader property exploration |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
-| Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and checked clean-process replay pass | Broader corruption corpus and outcome witnesses |
+| Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and nine checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
 | Blind play | Partial | CLI output tests expose only observations and public commitments; persisted player traces omit verifier state and events | Locked environment, process boundary, and canary probes |
 | Manager operation | Partial | Charter, plan, accepted delegated implementation, rejected first candidate, and task-splitting process change | Full verified-finding improvement cycle |
 
 ## Active queue
 
-1. Expand checked witnesses to all five advertised Split Tide outcomes and both area contracts.
-2. Add the 500-location scale fixture and its performance budget.
-3. Run the first locked blind-player session with canary probes.
-4. Add nondeterminism mutants against the verifier and crawler.
-5. Add a creation flow beyond the two authored proof presets.
+1. Add the 500-location scale fixture and its performance budget.
+2. Run the first locked blind-player session with canary probes.
+3. Add nondeterminism mutants against the verifier and crawler.
+4. Add a creation flow beyond the two authored proof presets.
+5. Add broader text-policy and long-session checks before expanding authored regions.
 
 ## Delegation ledger
 
@@ -66,6 +67,9 @@ Active milestone: 1 — Complete Split Tide slice
 | 3 | CLI implementation | `gpt-5.6-luna` / max | Add the first complete terminal player adapter | Play, paging, search, save, replay, resume, tests | Stopped after no timely implementation; manager completed the lane |
 | 3 | CLI boundary audit | `gpt-5.6-luna` / max | Review only authority, hidden output, persistence, navigation, and parsing | Severity-ranked current-tree verdict | Rejected first snapshot; persistence and coverage findings closed before acceptance |
 | 4 | Evidence verifier audit | `gpt-5.6-luna` / max | Review only clean-process independence, witness binding, hidden fields, and tamper behavior | Severity-ranked current-tree verdict | Accepted; no P0/P1 findings, duplicated scenario registry removed |
+| 6 | Outcome path mapping | `gpt-5.6-luna` / max | Derive shortest valid paths for five outcomes and two cross-area consequences | Exact recipes and persistent expectations | Accepted into the scenario registry |
+| 6 | Scenario threat model | `gpt-5.6-luna` / max | Audit relabeling, recipe ambiguity, semantic assertion, and hidden-output risks | P0/P1/P2 findings for the witness expansion | Accepted; binding, exact parameters, postconditions, and substitution tests added |
+| 6 | Evidence CLI review | `gpt-5.6-luna` / max | Review scenario naming and command scaling | Stable IDs without new client authority | Accepted; existing thin CLI retained |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -121,6 +125,10 @@ The production crawler starts independently from every authored preset and follo
 
 All five authored Sluice outcomes share one authoritative `sluice_outcome_chosen` gate. Selecting any outcome sets that flag before its branch-specific consequences, so later play cannot combine incompatible water states. The crawler must still reach and execute every outcome on separate branches.
 
+### D-013: Scenario names bind reviewed recipes and semantic claims
+
+The verifier owns one registry for the exact reviewed scenario-ID set, preset and seed, exact ordered actions with canonical complete parameter maps, and hidden postconditions. Each public witness carries an opaque digest of that specification in addition to game and verifier identities. Generation and checking require the exact recipe, validate persistent world, location, character, visit, observation, and exclusivity expectations, and reject missing, substituted, or duplicate IDs, claims, or recipes. Registry-driven process tests require exactly one checked file per scenario.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -134,7 +142,7 @@ All five authored Sluice outcomes share one authoritative `sluice_outcome_chosen
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 6 evidence-verifier unit tests, and 2 clean-process integration tests: 65 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, and byte-identical checked witness and crawl evidence from separate processes. The crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states; it does not claim exhaustive state-space coverage. The project does not yet cover blind isolation, checked witnesses for every advertised outcome, full text policy, or final game scale.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 10 evidence-verifier unit tests, and 2 clean-process integration tests: 69 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters, exact reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, and byte-identical checked witness and crawl evidence from separate processes. The nine scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states; it does not claim exhaustive state-space coverage. The project does not yet cover blind isolation, the full text policy, final game scale, or comparative area depth.
 
 ## Next reassessment trigger
 

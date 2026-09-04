@@ -6,18 +6,18 @@
 //! events.
 
 use forge_content::parse_and_compile_production;
-use forge_kernel::{CanonicalAction, CompiledContent, Observation, sha256_json};
+use forge_kernel::{CompiledContent, Observation, sha256_json};
 use forge_replay::{PlayerTrace, ReplayError, Session, resume_player_trace, verify};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 mod crawler;
+mod scenarios;
 
 pub use crawler::{CrawlBudget, CrawlReport, crawl_production};
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
-pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v1";
-pub const SCENARIO_IDS: [&str; 2] = ["m0-ilyan", "m0-rook"];
+pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v2";
 pub const MAX_WITNESS_STEPS: usize = 4_096;
 
 include!(concat!(env!("OUT_DIR"), "/verifier_id.rs"));
@@ -64,6 +64,7 @@ pub struct EvidenceWitness {
     pub format_version: String,
     pub verifier_id: String,
     pub scenario_id: String,
+    pub scenario_binding: String,
     pub player_trace: PlayerTrace,
     pub initial_state_id: String,
     pub initial_observation: Observation,
@@ -72,6 +73,10 @@ pub struct EvidenceWitness {
     pub steps: Vec<StepFingerprint>,
     pub final_state_id: String,
     pub final_receipt: String,
+}
+
+pub fn scenario_ids() -> impl ExactSizeIterator<Item = &'static str> {
+    scenarios::all().iter().map(|scenario| scenario.id)
 }
 
 impl EvidenceWitness {
@@ -91,10 +96,11 @@ impl EvidenceWitness {
 }
 
 pub fn generate_witness(scenario_id: &str) -> Result<EvidenceWitness, VerifyError> {
+    let spec = scenarios::get(scenario_id)?;
     let content = load_content()?;
-    let session = run_scenario(scenario_id, &content)?;
+    let session = scenarios::run(spec, &content)?;
     verify(session.trace(), &content).map_err(replay_error)?;
-    witness_from_session(scenario_id, &session)
+    witness_from_session(spec, &session)
 }
 
 pub fn generate_crawl_report() -> Result<CrawlReport, VerifyError> {
@@ -112,11 +118,11 @@ pub fn check_witness(witness: &EvidenceWitness) -> Result<(), VerifyError> {
     if witness.verifier_id != VERIFIER_ID {
         return Err(VerifyError::new("witness verifier identity does not match"));
     }
-    if !SCENARIO_IDS.contains(&witness.scenario_id.as_str()) {
-        return Err(VerifyError::new(format!(
-            "unknown evidence scenario {}",
-            witness.scenario_id
-        )));
+    let spec = scenarios::get(&witness.scenario_id)?;
+    if witness.scenario_binding != scenarios::binding(spec)? {
+        return Err(VerifyError::new(
+            "witness scenario binding does not match its reviewed specification",
+        ));
     }
     if witness.steps.len() > MAX_WITNESS_STEPS
         || witness.player_trace.action_count() > MAX_WITNESS_STEPS
@@ -134,12 +140,13 @@ pub fn check_witness(witness: &EvidenceWitness) -> Result<(), VerifyError> {
     let content = load_content()?;
     let session = resume_player_trace(&witness.player_trace, &content).map_err(replay_error)?;
     verify(session.trace(), &content).map_err(replay_error)?;
-    let actual = witness_from_session(&witness.scenario_id, &session)?;
+    scenarios::validate_session(spec, &session, &content)?;
+    let actual = witness_from_session(spec, &session)?;
     compare_witness(witness, &actual)?;
 
-    let expected_session = run_scenario(&witness.scenario_id, &content)?;
+    let expected_session = scenarios::run(spec, &content)?;
     verify(expected_session.trace(), &content).map_err(replay_error)?;
-    let expected = witness_from_session(&witness.scenario_id, &expected_session)?;
+    let expected = witness_from_session(spec, &expected_session)?;
     compare_witness(&expected, &actual)
 }
 
@@ -148,61 +155,8 @@ fn load_content() -> Result<CompiledContent, VerifyError> {
         .map_err(|_| VerifyError::new("embedded production content failed validation"))
 }
 
-fn run_scenario<'content>(
-    scenario_id: &str,
-    content: &'content CompiledContent,
-) -> Result<Session<'content>, VerifyError> {
-    let (character, first_action) = match scenario_id {
-        "m0-ilyan" => ("ilyan", "checkpoint.audit_order"),
-        "m0-rook" => ("rook", "checkpoint.blend_workers"),
-        other => {
-            return Err(VerifyError::new(format!(
-                "unknown evidence scenario {other}"
-            )));
-        }
-    };
-    let mut session = Session::new_game(character, 71, content).map_err(replay_error)?;
-    record_matching(&mut session, content, first_action, None)?;
-    record_matching(
-        &mut session,
-        content,
-        "travel_adjacent",
-        Some(("destination", "lowsail.levee")),
-    )?;
-    Ok(session)
-}
-
-fn record_matching(
-    session: &mut Session<'_>,
-    content: &CompiledContent,
-    definition_id: &str,
-    parameter: Option<(&str, &str)>,
-) -> Result<(), VerifyError> {
-    let action = forge_kernel::enumerate_legal_actions(session.state(), content)
-        .map_err(|_| VerifyError::new("could not enumerate scenario actions"))?
-        .into_iter()
-        .find(|action| action_matches(action, definition_id, parameter))
-        .ok_or_else(|| VerifyError::new("declared evidence action is not currently legal"))?;
-    session.record(&action).map_err(replay_error)?;
-    Ok(())
-}
-
-fn action_matches(
-    action: &CanonicalAction,
-    definition_id: &str,
-    parameter: Option<(&str, &str)>,
-) -> bool {
-    action.definition_id == definition_id
-        && parameter.is_none_or(|(name, value)| {
-            action
-                .parameters
-                .get(name)
-                .is_some_and(|found| found == value)
-        })
-}
-
 fn witness_from_session(
-    scenario_id: &str,
+    spec: &scenarios::ScenarioSpec,
     session: &Session<'_>,
 ) -> Result<EvidenceWitness, VerifyError> {
     let trace = session.trace();
@@ -231,7 +185,8 @@ fn witness_from_session(
     Ok(EvidenceWitness {
         format_version: WITNESS_FORMAT_VERSION.to_owned(),
         verifier_id: VERIFIER_ID.to_owned(),
-        scenario_id: scenario_id.to_owned(),
+        scenario_id: spec.id.to_owned(),
+        scenario_binding: scenarios::binding(spec)?,
         player_trace: session.player_trace().map_err(replay_error)?,
         initial_state_id: trace.initial_state_id.clone(),
         initial_observation: trace.initial_observation.clone(),
@@ -253,6 +208,18 @@ fn compare_witness(
 ) -> Result<(), VerifyError> {
     if expected == actual {
         return Ok(());
+    }
+    if expected.format_version != actual.format_version {
+        return Err(VerifyError::new("witness mismatch at format_version"));
+    }
+    if expected.verifier_id != actual.verifier_id {
+        return Err(VerifyError::new("witness mismatch at verifier_id"));
+    }
+    if expected.scenario_id != actual.scenario_id {
+        return Err(VerifyError::new("witness mismatch at scenario_id"));
+    }
+    if expected.scenario_binding != actual.scenario_binding {
+        return Err(VerifyError::new("witness mismatch at scenario_binding"));
     }
     if expected.player_trace != actual.player_trace {
         return Err(VerifyError::new("witness mismatch at player_trace"));
@@ -305,11 +272,13 @@ mod tests {
 
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
-        for scenario in SCENARIO_IDS {
-            assert_eq!(
-                generate_witness(scenario).unwrap(),
-                generate_witness(scenario).unwrap()
-            );
+        let ids: Vec<_> = scenario_ids().collect();
+        assert_eq!(ids.len(), 9);
+        for scenario in ids {
+            let first = generate_witness(scenario).unwrap();
+            let second = generate_witness(scenario).unwrap();
+            assert_eq!(first, second);
+            check_witness(&first).unwrap();
         }
         let ilyan = generate_witness("m0-ilyan").unwrap();
         let rook = generate_witness("m0-rook").unwrap();
@@ -364,8 +333,18 @@ mod tests {
         assert!(check_witness(&changed).is_err());
 
         let mut changed = original.clone();
+        changed.scenario_binding.push('x');
+        assert!(check_witness(&changed).is_err());
+
+        let mut changed = original.clone();
         changed.scenario_id = "m0-rook".to_owned();
         assert!(check_witness(&changed).is_err());
+
+        let target = generate_witness("m1-outcome-hold-market").unwrap();
+        let mut relabeled = generate_witness("m1-outcome-split-flow").unwrap();
+        relabeled.scenario_id = target.scenario_id;
+        relabeled.scenario_binding = target.scenario_binding;
+        assert!(check_witness(&relabeled).is_err());
 
         let mut changed = original;
         changed.scenario_id = "unknown".to_owned();
@@ -375,20 +354,42 @@ mod tests {
 
     #[test]
     fn witness_json_contains_public_observations_but_not_hidden_values() {
-        let json = generate_witness("m0-rook")
-            .unwrap()
-            .to_pretty_json()
-            .unwrap();
-        assert!(json.contains("Sava watches the wanted runner"));
-        for hidden in [
-            "initial_state\"",
-            "scheduled_events",
-            "entropy_before\"",
-            "entropy_after\"",
-            "entropy_draws\"",
-            "knowledge\"",
-        ] {
-            assert!(!json.contains(hidden), "witness leaked {hidden}");
+        for scenario in scenario_ids() {
+            let json = generate_witness(scenario)
+                .unwrap()
+                .to_pretty_json()
+                .unwrap();
+            assert!(json.contains("scenario_binding"));
+            for hidden in [
+                "initial_state\"",
+                "scheduled_events",
+                "entropy_before\"",
+                "entropy_after\"",
+                "entropy_draws\"",
+                "knowledge\"",
+            ] {
+                assert!(!json.contains(hidden), "witness {scenario} leaked {hidden}");
+            }
         }
+    }
+
+    #[test]
+    fn alternate_valid_path_cannot_substitute_for_bound_scenario_recipe() {
+        let content = load_content().unwrap();
+        let spec = scenarios::get("m1-outcome-split-flow").unwrap();
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        let wait = forge_kernel::enumerate_legal_actions(session.state(), &content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == "wait_tide" && action.parameters.is_empty())
+            .unwrap();
+        session.record(&wait).unwrap();
+        for step in spec.steps {
+            scenarios::record_step(&mut session, &content, step).unwrap();
+        }
+        assert!(scenarios::validate_session(spec, &session, &content).is_err());
+
+        let substituted = witness_from_session(spec, &session).unwrap();
+        assert!(check_witness(&substituted).is_err());
     }
 }

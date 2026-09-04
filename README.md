@@ -28,14 +28,17 @@ cargo run -p forge-cli -- resume rook.trace.json
 
 `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
-The checked Milestone 0 witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. You can inspect them directly:
+All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 character paths, all five Split Tide outcomes, and one representative path through each authored area:
 
 ```bash
 cargo run -p forge-verify -- scenarios
 cargo run -p forge-verify -- crawl
 cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
-cargo run -p forge-verify -- check evidence/witnesses/m0-rook.json
+cargo run -p forge-verify -- check evidence/witnesses/m1-outcome-split-flow.json
+cargo run -p forge-verify -- check evidence/witnesses/m1-area-red-sluice.json
 ```
+
+Each scenario has an opaque binding over its ID, preset, seed, complete parameter maps, ordered recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. Area witnesses are representative contract evidence, not a claim of final world depth.
 
 The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 47 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
 
