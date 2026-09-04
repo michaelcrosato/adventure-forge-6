@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 6
+Manager cycle: 7
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -18,8 +18,9 @@ Active milestone: 1 — Complete Split Tide slice
 - Nine checked scenario witnesses cover the two Milestone 0 character paths, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
 - Every scenario is bound to a reviewed ID, preset, seed, exact full-parameter recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
 - A checked, clean-process crawl expands 44 states from both presets, reaches all 6 locations, executes 283 advertised canonical actions, and covers all 47 authored definitions within explicit depth, state, frontier, and action budgets.
+- A separate checked capacity fixture compiles exactly 500 terminal synthetic locations, proves the same location-ID set through source, compiled content, runtime admission, independent graph traversal, and 500 canonical travel transitions, and stays within reviewed graph-frontier, catalog-work, and serialization ceilings.
 - Choosing one of the five Sluice outcomes now closes the other four, preventing contradictory persistent results in one playthrough while preserving branch coverage across separate states.
-- Milestone 0 exit evidence passes. Milestone 1 outcome and representative area evidence now pass; the milestone remains incomplete pending the 500-location scale fixture and broader play evidence.
+- Milestone 0 exit evidence passes. Milestone 1 outcome, representative area, save/resume, catalog, crawl, and synthetic scale evidence now pass; broader player evidence still remains.
 - This is a playable tested slice, not a public release or evidence of final scale.
 
 ## Constraint evidence
@@ -29,11 +30,11 @@ Active milestone: 1 — Complete Split Tide slice
 | Deep character customization | Partial | Production `new_game` presets for Ilyan/Rook expose different same-scene action sets and contextual reactions | Creation UI, broader reactions, risks, prices, and outcomes |
 | Concise language | Partial | Compiler enforces category, label, sentence, result, variant, and routine-observation budgets | Dialogue, readability, active-voice, and reading tests |
 | One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return; consequential outcomes are mutually exclusive | Long-session and broader cross-region continuity |
-| Skyrim breadth | Not built | Honest expansion strategy only | 500-node capacity fixture, then authored comparative evidence |
+| Skyrim breadth | Not built | A checked 500-location synthetic fixture proves engine/compiler capacity only; generated nodes count as no authored breadth | Authored expansion waves and blind comparative evidence |
 | BG3-like area depth | Not built | Representative checked paths through both authored areas; no comparative depth claim | Blindly sampled Split Tide approaches and outcomes |
 | Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
-| No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog | Larger scale fixture and independent union witness |
-| Deterministic authority | Partial | Fresh processes independently emit nine byte-identical scenario witnesses and a bounded crawl covering all 47 definitions across 44 expanded states | Nondeterminism mutants and broader property exploration |
+| No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog; the scale fixture consumes its complete paged travel catalog | Independent large-catalog process witness |
+| Deterministic authority | Partial | Fresh processes independently emit nine byte-identical scenarios, the bounded production crawl, and the checked 500-location capacity report | Nondeterminism mutants and broader property exploration |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
 | Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and nine checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
 | Blind play | Partial | CLI output tests expose only observations and public commitments; persisted player traces omit verifier state and events | Locked environment, process boundary, and canary probes |
@@ -41,11 +42,11 @@ Active milestone: 1 — Complete Split Tide slice
 
 ## Active queue
 
-1. Add the 500-location scale fixture and its performance budget.
-2. Run the first locked blind-player session with canary probes.
-3. Add nondeterminism mutants against the verifier and crawler.
-4. Add a creation flow beyond the two authored proof presets.
-5. Add broader text-policy and long-session checks before expanding authored regions.
+1. Run the first locked blind-player session with canary probes.
+2. Add nondeterminism mutants against the verifier and crawler.
+3. Add a creation flow beyond the two authored proof presets.
+4. Add broader text-policy and long-session checks before expanding authored regions.
+5. Define the first authored expansion wave only after blind Split Tide findings are replayed.
 
 ## Delegation ledger
 
@@ -70,6 +71,9 @@ Active milestone: 1 — Complete Split Tide slice
 | 6 | Outcome path mapping | `gpt-5.6-luna` / max | Derive shortest valid paths for five outcomes and two cross-area consequences | Exact recipes and persistent expectations | Accepted into the scenario registry |
 | 6 | Scenario threat model | `gpt-5.6-luna` / max | Audit relabeling, recipe ambiguity, semantic assertion, and hidden-output risks | P0/P1/P2 findings for the witness expansion | Accepted; binding, exact parameters, postconditions, and substitution tests added |
 | 6 | Evidence CLI review | `gpt-5.6-luna` / max | Review scenario naming and command scaling | Stable IDs without new client authority | Accepted; existing thin CLI retained |
+| 7 | Scale architecture | `gpt-5.6-luna` / max | Design the smallest truthful 500-location fixture | Capacity proof with explicit non-breadth boundary | Accepted; terminal reciprocal ring selected |
+| 7 | Scale benchmark/implementation | `gpt-5.6-luna` / max | Measure and implement an isolated scale report module | 500 canonical hops, paging, state admission, deterministic evidence | Accepted after manager added immutable budgets and stronger ID/topology/catalog checks |
+| 7 | Scale threat model | `gpt-5.6-luna` / max | Audit claim scope, reachability, resource limits, and evidence forgery | Severity-ranked P0/P1 findings | Accepted after binding claim scope, exact digests, regeneration, and error tests |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -129,6 +133,10 @@ All five authored Sluice outcomes share one authoritative `sluice_outcome_chosen
 
 The verifier owns one registry for the exact reviewed scenario-ID set, preset and seed, exact ordered actions with canonical complete parameter maps, and hidden postconditions. Each public witness carries an opaque digest of that specification in addition to game and verifier identities. Generation and checking require the exact recipe, validate persistent world, location, character, visit, observation, and exclusivity expectations, and reject missing, substituted, or duplicate IDs, claims, or recipes. Registry-driven process tests require exactly one checked file per scenario.
 
+### D-014: Synthetic scale is capacity evidence, never shipped breadth
+
+The scale verifier owns a fixed 500-location terminal reciprocal ring and one adjacent-travel definition. Its checked report binds the fixture source, compiled build, verifier, exact location sets, topology, every page of every per-hop catalog, 500 canonical transitions, and immutable graph-frontier, catalog-work, and serialization budgets. Host timing is deliberately not an acceptance input; the checked ceilings are deterministic across machines. The artifact identifies itself as generated substrate and explicitly disclaims authored breadth, NPC or mechanic depth, area quality, and Skyrim parity.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -142,7 +150,7 @@ The verifier owns one registry for the exact reviewed scenario-ID set, preset an
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 10 evidence-verifier unit tests, and 2 clean-process integration tests: 69 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters, exact reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, and byte-identical checked witness and crawl evidence from separate processes. The nine scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states; it does not claim exhaustive state-space coverage. The project does not yet cover blind isolation, the full text policy, final game scale, or comparative area depth.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 16 evidence-verifier unit tests, and 3 clean-process integration tests: 76 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, and byte-identical checked witness, crawl, and scale evidence from separate processes. The nine scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, or comparative area depth. The project does not yet cover blind isolation, the full text policy, final game scale, or comparative area depth.
 
 ## Next reassessment trigger
 

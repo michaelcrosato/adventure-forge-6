@@ -12,9 +12,13 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 mod crawler;
+mod scale;
 mod scenarios;
 
 pub use crawler::{CrawlBudget, CrawlReport, crawl_production};
+pub use scale::{
+    SCALE_MAX_REPORT_BYTES, ScaleBudget, ScaleReport, check_scale_report, generate_scale_report,
+};
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v2";

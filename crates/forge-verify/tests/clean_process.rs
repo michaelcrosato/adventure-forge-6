@@ -19,6 +19,10 @@ fn crawl_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/split-tide.json")
 }
 
+fn scale_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/scale/synthetic-ring-500.json")
+}
+
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
     let expected_files: Vec<_> = scenario_ids()
@@ -81,4 +85,37 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         report["advertised_definitions"]
     );
     assert_eq!(report["reached_locations"].as_array().unwrap().len(), 6);
+}
+
+#[test]
+fn clean_process_scale_runs_match_and_checked_report_verifies() {
+    let first = verifier(&["scale"]);
+    let second = verifier(&["scale"]);
+    assert!(first.status.success(), "first scale run failed");
+    assert!(second.status.success(), "second scale run failed");
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process scale runs diverged"
+    );
+
+    let path = scale_path();
+    let checked = std::fs::read(&path).expect("checked scale report exists");
+    assert_eq!(first.stdout, checked, "checked scale report is stale");
+
+    let verified = verifier(&[
+        "check-scale",
+        path.to_str().expect("UTF-8 scale report path"),
+    ]);
+    assert!(
+        verified.status.success(),
+        "checked scale report failed: {}",
+        String::from_utf8_lossy(&verified.stderr)
+    );
+
+    let report: serde_json::Value =
+        serde_json::from_slice(&first.stdout).expect("scale report is valid JSON");
+    assert_eq!(report["claim_scope"], "capacity_fixture");
+    assert_eq!(report["location_count"], 500);
+    assert_eq!(report["hop_count"], 500);
+    assert_eq!(report["final_location"], "loc-0000");
 }

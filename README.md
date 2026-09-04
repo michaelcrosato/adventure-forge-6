@@ -33,14 +33,18 @@ All checked witnesses are independently regenerated and replayed in fresh proces
 ```bash
 cargo run -p forge-verify -- scenarios
 cargo run -p forge-verify -- crawl
+cargo run -p forge-verify -- scale
 cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-outcome-split-flow.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-area-red-sluice.json
+cargo run -p forge-verify -- check-scale evidence/scale/synthetic-ring-500.json
 ```
 
 Each scenario has an opaque binding over its ID, preset, seed, complete parameter maps, ordered recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. Area witnesses are representative contract evidence, not a claim of final world depth.
 
 The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 47 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
+
+The separate scale fixture compiles exactly 500 terminal synthetic locations in a reciprocal ring, admits their exact runtime ID set, independently proves graph reachability, and completes 500 kernel-enumerated travel transitions back to its start. It reconstructs every page of every travel-state catalog under fixed graph-frontier, catalog-work, and serialization ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. This proves engine and compiler capacity only; the generated nodes are not game content and do not count as authored breadth, area depth, or Skyrim parity.
 
 ## Core promises
 

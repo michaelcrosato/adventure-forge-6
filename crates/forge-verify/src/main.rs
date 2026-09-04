@@ -1,5 +1,6 @@
 use forge_verify::{
-    EvidenceWitness, check_witness, generate_crawl_report, generate_witness, scenario_ids,
+    EvidenceWitness, SCALE_MAX_REPORT_BYTES, ScaleReport, check_scale_report, check_witness,
+    generate_crawl_report, generate_scale_report, generate_witness, scenario_ids,
 };
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -29,6 +30,17 @@ fn run(args: Vec<String>) -> Result<String, String> {
         [command] if command == "crawl" => generate_crawl_report()
             .and_then(|report| report.to_pretty_json())
             .map_err(|error| error.to_string()),
+        [command] if command == "scale" => generate_scale_report()
+            .and_then(|report| report.to_pretty_json())
+            .map_err(|error| error.to_string()),
+        [command, path] if command == "check-scale" => {
+            let report = read_scale_report(Path::new(path))?;
+            check_scale_report(&report).map_err(|error| error.to_string())?;
+            Ok(format!(
+                "VERIFIED synthetic capacity fixture with {} locations and {} hops\n",
+                report.location_count, report.hop_count
+            ))
+        }
         [command, path] if command == "check" => {
             let witness = read_witness(Path::new(path))?;
             check_witness(&witness).map_err(|error| error.to_string())?;
@@ -48,21 +60,31 @@ fn run(args: Vec<String>) -> Result<String, String> {
 }
 
 fn read_witness(path: &Path) -> Result<EvidenceWitness, String> {
+    let json = read_bounded_utf8(path, MAX_WITNESS_BYTES, "evidence witness")?;
+    EvidenceWitness::from_json(&json).map_err(|error| error.to_string())
+}
+
+fn read_scale_report(path: &Path) -> Result<ScaleReport, String> {
+    let json = read_bounded_utf8(path, SCALE_MAX_REPORT_BYTES as u64, "scale report")?;
+    ScaleReport::from_json(&json).map_err(|error| error.to_string())
+}
+
+fn read_bounded_utf8(path: &Path, max_bytes: u64, kind: &str) -> Result<String, String> {
     let file =
         File::open(path).map_err(|error| format!("could not open {}: {error}", path.display()))?;
     let mut bytes = Vec::new();
     BufReader::new(file)
-        .take(MAX_WITNESS_BYTES + 1)
+        .take(max_bytes + 1)
         .read_to_end(&mut bytes)
         .map_err(|error| format!("could not read {}: {error}", path.display()))?;
-    if bytes.len() as u64 > MAX_WITNESS_BYTES {
-        return Err("evidence witness exceeds the 4 MiB limit".to_owned());
+    if bytes.len() as u64 > max_bytes {
+        return Err(format!("{kind} exceeds its {max_bytes}-byte input limit"));
     }
-    let json =
-        std::str::from_utf8(&bytes).map_err(|_| "evidence witness is not UTF-8".to_owned())?;
-    EvidenceWitness::from_json(json).map_err(|error| error.to_string())
+    let json = std::str::from_utf8(&bytes).map_err(|_| format!("{kind} is not UTF-8"))?;
+    Ok(json.to_owned())
 }
 
 fn usage() -> String {
-    "usage: forge-verify crawl | emit SCENARIO | check PATH | scenarios".to_owned()
+    "usage: forge-verify crawl | scale | check-scale PATH | emit SCENARIO | check PATH | scenarios"
+        .to_owned()
 }
