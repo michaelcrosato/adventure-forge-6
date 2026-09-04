@@ -1,6 +1,6 @@
 {
-  "verifier_id": "9716129a703e94285976ec9f732f50933d532c1ae558a9b8f00c6f429cd1d352",
-  "build_id": "ff56426e1dbf4081ee1488d8bb9c33f923ba362e424a25899cd0f4b450e6cc7c",
+  "verifier_id": "c359b65e18d20b9f0325508af2199198f3219d1109ab93814f8e15e7e50aab44",
+  "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 4096,
@@ -8,9 +8,9 @@
     "max_action_executions": 65536,
     "catalog_page_size": 7
   },
-  "expanded_states": 77,
-  "discovered_frontiers": 366,
-  "successful_actions": 434,
+  "expanded_states": 58,
+  "discovered_frontiers": 305,
+  "successful_actions": 328,
   "max_legal_actions": 8,
   "reached_locations": [
     "lowsail.docks",
@@ -40,6 +40,7 @@
     "floor.climb_hot_face",
     "floor.dive_intake",
     "floor.force_wheel",
+    "floor.key_calibration",
     "floor.open_relief",
     "floor.read_harmonics",
     "floor.stabilize_gauge",
@@ -91,6 +92,7 @@
     "floor.climb_hot_face",
     "floor.dive_intake",
     "floor.force_wheel",
+    "floor.key_calibration",
     "floor.open_relief",
     "floor.read_harmonics",
     "floor.stabilize_gauge",
@@ -122,5 +124,5 @@
     "wait_tide",
     "world.enter_aftermath"
   ],
-  "execution_receipt": "a9b073e45a549111928ea85471b0a517230087174fe9de1f8218b51ac03b28d0"
+  "execution_receipt": "57f79f5230ad2c099454593d80485f1d4cd1d935fd5ac91c1ffec018f52a9c6c"
 }

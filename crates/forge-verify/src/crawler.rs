@@ -258,6 +258,10 @@ pub fn crawl_production(
                 && definition.category != "Time"
                 && definition.parameters.is_empty()
                 && definition.condition.evaluate(&next_state)
+                && enumerate_legal_actions(&next_state, content)
+                    .map_err(|_| VerifyError::new("crawler could not check action retirement"))?
+                    .iter()
+                    .any(|candidate| candidate.definition_id == definition.id)
             {
                 return Err(VerifyError::new(format!(
                     "resolved non-time action {} remains legal after use",
@@ -370,12 +374,13 @@ fn frontier_score(
         if report.covered_definitions.contains(definition_id) {
             continue;
         }
+        let ready = definition.condition.evaluate(&frontier.state);
         let target_distance = if definition.locations.is_empty() {
             0
         } else {
             let mut distance = usize::MAX;
             for target in &definition.locations {
-                distance = distance.min(location_distance(content, location, target)?);
+                distance = distance.min(location_distance(content, location, target, None)?);
             }
             distance
         };
@@ -384,10 +389,26 @@ fn frontier_score(
         total_progress = total_progress.saturating_add(scaled_progress);
         best_partial = best_partial.max((scaled_progress, Reverse(target_distance)));
 
-        if definition.condition.evaluate(&frontier.state) {
+        if ready {
+            let mut available_distance = if definition.locations.is_empty() {
+                0
+            } else {
+                usize::MAX
+            };
+            for target in &definition.locations {
+                available_distance = available_distance.min(location_distance(
+                    content,
+                    location,
+                    target,
+                    Some(&frontier.state),
+                )?);
+            }
+            if available_distance == usize::MAX {
+                continue;
+            }
             ready_uncovered = ready_uncovered.saturating_add(1);
-            nearest_ready_target = nearest_ready_target.min(target_distance);
-            if target_distance == 0 {
+            nearest_ready_target = nearest_ready_target.min(available_distance);
+            if available_distance == 0 {
                 uncovered_here += 1;
             } else if definition
                 .locations
@@ -465,17 +486,22 @@ fn location_distance(
     content: &CompiledContent,
     start: &str,
     target: &str,
+    available_in: Option<&GameState>,
 ) -> Result<usize, VerifyError> {
     if start == target {
         return Ok(0);
     }
     let mut pending = VecDeque::from([(start.to_owned(), 0usize)]);
     let mut visited = BTreeSet::from([start.to_owned()]);
+    let mut projected = available_in.cloned();
     while let Some((location_id, distance)) = pending.pop_front() {
         let location = content
             .location(&location_id)
             .ok_or_else(|| VerifyError::new("crawler encountered an unknown location"))?;
-        for exit in &location.exits {
+        if let Some(state) = &mut projected {
+            state.world.current_location.clone_from(&location_id);
+        }
+        for exit in location.exits.iter().filter(|_| available_in.is_none()) {
             if exit == target {
                 return Ok(distance + 1);
             }
@@ -484,11 +510,24 @@ fn location_distance(
             }
         }
         for (_, action) in content.actions() {
+            if !action.movement {
+                continue;
+            }
             if !action.locations.is_empty()
                 && !action
                     .locations
                     .iter()
                     .any(|candidate| candidate == &location_id)
+            {
+                continue;
+            }
+            // This is only a search heuristic, never an admitted game state.
+            // Keep current world prerequisites while testing each graph node's
+            // location-dependent movement gates. Actual paths still execute
+            // exclusively through kernel-enumerated canonical actions.
+            if projected
+                .as_ref()
+                .is_some_and(|state| !action.condition.evaluate(state))
             {
                 continue;
             }
@@ -715,6 +754,7 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
         | Effect::AdjustResource { .. }
         | Effect::MoveCharacter { .. }
         | Effect::AdjustNpcRelationship { .. }
+        | Effect::TransferNpcItemToCharacter { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::AddCharacterDeed { .. } => Ok((0, 0)),
@@ -784,7 +824,7 @@ mod tests {
         };
         let report = crawl_production(&content, budget).unwrap();
         assert!(report.is_complete());
-        assert_eq!(report.advertised_definitions.len(), 49);
+        assert_eq!(report.advertised_definitions.len(), 50);
         assert_eq!(report.reached_locations.len(), 6);
         assert!(report.successful_actions >= report.advertised_definitions.len());
         assert!(report.expanded_states <= 96);
@@ -799,12 +839,68 @@ mod tests {
     fn distance_uses_authored_literal_movement_across_gated_edges() {
         let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
         assert_eq!(
-            location_distance(&content, "lowsail.levee", "red_sluice.floor").unwrap(),
+            location_distance(&content, "lowsail.levee", "red_sluice.floor", None).unwrap(),
             1
         );
         assert_eq!(
-            location_distance(&content, "red_sluice.top", "lowsail.return").unwrap(),
+            location_distance(&content, "red_sluice.top", "lowsail.return", None).unwrap(),
             1
+        );
+    }
+
+    #[test]
+    fn ready_target_distance_requires_an_earned_movement_route() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        let apply = |state: GameState, id: &str, destination: Option<&str>| {
+            let action = enumerate_legal_actions(&state, &content)
+                .unwrap()
+                .into_iter()
+                .find(|action| {
+                    action.definition_id == id
+                        && destination.is_none_or(|destination| {
+                            action.parameters.get("destination").map(String::as_str)
+                                == Some(destination)
+                        })
+                })
+                .expect("route regression must use a canonical legal action");
+            step(&state, &action, &content, &state.entropy)
+                .unwrap()
+                .into_state()
+        };
+        let start = content.new_game("rook", 71).unwrap();
+        let docks = apply(start, "travel_adjacent", Some("lowsail.docks"));
+        let carrying = apply(docks, "docks.press_yara", None);
+        assert!(
+            content
+                .action("floor.key_calibration")
+                .unwrap()
+                .condition
+                .evaluate(&carrying)
+        );
+        assert_eq!(
+            location_distance(&content, "lowsail.docks", "red_sluice.floor", None).unwrap(),
+            2
+        );
+        assert_eq!(
+            location_distance(
+                &content,
+                "lowsail.docks",
+                "red_sluice.floor",
+                Some(&carrying)
+            )
+            .unwrap(),
+            usize::MAX
+        );
+        let informed = apply(carrying, "docks.ask_oren", None);
+        assert_eq!(
+            location_distance(
+                &content,
+                "lowsail.docks",
+                "red_sluice.floor",
+                Some(&informed)
+            )
+            .unwrap(),
+            2
         );
     }
 
@@ -824,6 +920,36 @@ mod tests {
                 .to_string()
                 .contains("resolved non-time action checkpoint.read_flag remains legal")
         );
+    }
+
+    #[test]
+    fn exhausted_transfer_retires_without_a_redundant_flag_guard() {
+        let mut draft = parse(SPLIT_TIDE).unwrap();
+        let take_key = draft
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "docks.press_yara")
+            .unwrap();
+        let Condition::All { conditions } = &mut take_key.condition else {
+            panic!("Tide Key action uses a conjunction");
+        };
+        conditions.retain(|condition| {
+            !matches!(condition,
+                Condition::Not { condition }
+                    if matches!(condition.as_ref(), Condition::WorldFlag { flag }
+                        if flag == "tide_key_offered")
+            )
+        });
+        let content = compile_production(draft).unwrap();
+        let report = crawl_production(
+            &content,
+            CrawlBudget {
+                max_expanded_states: 96,
+                ..CrawlBudget::default()
+            },
+        )
+        .expect("source depletion is authoritative retirement even if the guard remains true");
+        assert!(report.is_complete());
     }
 
     #[test]

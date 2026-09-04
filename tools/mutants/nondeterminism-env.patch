@@ -1,20 +1,20 @@
 diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
 --- a/crates/forge-kernel/src/reducer.rs
 +++ b/crates/forge-kernel/src/reducer.rs
-@@ -246,6 +246,9 @@ pub fn enumerate_legal_actions(
-         )?;
+@@ -311,6 +311,9 @@ pub fn enumerate_legal_actions(
+         )));
      }
      actions.sort_by(canonical_action_order);
 +    if std::env::var_os("FORGE_MUTANT_ACTION_ORDER").is_some() {
 +        actions.reverse();
 +    }
-     if actions.len() != total_actions {
-         return Err(KernelError::InvalidContent(format!(
-             "legal action enumeration count mismatch: expected {total_actions}, emitted {}",
+     let mut action_ids = Vec::new();
+     try_reserve(&mut action_ids, actions.len(), "action identity list")?;
+     action_ids.extend(actions.iter().map(|action| action.action_id.as_str()));
 diff --git a/crates/forge-verify/src/crawler.rs b/crates/forge-verify/src/crawler.rs
 --- a/crates/forge-verify/src/crawler.rs
 +++ b/crates/forge-verify/src/crawler.rs
-@@ -327,6 +327,12 @@ fn pop_best_frontier(
+@@ -350,6 +350,12 @@ fn pop_best_frontier(
              best_score = score;
          }
      }
@@ -30,7 +30,7 @@ diff --git a/crates/forge-verify/src/crawler.rs b/crates/forge-verify/src/crawle
 diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/content.rs
 --- a/crates/forge-kernel/src/content.rs
 +++ b/crates/forge-kernel/src/content.rs
-@@ -882,6 +882,9 @@ impl CompiledContent {
+@@ -1319,6 +1319,9 @@ impl CompiledContent {
                  parameters: action.parameters.clone(),
              });
          }
@@ -43,7 +43,7 @@ diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/conten
 diff --git a/crates/forge-verify/src/crawler.rs b/crates/forge-verify/src/crawler.rs
 --- a/crates/forge-verify/src/crawler.rs
 +++ b/crates/forge-verify/src/crawler.rs
-@@ -120,9 +120,12 @@ pub fn crawl_production(
+@@ -124,9 +124,12 @@ pub fn crawl_production(
      validate_budget(budget)?;
      let advertised_definitions: BTreeSet<_> = content.actions().map(|(id, _)| id.clone()).collect();
 +    let process_nonce =

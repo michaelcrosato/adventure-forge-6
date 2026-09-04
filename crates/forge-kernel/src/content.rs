@@ -42,6 +42,8 @@ pub struct NpcDefinition {
     pub values: BTreeSet<String>,
     #[serde(default)]
     pub tags: BTreeSet<String>,
+    #[serde(default)]
+    pub inventory: BTreeMap<String, u32>,
 }
 
 /// A short, data-authored description selected against the authoritative
@@ -583,6 +585,11 @@ pub enum Effect {
         subject: String,
         provenance: KnowledgeProvenance,
     },
+    TransferNpcItemToCharacter {
+        npc: StringRef,
+        item: String,
+        count: u32,
+    },
     AddCharacterDeed {
         deed_id: String,
     },
@@ -615,6 +622,7 @@ impl Effect {
             | Self::AdjustNpcRelationship { .. }
             | Self::AddNpcMemory { .. }
             | Self::TeachNpc { .. }
+            | Self::TransferNpcItemToCharacter { .. }
             | Self::AddCharacterDeed { .. }
             | Self::AdvanceTime { .. } => true,
         }
@@ -652,6 +660,7 @@ fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
+        | Effect::TransferNpcItemToCharacter { .. }
         | Effect::AddCharacterDeed { .. } => Some(ActionTimeCost {
             minimum_ticks: 0,
             maximum_ticks: 0,
@@ -1086,7 +1095,7 @@ impl CompiledContent {
                 relationships: BTreeMap::new(),
                 memories: BTreeMap::new(),
                 knowledge: BTreeMap::new(),
-                inventory: BTreeMap::new(),
+                inventory: definition.inventory.clone(),
                 suspicion: 0,
             };
             locations
@@ -1609,6 +1618,9 @@ impl CompiledContent {
                 errors.push("character has an empty resource key");
             }
         }
+        if self.contract == ContentContract::Production {
+            self.validate_production_inventory(state, &mut errors);
+        }
         if state.entropy.algorithm != self.manifest.entropy_algorithm()
             || state.entropy.validate().is_err()
         {
@@ -1618,6 +1630,95 @@ impl CompiledContent {
             Ok(())
         } else {
             Err(errors)
+        }
+    }
+
+    fn validate_production_inventory(
+        &self,
+        state: &GameState,
+        errors: &mut ContentValidationError,
+    ) {
+        let mut expected_character = match &state.character_start {
+            CharacterStart::Preset {
+                character_preset_id,
+            } => self
+                .character_preset(character_preset_id)
+                .map(|preset| preset.character.inventory.clone()),
+            CharacterStart::Custom { selection } => self
+                .custom_character(selection)
+                .ok()
+                .map(|character| character.inventory),
+            CharacterStart::Fixture => None,
+        };
+        let Some(mut expected_character) = expected_character.take() else {
+            return;
+        };
+
+        let mut expected_npcs = self
+            .npcs
+            .iter()
+            .map(|(id, definition)| (id.clone(), definition.inventory.clone()))
+            .collect::<BTreeMap<_, _>>();
+
+        for (index, event) in state.event_log.iter().enumerate() {
+            let EventKind::NpcItemTransferredToCharacter { npc, item, count } = &event.kind else {
+                continue;
+            };
+            let event_name = format!("inventory transfer event {index}");
+            if event.turn > state.world.time {
+                errors.push(format!(
+                    "{event_name} has future turn {} at world time {}",
+                    event.turn, state.world.time
+                ));
+                continue;
+            }
+            if item.trim().is_empty() || *count == 0 {
+                errors.push(format!("{event_name} has an empty item or zero count"));
+                continue;
+            }
+            let Some(source) = expected_npcs.get(npc) else {
+                errors.push(format!("{event_name} references unknown NPC {npc}"));
+                continue;
+            };
+            let available = source.get(item).copied().unwrap_or_default();
+            if available < *count {
+                errors.push(format!(
+                    "{event_name} exceeds NPC {npc} source balance for {item}"
+                ));
+                continue;
+            }
+            let current = expected_character.get(item).copied().unwrap_or_default();
+            let Some(next) = current.checked_add(*count) else {
+                errors.push(format!(
+                    "{event_name} overflows character inventory for {item}"
+                ));
+                continue;
+            };
+
+            expected_character.insert(item.clone(), next);
+            let source = expected_npcs
+                .get_mut(npc)
+                .expect("source NPC was checked in the expected inventory map");
+            if available == *count {
+                source.remove(item);
+            } else {
+                source.insert(item.clone(), available - *count);
+            }
+        }
+
+        if expected_character != state.character.inventory {
+            errors.push(
+                "production character inventory does not match authored genesis and transfer history",
+            );
+        }
+        for (npc_id, expected) in expected_npcs {
+            if let Some(actual) = state.world.npcs.get(&npc_id)
+                && actual.inventory != expected
+            {
+                errors.push(format!(
+                    "production NPC {npc_id} inventory does not match authored genesis and transfer history"
+                ));
+            }
         }
     }
 }
@@ -1800,6 +1901,14 @@ fn validate_draft(
         }
         if !npc_ids.insert(&npc.id) {
             errors.push(format!("duplicate NPC id {}", npc.id));
+        }
+        for (item, count) in &npc.inventory {
+            if !valid_authored_value(item) || *count == 0 {
+                errors.push(format!(
+                    "NPC {} has an invalid authored inventory entry {}",
+                    npc.id, item
+                ));
+            }
         }
     }
 
@@ -2561,6 +2670,7 @@ fn validate_action(
         &mut roles,
         errors,
         0,
+        true,
     );
     let owner = format!("action {}", action.id);
     validate_knowledge_transfer_guarantees(
@@ -2680,6 +2790,7 @@ fn validate_timed_event(
         &mut roles,
         errors,
         0,
+        false,
     );
     validate_knowledge_transfer_guarantees(
         &event.condition,
@@ -2707,6 +2818,7 @@ fn effect_advances_time(effect: &Effect) -> bool {
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
+        | Effect::TransferNpcItemToCharacter { .. }
         | Effect::AddCharacterDeed { .. } => false,
     }
 }
@@ -2793,6 +2905,7 @@ fn validate_effects(
     roles: &mut BTreeMap<String, BTreeSet<ReferenceRole>>,
     errors: &mut ContentValidationError,
     depth: usize,
+    allow_inventory_transfers: bool,
 ) {
     if depth > 64 {
         errors.push(format!("action {} effect AST exceeds depth 64", action.id));
@@ -2893,6 +3006,30 @@ fn validate_effects(
                 }
                 validate_provenance(provenance, action, npc_ids, errors);
             }
+            Effect::TransferNpcItemToCharacter { npc, item, count } => {
+                validate_reference(
+                    npc,
+                    ReferenceRole::Npc,
+                    action,
+                    location_ids,
+                    npc_ids,
+                    parameters,
+                    roles,
+                    errors,
+                );
+                if item.trim().is_empty() || *count == 0 {
+                    errors.push(format!(
+                        "action {} has an empty item or zero count transfer effect",
+                        action.id
+                    ));
+                }
+                if !allow_inventory_transfers {
+                    errors.push(format!(
+                        "action {} cannot transfer NPC inventory in a timed event",
+                        action.id
+                    ));
+                }
+            }
             Effect::AddCharacterDeed { deed_id } => {
                 if deed_id.trim().is_empty() {
                     errors.push(format!("action {} has an empty deed effect", action.id));
@@ -2915,6 +3052,7 @@ fn validate_effects(
                     roles,
                     errors,
                     depth + 1,
+                    allow_inventory_transfers,
                 );
                 validate_effects(
                     std::slice::from_ref(on_failure),
@@ -2925,6 +3063,7 @@ fn validate_effects(
                     roles,
                     errors,
                     depth + 1,
+                    allow_inventory_transfers,
                 );
             }
             Effect::AdvanceTime { .. } | Effect::Noop => {}
@@ -3085,6 +3224,7 @@ fn guaranteed_npc_knowledge_after_effects(
             | Effect::MoveCharacter { .. }
             | Effect::AdjustNpcRelationship { .. }
             | Effect::AddNpcMemory { .. }
+            | Effect::TransferNpcItemToCharacter { .. }
             | Effect::AddCharacterDeed { .. }
             | Effect::AdvanceTime { .. } => {}
         }
@@ -3433,8 +3573,9 @@ fn merge_character_map<T: Clone>(
 }
 
 /// Fields for which the current effect vocabulary has no mutation operation.
-/// Mutable resources and deeds are intentionally excluded; their provenance
-/// is established by a verified trace from an exact authored genesis.
+/// Mutable resources, deeds, and inventory are intentionally excluded; their
+/// provenance is established by a verified trace from an exact authored
+/// genesis (inventory uses the typed transfer event ledger below).
 fn static_character_fields_match(left: &Character, right: &Character) -> bool {
     left.id == right.id
         && left.lineage == right.lineage
@@ -3449,7 +3590,6 @@ fn static_character_fields_match(left: &Character, right: &Character) -> bool {
         && left.affiliations == right.affiliations
         && left.reputation == right.reputation
         && left.knowledge == right.knowledge
-        && left.inventory == right.inventory
         && left.injuries == right.injuries
         && left.promises == right.promises
         && left.discoveries == right.discoveries
@@ -3488,8 +3628,8 @@ fn select_variant_text(fallback: &str, variants: &[TextVariant], state: &GameSta
 mod tests {
     use super::*;
     use crate::{
-        Character, EntropyState, GameState, Knowledge, KnowledgeProvenance, Memory, NpcState,
-        WorldState,
+        Character, EntropyState, Event, GameState, Knowledge, KnowledgeProvenance, Memory,
+        NpcState, WorldState,
     };
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
@@ -3527,6 +3667,7 @@ mod tests {
                 goals: BTreeSet::new(),
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
+                inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
             actions,
@@ -3664,6 +3805,106 @@ mod tests {
         content
     }
 
+    fn production_content_with_npc_stock(count: u32) -> CompiledContent {
+        let mut content = production_draft(Vec::new());
+        content.npcs[0]
+            .inventory
+            .insert("tide-key".to_owned(), count);
+        compile(content).expect("production stock fixture must compile")
+    }
+
+    #[test]
+    fn npc_inventory_defaults_seeds_new_games_and_rejects_malformed_stocks() {
+        let fixture = compile(draft(Vec::new())).expect("old fixture shape remains valid");
+        assert!(fixture.npc("sava").unwrap().inventory.is_empty());
+        assert!(
+            state(&fixture)
+                .world
+                .npcs
+                .get("sava")
+                .unwrap()
+                .inventory
+                .is_empty()
+        );
+
+        let content = production_content_with_npc_stock(2);
+        let game = content
+            .new_game("hero", 9)
+            .expect("authored NPC stock must seed a new game");
+        assert_eq!(game.world.npcs["sava"].inventory.get("tide-key"), Some(&2));
+
+        let mut empty_key = draft(Vec::new());
+        empty_key.npcs[0].inventory.insert(" ".to_owned(), 1);
+        assert!(
+            compile(empty_key)
+                .unwrap_err()
+                .to_string()
+                .contains("invalid authored inventory entry")
+        );
+
+        let mut zero_count = draft(Vec::new());
+        zero_count.npcs[0]
+            .inventory
+            .insert("tide-key".to_owned(), 0);
+        assert!(
+            compile(zero_count)
+                .unwrap_err()
+                .to_string()
+                .contains("invalid authored inventory entry")
+        );
+    }
+
+    #[test]
+    fn validates_npc_item_transfer_reference_and_count() {
+        let unknown_npc = action(
+            "transfer-unknown",
+            Condition::Always,
+            vec![Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("ghost".to_owned()),
+                item: "tide-key".to_owned(),
+                count: 1,
+            }],
+        );
+        assert!(
+            compile(draft(vec![unknown_npc]))
+                .unwrap_err()
+                .to_string()
+                .contains("references unknown Npc")
+        );
+
+        let zero_count = action(
+            "transfer-zero",
+            Condition::Always,
+            vec![Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava".to_owned()),
+                item: "tide-key".to_owned(),
+                count: 0,
+            }],
+        );
+        assert!(
+            compile(draft(vec![zero_count]))
+                .unwrap_err()
+                .to_string()
+                .contains("zero count transfer effect")
+        );
+
+        let empty_item = action(
+            "transfer-empty-item",
+            Condition::Always,
+            vec![Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava".to_owned()),
+                item: " ".to_owned(),
+                count: 1,
+            }],
+        );
+        assert!(
+            compile(draft(vec![empty_item]))
+                .unwrap_err()
+                .to_string()
+                .contains("empty item or zero count transfer effect")
+        );
+    }
+
     #[test]
     fn timed_events_validate_closed_effects_and_compile_into_identity() {
         let mut source = draft(vec![action(
@@ -3711,6 +3952,55 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("cannot advance time while resolving")
+        );
+    }
+
+    #[test]
+    fn rejects_npc_item_transfer_in_timed_events_including_random_branches() {
+        let mut direct = draft(Vec::new());
+        direct.timed_events.push(TimedEventDefinition {
+            id: "transfer.deadline".to_owned(),
+            due_time: 1,
+            event_kind: "deadline".to_owned(),
+            label: "Transfer deadline".to_owned(),
+            result: "The transfer deadline arrives.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava".to_owned()),
+                item: "tide-key".to_owned(),
+                count: 1,
+            }],
+        });
+        assert!(
+            compile(direct)
+                .unwrap_err()
+                .to_string()
+                .contains("cannot transfer NPC inventory in a timed event")
+        );
+
+        let mut nested = draft(Vec::new());
+        nested.timed_events.push(TimedEventDefinition {
+            id: "transfer.random".to_owned(),
+            due_time: 1,
+            event_kind: "deadline".to_owned(),
+            label: "Random transfer".to_owned(),
+            result: "The random transfer resolves.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(Effect::TransferNpcItemToCharacter {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    item: "tide-key".to_owned(),
+                    count: 1,
+                }),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        });
+        assert!(
+            compile(nested)
+                .unwrap_err()
+                .to_string()
+                .contains("cannot transfer NPC inventory in a timed event")
         );
     }
 
@@ -3920,6 +4210,208 @@ mod tests {
             character(),
             EntropyState::new(9),
         )
+    }
+
+    fn transfer_event(turn: u64, npc: &str, item: &str, count: u32) -> Event {
+        Event {
+            turn,
+            kind: EventKind::NpcItemTransferredToCharacter {
+                npc: npc.to_owned(),
+                item: item.to_owned(),
+                count,
+            },
+        }
+    }
+
+    #[test]
+    fn production_inventory_requires_genesis_and_typed_transfer_history() {
+        let content = production_content_with_npc_stock(2);
+        let initial = content
+            .new_game("hero", 9)
+            .expect("production stock fixture must produce a valid game");
+
+        let mut injected = initial.clone();
+        injected
+            .character
+            .inventory
+            .insert("tide-key".to_owned(), 1);
+        let error = content
+            .validate_state(&injected)
+            .expect_err("inventory injection without an event must be rejected");
+        assert!(error.to_string().contains("character inventory"));
+
+        let mut redistributed = initial.clone();
+        redistributed
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .remove("tide-key");
+        redistributed
+            .character
+            .inventory
+            .insert("tide-key".to_owned(), 1);
+        assert!(content.validate_state(&redistributed).is_err());
+
+        let mut transferred = initial;
+        transferred
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .clear();
+        transferred
+            .character
+            .inventory
+            .insert("tide-key".to_owned(), 2);
+        transferred
+            .event_log
+            .push(transfer_event(0, "sava", "tide-key", 1));
+        transferred
+            .event_log
+            .push(transfer_event(0, "sava", "tide-key", 1));
+        content
+            .validate_state(&transferred)
+            .expect("ordered typed transfer history must admit the resulting stocks");
+    }
+
+    #[test]
+    fn production_custom_character_inventory_progresses_through_transfer_history() {
+        let mut source = production_draft(Vec::new());
+        source.npcs[0].inventory.insert("tide-key".to_owned(), 1);
+        source
+            .character_creation
+            .as_mut()
+            .unwrap()
+            .base
+            .inventory
+            .insert("birth-token".to_owned(), 1);
+        let content = compile(source).unwrap();
+        let selection = CharacterSelection {
+            name: "Mara Venn".to_owned(),
+            choices: vec![
+                CharacterChoiceSelection {
+                    slot_id: "path".to_owned(),
+                    choice_id: "clerk".to_owned(),
+                },
+                CharacterChoiceSelection {
+                    slot_id: "lineage".to_owned(),
+                    choice_id: "fenborn".to_owned(),
+                },
+            ],
+        };
+        let mut game = content
+            .new_custom_game(&selection, 9)
+            .expect("custom authored inventory must seed a new game");
+        assert_eq!(game.character.inventory.get("birth-token"), Some(&1));
+        game.world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .remove("tide-key");
+        game.character.inventory.insert("tide-key".to_owned(), 1);
+        game.event_log
+            .push(transfer_event(0, "sava", "tide-key", 1));
+        content
+            .validate_state(&game)
+            .expect("custom genesis plus transfer history must validate");
+    }
+
+    #[test]
+    fn rejects_bad_production_inventory_transfer_history() {
+        let content = production_content_with_npc_stock(2);
+
+        let mut future = content.new_game("hero", 9).unwrap();
+        future
+            .event_log
+            .push(transfer_event(1, "sava", "tide-key", 1));
+        assert!(
+            content
+                .validate_state(&future)
+                .unwrap_err()
+                .to_string()
+                .contains("future turn")
+        );
+
+        let mut unknown_source = content.new_game("hero", 9).unwrap();
+        unknown_source
+            .event_log
+            .push(transfer_event(0, "ghost", "tide-key", 1));
+        assert!(
+            content
+                .validate_state(&unknown_source)
+                .unwrap_err()
+                .to_string()
+                .contains("references unknown NPC")
+        );
+
+        let mut overdrawn = content.new_game("hero", 9).unwrap();
+        overdrawn
+            .event_log
+            .push(transfer_event(0, "sava", "tide-key", 3));
+        assert!(
+            content
+                .validate_state(&overdrawn)
+                .unwrap_err()
+                .to_string()
+                .contains("source balance")
+        );
+
+        let mut zero_count = content.new_game("hero", 9).unwrap();
+        zero_count
+            .event_log
+            .push(transfer_event(0, "sava", "tide-key", 0));
+        assert!(
+            content
+                .validate_state(&zero_count)
+                .unwrap_err()
+                .to_string()
+                .contains("empty item or zero count")
+        );
+
+        let mut overflow_source = production_draft(Vec::new());
+        overflow_source.npcs[0]
+            .inventory
+            .insert("tide-key".to_owned(), 2);
+        overflow_source.character_presets[0]
+            .character
+            .inventory
+            .insert("tide-key".to_owned(), u32::MAX);
+        let overflow_content = compile(overflow_source).unwrap();
+        let mut overflow = overflow_content.new_game("hero", 9).unwrap();
+        overflow
+            .event_log
+            .push(transfer_event(0, "sava", "tide-key", 1));
+        assert!(
+            overflow_content
+                .validate_state(&overflow)
+                .unwrap_err()
+                .to_string()
+                .contains("overflows character inventory")
+        );
+    }
+
+    #[test]
+    fn fixture_inventory_remains_structurally_flexible() {
+        let content = compile(draft(Vec::new())).unwrap();
+        let mut state = state(&content);
+        state
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("raw-fixture-item".to_owned(), 1);
+        state
+            .character
+            .inventory
+            .insert("raw-fixture-item".to_owned(), 1);
+        content
+            .validate_state(&state)
+            .expect("fixture states retain raw inventory flexibility");
     }
 
     #[test]

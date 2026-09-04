@@ -30,6 +30,8 @@ cargo run -p forge-verify -- check-player rook.trace.json
 
 Catalog search includes the visible consequence previews. NPC information also has a delivery path: ringing Lowsail's warning teaches Oren, and relaying it from the levee teaches Edrik and unlocks his relief-channel help. Discovering a distant event does not automatically make an NPC know it.
 
+The Tide Key is a persistent item: taking it removes it from Yara's stock and opens `Calibrate Gate` at Red Sluice Floor. That provides another preparation route to Split Flow. Save/resume reconstructs the same ownership and calibration through canonical actions. Saves remain tied to their exact game build; this schema/rules change does not silently migrate older saves.
+
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.
@@ -49,7 +51,7 @@ An accepted run requires clean `main` equal to `origin/main`, compiles the lates
 
 The globally installed Vercel plugin remains available to the manager but is disabled and absent from the blind player's isolated Codex home. Successful local reports are written under `artifacts/local/live-blind-llm/`. They preserve the model-authored findings, public transcript, player-safe trace, Codex events, prompt-context audit, tool allowlist, hashes, timing, token usage, and independent replay result. Codex currently injects generic host skill and developer context even with callable development features disabled, so these reports claim source-isolated model play—not a strict proof that every model-visible token came from the game interface.
 
-All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, the missed-surge deadline through its disaster ending, all five chosen Split Tide outcomes, and one representative path through each authored area:
+All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, the missed-surge deadline through its disaster ending, all five chosen Split Tide outcomes, one representative path through each authored area, a matched warning-delivery pair, and the Tide Key's ownership-to-Split-Flow path:
 
 ```bash
 cargo run -p forge-verify -- scenarios
@@ -60,12 +62,13 @@ cargo run -p forge-verify -- check evidence/witnesses/m1-custom-cross-current.js
 cargo run -p forge-verify -- check evidence/witnesses/m1-deadline-missed-surge.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-outcome-split-flow.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-area-red-sluice.json
+cargo run -p forge-verify -- check evidence/witnesses/m1-tide-key-split-flow.json
 cargo run -p forge-verify -- check-scale evidence/scale/synthetic-ring-500.json
 ```
 
 Each scenario has an opaque binding over its ID, canonical authored start, seed, complete parameter maps, ordered action recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. JSON inputs are preflighted for duplicate object keys before typed decoding. Area witnesses are representative contract evidence, not a claim of final world depth.
 
-The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 49 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
+The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 50 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
 
 The separate scale fixture compiles exactly 500 terminal synthetic locations in a reciprocal ring, admits their exact runtime ID set, independently proves graph reachability, and completes 500 kernel-enumerated travel transitions back to its start. It reconstructs every page of every travel-state catalog under fixed graph-frontier, catalog-work, and serialization ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. This proves engine and compiler capacity only; the generated nodes are not game content and do not count as authored breadth, area depth, or Skyrim parity.
 

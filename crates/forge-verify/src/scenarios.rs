@@ -24,6 +24,7 @@ const REQUIRED_SCENARIO_IDS: &[&str] = &[
     "m1-outcome-overload-disaster",
     "m1-area-lowsail-market",
     "m1-area-red-sluice",
+    "m1-tide-key-split-flow",
     "m1-warning-unrelayed",
     "m1-warning-relayed",
 ];
@@ -64,6 +65,18 @@ struct ScenarioNpcKnowledgeAbsence {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioInventoryExpectation {
+    item: &'static str,
+    count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcInventoryAbsence {
+    npc: &'static str,
+    item: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(super) struct ScenarioExpectations {
     final_location: &'static str,
     final_action_definition: &'static str,
@@ -78,6 +91,8 @@ pub(super) struct ScenarioExpectations {
     required_visited_locations: &'static [&'static str],
     required_npc_knowledge: &'static [ScenarioNpcKnowledgeExpectation],
     forbidden_npc_knowledge: &'static [ScenarioNpcKnowledgeAbsence],
+    required_character_inventory: &'static [ScenarioInventoryExpectation],
+    forbidden_npc_inventory: &'static [ScenarioNpcInventoryAbsence],
     required_legal_definitions: &'static [&'static str],
     forbidden_legal_definitions: &'static [&'static str],
 }
@@ -316,6 +331,42 @@ const RED_SLUICE_AREA_STEPS: &[ScenarioStep] = &[
     action!("return.share_water"),
 ];
 
+const TIDE_KEY_SPLIT_FLOW_STEPS: &[ScenarioStep] = &[
+    action!("travel_adjacent", "destination" => "lowsail.docks"),
+    action!("docks.press_yara"),
+    action!("docks.ask_oren"),
+    action!("travel_adjacent", "destination" => "lowsail.levee"),
+    action!("levee.culvert_path"),
+    action!("floor.key_calibration"),
+    action!("travel_adjacent", "destination" => "red_sluice.top"),
+    action!("top.check_wheels"),
+    action!("top.split_flow"),
+    action!("world.enter_aftermath"),
+    action!("return.share_water"),
+];
+
+const TIDE_KEY_CHARACTER_INVENTORY: &[ScenarioInventoryExpectation] =
+    &[ScenarioInventoryExpectation {
+        item: "split_tide.tide_key",
+        count: 1,
+    }];
+
+const TIDE_KEY_YARA_INVENTORY_ABSENCE: &[ScenarioNpcInventoryAbsence] =
+    &[ScenarioNpcInventoryAbsence {
+        npc: "yara_dene",
+        item: "split_tide.tide_key",
+    }];
+
+#[cfg(test)]
+const WRONG_TIDE_KEY_CHARACTER_INVENTORY: &[ScenarioInventoryExpectation] =
+    &[ScenarioInventoryExpectation {
+        item: "split_tide.tide_key",
+        count: 2,
+    }];
+
+#[cfg(test)]
+const EMPTY_NPC_INVENTORY_ABSENCE: &[ScenarioNpcInventoryAbsence] = &[];
+
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m0-ilyan",
@@ -339,6 +390,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -365,6 +418,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -392,6 +447,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -419,6 +476,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -459,6 +518,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_visited_locations: &["lowsail_market", "lowsail.return"],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -509,6 +570,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -560,6 +623,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -591,6 +656,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: OREN_MARKET_WARNING_KNOWLEDGE,
             forbidden_npc_knowledge: UNRELAYED_FORBIDDEN_NPC_KNOWLEDGE,
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &["floor.open_relief"],
         },
@@ -625,6 +692,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: RELAYED_REQUIRED_NPC_KNOWLEDGE,
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &["floor.open_relief"],
             forbidden_legal_definitions: &[],
         },
@@ -677,6 +746,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -726,6 +797,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -777,6 +850,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -837,6 +912,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -901,6 +978,67 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_character_inventory: &[],
+            forbidden_npc_inventory: &[],
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: OUTCOME_DEFINITIONS,
+        },
+    },
+    ScenarioSpec {
+        id: "m1-tide-key-split-flow",
+        claim_id: "split-tide.witness.tide-key-split-flow",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
+        seed: 71,
+        steps: TIDE_KEY_SPLIT_FLOW_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "lowsail.return",
+            final_action_definition: "return.share_water",
+            final_observation_contains: "Mira records the shared flow as a new market charter.",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(11),
+            exclusive_after_action: "top.split_flow",
+            required_world_flags: &[
+                "tide_key_offered",
+                "sluice_calibrated",
+                "sluice_outcome_chosen",
+                "flow_split",
+                "ending_accord",
+            ],
+            forbidden_world_flags: &[
+                "flow_locked_market",
+                "flow_relief",
+                "old_channel_open",
+                "sluice_failure",
+                "ending_council",
+                "ending_relief",
+                "ending_freedom",
+                "ending_disaster",
+            ],
+            required_location_flags: &[
+                ("red_sluice.floor", "culvert_entry"),
+                ("red_sluice.top", "wheels_checked"),
+                ("lowsail.return", "market_stable"),
+            ],
+            required_deeds: &[
+                "won_tide_key",
+                "calibrated_with_tide_key",
+                "shared_water",
+                "returned_for_accord",
+            ],
+            required_visited_locations: &[
+                "lowsail_market",
+                "lowsail.docks",
+                "lowsail.levee",
+                "red_sluice.floor",
+                "red_sluice.top",
+                "lowsail.return",
+            ],
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[],
+            required_character_inventory: TIDE_KEY_CHARACTER_INVENTORY,
+            forbidden_npc_inventory: TIDE_KEY_YARA_INVENTORY_ABSENCE,
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1059,6 +1197,11 @@ pub(super) fn validate_session(
             ));
         }
     }
+    validate_inventory(
+        state,
+        expected.required_character_inventory,
+        expected.forbidden_npc_inventory,
+    )?;
 
     let mut visited = BTreeSet::new();
     visited.insert(session.trace().initial_observation.location_id.as_str());
@@ -1125,6 +1268,37 @@ fn validate_forbidden_actions(
     forbidden: &[&str],
 ) -> Result<(), VerifyError> {
     validate_legal_set(state, content, &[], forbidden)
+}
+
+fn validate_inventory(
+    state: &forge_kernel::GameState,
+    required_character: &[ScenarioInventoryExpectation],
+    forbidden_npc: &[ScenarioNpcInventoryAbsence],
+) -> Result<(), VerifyError> {
+    for expected in required_character {
+        let actual = state.character.inventory.get(expected.item).copied();
+        if actual != Some(expected.count) {
+            return Err(VerifyError::new(format!(
+                "scenario character inventory has the wrong count for {}",
+                expected.item
+            )));
+        }
+    }
+    for expected in forbidden_npc {
+        let npc = state.world.npcs.get(expected.npc).ok_or_else(|| {
+            VerifyError::new(format!(
+                "scenario references unknown NPC {} for inventory assertion",
+                expected.npc
+            ))
+        })?;
+        if npc.inventory.contains_key(expected.item) {
+            return Err(VerifyError::new(format!(
+                "scenario NPC {} still owns forbidden item {}",
+                expected.npc, expected.item
+            )));
+        }
+    }
+    Ok(())
 }
 
 fn validate_legal_set(
@@ -1354,6 +1528,20 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
             return Err(VerifyError::new(
                 "scenario exclusivity assertion is not bound to exactly one recipe action",
             ));
+        }
+        for expected in spec.expectations.required_character_inventory {
+            if expected.item.trim().is_empty() || expected.count == 0 {
+                return Err(VerifyError::new(
+                    "scenario character inventory assertions must name a positive item count",
+                ));
+            }
+        }
+        for expected in spec.expectations.forbidden_npc_inventory {
+            if expected.npc.trim().is_empty() || expected.item.trim().is_empty() {
+                return Err(VerifyError::new(
+                    "scenario NPC inventory assertions must name an NPC and item",
+                ));
+            }
         }
         let mut normalized_steps = Vec::with_capacity(spec.steps.len());
         for step in spec.steps {
@@ -1605,5 +1793,67 @@ mod tests {
         changed_expectations.final_world_time = Some(7);
         changed.expectations = changed_expectations;
         assert_ne!(original_binding, binding(&changed).unwrap());
+    }
+
+    #[test]
+    fn tide_key_inventory_checks_reject_wrong_count_and_owner() {
+        let content = crate::load_content().unwrap();
+        let spec = get("m1-tide-key-split-flow").unwrap();
+        let session = run(spec, &content).unwrap();
+        validate_inventory(
+            session.state(),
+            spec.expectations.required_character_inventory,
+            spec.expectations.forbidden_npc_inventory,
+        )
+        .unwrap();
+
+        let mut wrong_count = session.state().clone();
+        wrong_count
+            .character
+            .inventory
+            .insert("split_tide.tide_key".to_owned(), 2);
+        assert!(
+            validate_inventory(
+                &wrong_count,
+                spec.expectations.required_character_inventory,
+                spec.expectations.forbidden_npc_inventory,
+            )
+            .is_err()
+        );
+
+        let mut wrong_owner = session.state().clone();
+        wrong_owner
+            .world
+            .npcs
+            .get_mut("yara_dene")
+            .unwrap()
+            .inventory
+            .insert("split_tide.tide_key".to_owned(), 1);
+        assert!(
+            validate_inventory(
+                &wrong_owner,
+                spec.expectations.required_character_inventory,
+                spec.expectations.forbidden_npc_inventory,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn tide_key_inventory_postconditions_are_binding_material() {
+        let spec = get("m1-tide-key-split-flow").unwrap();
+        let original_binding = binding(spec).unwrap();
+
+        let mut wrong_count = *spec;
+        let mut wrong_count_expectations = wrong_count.expectations;
+        wrong_count_expectations.required_character_inventory = WRONG_TIDE_KEY_CHARACTER_INVENTORY;
+        wrong_count.expectations = wrong_count_expectations;
+        assert_ne!(original_binding, binding(&wrong_count).unwrap());
+
+        let mut missing_absence = *spec;
+        let mut missing_absence_expectations = missing_absence.expectations;
+        missing_absence_expectations.forbidden_npc_inventory = EMPTY_NPC_INVENTORY_ABSENCE;
+        missing_absence.expectations = missing_absence_expectations;
+        assert_ne!(original_binding, binding(&missing_absence).unwrap());
     }
 }

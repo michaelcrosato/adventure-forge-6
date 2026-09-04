@@ -1,0 +1,397 @@
+{
+  "format_version": "forge-evidence-witness-v3",
+  "verifier_id": "c359b65e18d20b9f0325508af2199198f3219d1109ab93814f8e15e7e50aab44",
+  "scenario_id": "m1-tide-key-split-flow",
+  "scenario_binding": "f93e453b7a388569fb8dc2bbad35a2e603f3554510b64b3aa413647d892dff52",
+  "player_trace": {
+    "format_version": "forge-player-trace-v2",
+    "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+    "start": {
+      "kind": "character_preset",
+      "character_preset_id": "rook",
+      "seed": 71
+    },
+    "action_ids": [
+      "2063b3b25613ae4cd9e5b130e5184c05fce5290d9b1d293be8856f4e552b6319",
+      "84a3c8e14d5032108fd26c08eb9279daeca576d3cde6a8629fd42a9a93ac3bf3",
+      "72b46903ba584ca288badbf7f38e53495351677ad31a4716085683e09642b75a",
+      "29163060d3bcd9e45ad5483ad95cb05a6f5166b7448cf2b427cb389aab387cb0",
+      "6ada4741f601dd4e0f4112fc64d9add12b82b3ac73b50c8eef04c6ac038d2570",
+      "a3f883acb05134cd768d64f25326f3a1c964ef7b9afe0388710efff0ead545be",
+      "9f59016bfce29a71617e205e6905b3864dec7b25b5dd5b755b70188fc4d91300",
+      "fb524f4fc77bb819419c218d31977bd74af6d4bd8ee0490f04521385914d6afe",
+      "03f9047ec04d66612b065ff604f4b2a6eb975240c21d04aaebd7fcd0f54f55f1",
+      "1869e397c170595f0e7a5e8cb938f0cfda74ec7622d5fd1fe8d5f9741f841206",
+      "b96b5152096bd40a734bb891d67609c7d9dcd1b4ecf315f9e8d621327db10780"
+    ],
+    "final_state_id": "362ab05727637d6266a3d9669fd83e4c1a6966ee7a86bf1bcebb885f2dcc116d",
+    "final_receipt": "8df51dd150ce259c1b272dc9fde9e8a95f95077dd2791209bfad4b16c825b4bf"
+  },
+  "initial_state_id": "9eb6a5ca423494ac7c6f2576ab9b56561083c1a03301babbe629c503dcddbaf6",
+  "initial_observation": {
+    "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+    "state_id": "9eb6a5ca423494ac7c6f2576ab9b56561083c1a03301babbe629c503dcddbaf6",
+    "location_id": "lowsail_market",
+    "title": "Lowsail Checkpoint",
+    "text": "Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
+    "result": null,
+    "world_time": 0,
+    "upcoming_events": [
+      {
+        "label": "Lowsail surge",
+        "remaining_ticks": 16
+      }
+    ],
+    "action_set_digest": "d34e248639054d096b8f35f650940e01737f050dfd301e293befe57bcc77623d",
+    "action_count": 8
+  },
+  "initial_observation_hash": "4cde0471e8da1adce5cdadfb6c5459f2a8b6e9e05b1a218b6db8f3b374508c85",
+  "initial_receipt": "18c50606990dca6534b58d953ad77d04c998d4ea5bfdeae251279b12fb66a572",
+  "steps": [
+    {
+      "step_index": 0,
+      "action_id": "2063b3b25613ae4cd9e5b130e5184c05fce5290d9b1d293be8856f4e552b6319",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "lowsail.docks"
+      },
+      "legal_action_set_digest": "d34e248639054d096b8f35f650940e01737f050dfd301e293befe57bcc77623d",
+      "pre_state_id": "9eb6a5ca423494ac7c6f2576ab9b56561083c1a03301babbe629c503dcddbaf6",
+      "events_hash": "c4090373c2115a56fb1d5e2dc4176e14a24f5929f07644b2ef16a96d5fcd489c",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "bca5bb0578778bc8e6e64a2998d5921b1dd769d2695bebbbc7b308bbd5d92b49",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "bca5bb0578778bc8e6e64a2998d5921b1dd769d2695bebbbc7b308bbd5d92b49",
+        "location_id": "lowsail.docks",
+        "title": "Lowsail Docks",
+        "text": "You move along the connected path. Boats knock against the docks. Oren watches a courier skiff beside a locked tide chest.",
+        "result": "You move along the connected path.",
+        "world_time": 1,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 15
+          }
+        ],
+        "action_set_digest": "6fdfe6270912a95f23edad27404eb7ec12b9b5e3744664eced6b36cf36341ab1",
+        "action_count": 8
+      },
+      "observation_hash": "72f1498fde397225e6aeaff62803bc36116b1fa83cf78ea847f5e0bc2ad834d3",
+      "receipt": "44000069f8c79431104906a9335967810d4d59a7ab22775a113ccd3a5e028cf6"
+    },
+    {
+      "step_index": 1,
+      "action_id": "84a3c8e14d5032108fd26c08eb9279daeca576d3cde6a8629fd42a9a93ac3bf3",
+      "action_definition_id": "docks.press_yara",
+      "action_parameters": {},
+      "legal_action_set_digest": "6fdfe6270912a95f23edad27404eb7ec12b9b5e3744664eced6b36cf36341ab1",
+      "pre_state_id": "bca5bb0578778bc8e6e64a2998d5921b1dd769d2695bebbbc7b308bbd5d92b49",
+      "events_hash": "b91dd425a0cc690065460d30ea458ccac8eb7d3314603b704dc987dae6f8e011",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "85a0d7c4f776384bc30cbe90c671befae0a9f4efac26cb7093fe32838ded517e",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "85a0d7c4f776384bc30cbe90c671befae0a9f4efac26cb7093fe32838ded517e",
+        "location_id": "lowsail.docks",
+        "title": "Lowsail Docks",
+        "text": "Yara hands you the Tide Key. Use Calibrate Gate at Red Sluice Floor to prepare a safe split. You carry the Tide Key; Yara watches the skiff with open hands.",
+        "result": "Yara hands you the Tide Key. Use Calibrate Gate at Red Sluice Floor to prepare a safe split.",
+        "world_time": 2,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 14
+          }
+        ],
+        "action_set_digest": "e5503a07d1a1d0a9a39555d1c5f21cff0fef45b828b6299c923aebac750a7661",
+        "action_count": 7
+      },
+      "observation_hash": "8b45dbe298f15437f34a1519654e335050c15c9aa406b49bfc8fb0ef4c60ba7b",
+      "receipt": "566c288cfc15744e7c110f9bb5181fd6a231b05e45db5f77133f2def7c9bad56"
+    },
+    {
+      "step_index": 2,
+      "action_id": "72b46903ba584ca288badbf7f38e53495351677ad31a4716085683e09642b75a",
+      "action_definition_id": "docks.ask_oren",
+      "action_parameters": {},
+      "legal_action_set_digest": "e5503a07d1a1d0a9a39555d1c5f21cff0fef45b828b6299c923aebac750a7661",
+      "pre_state_id": "85a0d7c4f776384bc30cbe90c671befae0a9f4efac26cb7093fe32838ded517e",
+      "events_hash": "d8d176de69585e24490fc9a6130d0b292ae500b83b6acb1514c7389591d6e376",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "6e58a670943dcfed6539808bd71ba3c8385001b05100fdbcbf17d03e2a33a7f0",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "6e58a670943dcfed6539808bd71ba3c8385001b05100fdbcbf17d03e2a33a7f0",
+        "location_id": "lowsail.docks",
+        "title": "Lowsail Docks",
+        "text": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll. You carry the Tide Key; Yara watches the skiff with open hands.",
+        "result": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll.",
+        "world_time": 3,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 13
+          }
+        ],
+        "action_set_digest": "ec1dff9ce3a64c0424942f98f12f032e1b18626613add895d860c122282cced6",
+        "action_count": 6
+      },
+      "observation_hash": "9415b53ba0c1acdbc0a281e1081f78371ee91adf8040307460fe4f89cb81d651",
+      "receipt": "c899bbaa07efeab71ca7fd968b0a0bb258ca1f9683cdb683adcc2e920be73c1d"
+    },
+    {
+      "step_index": 3,
+      "action_id": "29163060d3bcd9e45ad5483ad95cb05a6f5166b7448cf2b427cb389aab387cb0",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "lowsail.levee"
+      },
+      "legal_action_set_digest": "ec1dff9ce3a64c0424942f98f12f032e1b18626613add895d860c122282cced6",
+      "pre_state_id": "6e58a670943dcfed6539808bd71ba3c8385001b05100fdbcbf17d03e2a33a7f0",
+      "events_hash": "034eb4ec88b2101286fa4ae45da4a524b4ff0bea89dca6b5b7a9570c2c5d67b6",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "27885cd31c77a5130d3b8044ef8cdc736d6d07cbadbbbd420a2349c3cd3f477d",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "27885cd31c77a5130d3b8044ef8cdc736d6d07cbadbbbd420a2349c3cd3f477d",
+        "location_id": "lowsail.levee",
+        "title": "Lowsail Levee",
+        "text": "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment.",
+        "result": "You move along the connected path.",
+        "world_time": 4,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 12
+          }
+        ],
+        "action_set_digest": "7578f06b8aa5502dce3f1a8680e58a82c799e933813d53446958ceee65f13e9a",
+        "action_count": 5
+      },
+      "observation_hash": "3b193d887a387c22edaa1fe1bcba45ddc4fcc78aa34ac77c66cbbc8543992731",
+      "receipt": "153eda13d157f7507b834d863445254c090b34a18588e3ed97e80ed98764f1da"
+    },
+    {
+      "step_index": 4,
+      "action_id": "6ada4741f601dd4e0f4112fc64d9add12b82b3ac73b50c8eef04c6ac038d2570",
+      "action_definition_id": "levee.culvert_path",
+      "action_parameters": {},
+      "legal_action_set_digest": "7578f06b8aa5502dce3f1a8680e58a82c799e933813d53446958ceee65f13e9a",
+      "pre_state_id": "27885cd31c77a5130d3b8044ef8cdc736d6d07cbadbbbd420a2349c3cd3f477d",
+      "events_hash": "985c0f754e539f70eaaeef605e92e7047f30d6e2723131ea10f4da5132612514",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "f7fddf7e527f3f8b72f034fb646a2de594b243ab660745935a3cdab6522565e9",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "f7fddf7e527f3f8b72f034fb646a2de594b243ab660745935a3cdab6522565e9",
+        "location_id": "red_sluice.floor",
+        "title": "Red Sluice Floor",
+        "text": "The hidden culvert opens below the Sluice. Heat marks reveal stress above the intake.",
+        "result": "The hidden culvert opens below the Sluice.",
+        "world_time": 5,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 11
+          }
+        ],
+        "action_set_digest": "698117f45ba95c9d3a92a4e7a4a84c198324ef273f02e670634142a1c4e0b7d0",
+        "action_count": 7
+      },
+      "observation_hash": "4ab9829bb21c057e47a5e286ac1d511e2351ad5ecfbcde6d382c827bb03552b6",
+      "receipt": "b8f5aa2c6464b71ddd912ca603c9618e12ad51176c9877c8afcf48909d1df8dc"
+    },
+    {
+      "step_index": 5,
+      "action_id": "a3f883acb05134cd768d64f25326f3a1c964ef7b9afe0388710efff0ead545be",
+      "action_definition_id": "floor.key_calibration",
+      "action_parameters": {},
+      "legal_action_set_digest": "698117f45ba95c9d3a92a4e7a4a84c198324ef273f02e670634142a1c4e0b7d0",
+      "pre_state_id": "f7fddf7e527f3f8b72f034fb646a2de594b243ab660745935a3cdab6522565e9",
+      "events_hash": "aca75d6f2f873aa83b9885100e9968b6c395b39f35f4ac75627821c54eb4296c",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "93ea0ac5dc598a2254f4ff16fd2edf0191604c7becbb0e8d75aeffa1ba0034fb",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "93ea0ac5dc598a2254f4ff16fd2edf0191604c7becbb0e8d75aeffa1ba0034fb",
+        "location_id": "red_sluice.floor",
+        "title": "Red Sluice Floor",
+        "text": "The Tide Key aligns the gate. Check Wheels at Red Sluice Top, then choose Split Flow. The broken gauge hums in a safe pattern and Edrik sees a shared route.",
+        "result": "The Tide Key aligns the gate. Check Wheels at Red Sluice Top, then choose Split Flow.",
+        "world_time": 6,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 10
+          }
+        ],
+        "action_set_digest": "bd9771c4fcfb26fe8c377ed0bfa748518ff013bf800859d7fe320b1e1d865415",
+        "action_count": 6
+      },
+      "observation_hash": "bf24bacc3dcdfda05c1da29df2c1de5674e1d5dec9151919f176723b318433d9",
+      "receipt": "4a206d4cdb099d304cccf95935469227c42f456336e3de8468fd3390a7e9e675"
+    },
+    {
+      "step_index": 6,
+      "action_id": "9f59016bfce29a71617e205e6905b3864dec7b25b5dd5b755b70188fc4d91300",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "red_sluice.top"
+      },
+      "legal_action_set_digest": "bd9771c4fcfb26fe8c377ed0bfa748518ff013bf800859d7fe320b1e1d865415",
+      "pre_state_id": "93ea0ac5dc598a2254f4ff16fd2edf0191604c7becbb0e8d75aeffa1ba0034fb",
+      "events_hash": "3e2b13d1ac84526d30491761127adb5bf32a218ec579a64a50fabc6c3d1a2947",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "dc36ee0b4092415284a413e0139e0e44ed251d9bf78105c019788c712fedd26e",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "dc36ee0b4092415284a413e0139e0e44ed251d9bf78105c019788c712fedd26e",
+        "location_id": "red_sluice.top",
+        "title": "Red Sluice Top",
+        "text": "You move along the connected path. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
+        "result": "You move along the connected path.",
+        "world_time": 7,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 9
+          }
+        ],
+        "action_set_digest": "964802d0f3c7d47bae397f97179ac63df6391a58ab39fc435c5344533fbb7c0d",
+        "action_count": 5
+      },
+      "observation_hash": "49a79fb0c9e30e84e53646fbc49d8f23c6e6c087283c6f7737ca87b7bf363a5f",
+      "receipt": "210fad571ed91dda0fb4fa81abb3646e8a859ffce306550123c106cfab90dc43"
+    },
+    {
+      "step_index": 7,
+      "action_id": "fb524f4fc77bb819419c218d31977bd74af6d4bd8ee0490f04521385914d6afe",
+      "action_definition_id": "top.check_wheels",
+      "action_parameters": {},
+      "legal_action_set_digest": "964802d0f3c7d47bae397f97179ac63df6391a58ab39fc435c5344533fbb7c0d",
+      "pre_state_id": "dc36ee0b4092415284a413e0139e0e44ed251d9bf78105c019788c712fedd26e",
+      "events_hash": "0ba52716b220c14c393ebe01fa3875dc0a930d10c3a4010df6e6414fb486e5d2",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "60facd2ab9355f738de4b6328a2213e38861a0220e2c20eb85c984f87525a7c9",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "60facd2ab9355f738de4b6328a2213e38861a0220e2c20eb85c984f87525a7c9",
+        "location_id": "red_sluice.top",
+        "title": "Red Sluice Top",
+        "text": "The control wheels turn, but the split still needs a choice. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
+        "result": "The control wheels turn, but the split still needs a choice.",
+        "world_time": 8,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 8
+          }
+        ],
+        "action_set_digest": "bd90a2005e8050b0f2a169cf105c6e43a2341d6e01acd9d9a2f1656981868ee4",
+        "action_count": 5
+      },
+      "observation_hash": "6d8f59a1da39486fca35d76eccb3ecde7f003914b249aa3f7ac45acaf4a85069",
+      "receipt": "3787f3cfbb9ffe1fdbe14798b32ac9cc1a1b5b349466a12b1722fc5f88f6e5f9"
+    },
+    {
+      "step_index": 8,
+      "action_id": "03f9047ec04d66612b065ff604f4b2a6eb975240c21d04aaebd7fcd0f54f55f1",
+      "action_definition_id": "top.split_flow",
+      "action_parameters": {},
+      "legal_action_set_digest": "bd90a2005e8050b0f2a169cf105c6e43a2341d6e01acd9d9a2f1656981868ee4",
+      "pre_state_id": "60facd2ab9355f738de4b6328a2213e38861a0220e2c20eb85c984f87525a7c9",
+      "events_hash": "c7c085e2e9ba76f0c418db29fafc78e0955abd3897dc23fc8a768eda1dd72b83",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "9730fb861b6c61d0bbf428bcaa0008058db6323f8292bbeac2bf49845dc66cb7",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "9730fb861b6c61d0bbf428bcaa0008058db6323f8292bbeac2bf49845dc66cb7",
+        "location_id": "red_sluice.top",
+        "title": "Red Sluice Top",
+        "text": "The gates share water between both shores. This surge is settled; choose Enter Lowsail Aftermath to see the result.",
+        "result": "The gates share water between both shores.",
+        "world_time": 9,
+        "upcoming_events": [],
+        "action_set_digest": "ce1522c0531ebe380c0bedd7380227c63a5fbf370be78cddc7aa66642d40aaf0",
+        "action_count": 3
+      },
+      "observation_hash": "a15dd82325220b39ec8e4b3bd18257c7a8accb5aaafb69762be2bfe5dfb2ec34",
+      "receipt": "b68ca1484101a2b9c1295cbdee504dbe1fb7e7d6bc87c67cb80a0df4263fa2ab"
+    },
+    {
+      "step_index": 9,
+      "action_id": "1869e397c170595f0e7a5e8cb938f0cfda74ec7622d5fd1fe8d5f9741f841206",
+      "action_definition_id": "world.enter_aftermath",
+      "action_parameters": {},
+      "legal_action_set_digest": "ce1522c0531ebe380c0bedd7380227c63a5fbf370be78cddc7aa66642d40aaf0",
+      "pre_state_id": "9730fb861b6c61d0bbf428bcaa0008058db6323f8292bbeac2bf49845dc66cb7",
+      "events_hash": "bd216b451b90cf977a4507fcc46ee6ffbc4729028d2645f7101c45e58721f243",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "e9212579eb9b8b06cefd6a1524663676499210a8883e4a623bb210a7575ecb92",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "e9212579eb9b8b06cefd6a1524663676499210a8883e4a623bb210a7575ecb92",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "You enter Lowsail's aftermath and face what the changed water has done. The market stands above calm water while both shores still receive a share.",
+        "result": "You enter Lowsail's aftermath and face what the changed water has done.",
+        "world_time": 10,
+        "upcoming_events": [],
+        "action_set_digest": "2df8637a61c05f57436932c3ac43d14db00345985f1e02f7eeba3fad8fc0ba5d",
+        "action_count": 6
+      },
+      "observation_hash": "9f1a07476f650eee718ffe017a942980f073ddaa839cb1a4a96d2ba50b75ea35",
+      "receipt": "c03c3620051d9dda2f37f39d9c009a4a75ba28d9efd056d84773301f83e0393f"
+    },
+    {
+      "step_index": 10,
+      "action_id": "b96b5152096bd40a734bb891d67609c7d9dcd1b4ecf315f9e8d621327db10780",
+      "action_definition_id": "return.share_water",
+      "action_parameters": {},
+      "legal_action_set_digest": "2df8637a61c05f57436932c3ac43d14db00345985f1e02f7eeba3fad8fc0ba5d",
+      "pre_state_id": "e9212579eb9b8b06cefd6a1524663676499210a8883e4a623bb210a7575ecb92",
+      "events_hash": "803d92a77de5969f1e1b002cb05d80c1de78414c67ef6566d90b4361a953799d",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "362ab05727637d6266a3d9669fd83e4c1a6966ee7a86bf1bcebb885f2dcc116d",
+      "observation": {
+        "build_id": "5b3a4b26c9988e9812fae7b60eb50475da0c58345721a9bdcc5bd64650c0edf0",
+        "state_id": "362ab05727637d6266a3d9669fd83e4c1a6966ee7a86bf1bcebb885f2dcc116d",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "Mira records the shared flow as a new market charter. The market stands above calm water while both shores still receive a share.",
+        "result": "Mira records the shared flow as a new market charter.",
+        "world_time": 11,
+        "upcoming_events": [],
+        "action_set_digest": "4f3585e8d6a134027e541926b6b663d78f22e3511cd4a9f1ef138d5db697857e",
+        "action_count": 5
+      },
+      "observation_hash": "02ebaa65df3d4aa7c3484540b837d0ee08caf0f6a0aaf5680039646bc1451585",
+      "receipt": "8df51dd150ce259c1b272dc9fde9e8a95f95077dd2791209bfad4b16c825b4bf"
+    }
+  ],
+  "final_state_id": "362ab05727637d6266a3d9669fd83e4c1a6966ee7a86bf1bcebb885f2dcc116d",
+  "final_receipt": "8df51dd150ce259c1b272dc9fde9e8a95f95077dd2791209bfad4b16c825b4bf"
+}

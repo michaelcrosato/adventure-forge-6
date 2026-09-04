@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 14);
+        assert_eq!(ids.len(), 15);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();

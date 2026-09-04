@@ -99,6 +99,53 @@ const ILYAN_RELIEF_PATH: [ActionSpec; 11] = [
     },
 ];
 
+const ROOK_TIDE_KEY_SPLIT_PATH: [ActionSpec; 11] = [
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.docks")),
+    },
+    ActionSpec {
+        definition_id: "docks.press_yara",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "docks.ask_oren",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.levee")),
+    },
+    ActionSpec {
+        definition_id: "levee.culvert_path",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "floor.key_calibration",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "red_sluice.top")),
+    },
+    ActionSpec {
+        definition_id: "top.check_wheels",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "top.split_flow",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "world.enter_aftermath",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "return.share_water",
+        parameter: None,
+    },
+];
+
 fn record_specs(
     session: &mut Session<'_>,
     content: &forge_kernel::CompiledContent,
@@ -188,6 +235,22 @@ fn assert_not_legal(
     );
 }
 
+fn assert_tide_key_inventory(session: &Session<'_>) {
+    assert_eq!(
+        session
+            .state()
+            .character
+            .inventory
+            .get("split_tide.tide_key"),
+        Some(&1)
+    );
+    assert!(
+        !session.state().world.npcs["yara_dene"]
+            .inventory
+            .contains_key("split_tide.tide_key")
+    );
+}
+
 fn assert_closed_post_outcome_choices(
     session: &Session<'_>,
     content: &forge_kernel::CompiledContent,
@@ -245,6 +308,130 @@ fn real_split_tide_path_round_trips_and_replays() {
     assert_eq!(&verified, session.state());
     assert_eq!(decoded.final_state_id, verified.state_id());
     assert_eq!(decoded.final_receipt, decoded.steps.last().unwrap().receipt);
+}
+
+#[test]
+fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("rook", 71, &content).expect("session starts");
+    let mut after_transfer = None;
+    let mut after_calibration = None;
+
+    for (index, spec) in ROOK_TIDE_KEY_SPLIT_PATH.iter().enumerate() {
+        record(
+            &mut uninterrupted,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+        match index + 1 {
+            2 => after_transfer = Some(resume_player_save(&uninterrupted, &content)),
+            6 => after_calibration = Some(resume_player_save(&uninterrupted, &content)),
+            _ => {}
+        }
+    }
+
+    let mut resumed_after_transfer = after_transfer.expect("transfer checkpoint");
+    assert_eq!(resumed_after_transfer.trace().steps.len(), 2);
+    assert_eq!(resumed_after_transfer.state().world.time, 2);
+    assert_tide_key_inventory(&resumed_after_transfer);
+    assert_not_legal(&resumed_after_transfer, &content, "docks.press_yara");
+    record_specs(
+        &mut resumed_after_transfer,
+        &content,
+        &ROOK_TIDE_KEY_SPLIT_PATH[2..],
+    );
+
+    let mut resumed_after_calibration = after_calibration.expect("calibration checkpoint");
+    assert_eq!(resumed_after_calibration.trace().steps.len(), 6);
+    assert_eq!(resumed_after_calibration.state().world.time, 6);
+    assert!(
+        resumed_after_calibration
+            .state()
+            .world
+            .flags
+            .contains("sluice_calibrated")
+    );
+    assert!(
+        resumed_after_calibration
+            .state()
+            .character
+            .deeds
+            .contains("calibrated_with_tide_key")
+    );
+    assert_tide_key_inventory(&resumed_after_calibration);
+    assert_not_legal(
+        &resumed_after_calibration,
+        &content,
+        "floor.key_calibration",
+    );
+    record_specs(
+        &mut resumed_after_calibration,
+        &content,
+        &ROOK_TIDE_KEY_SPLIT_PATH[6..],
+    );
+
+    assert_eq!(resumed_after_transfer.state(), uninterrupted.state());
+    assert_eq!(resumed_after_calibration.state(), uninterrupted.state());
+    assert_eq!(
+        resumed_after_transfer.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
+    assert_eq!(
+        resumed_after_calibration.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
+
+    assert_eq!(uninterrupted.state().world.time, 11);
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("tide_key_offered")
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("sluice_calibrated")
+    );
+    assert!(uninterrupted.state().world.flags.contains("flow_split"));
+    assert!(uninterrupted.state().world.flags.contains("ending_accord"));
+    assert_tide_key_inventory(&uninterrupted);
+
+    let transfers = uninterrupted
+        .trace()
+        .steps
+        .iter()
+        .flat_map(|step| step.events.iter())
+        .filter(|event| {
+            matches!(
+                &event.kind,
+                EventKind::NpcItemTransferredToCharacter { npc, item, count }
+                    if npc == "yara_dene"
+                        && item == "split_tide.tide_key"
+                        && *count == 1
+            )
+        })
+        .count();
+    assert_eq!(transfers, 1);
+    assert_eq!(
+        uninterrupted.trace().steps[1].action.definition_id,
+        "docks.press_yara"
+    );
+    assert_eq!(
+        uninterrupted.trace().steps[5].action.definition_id,
+        "floor.key_calibration"
+    );
+
+    let resumed_full = resume_player_save(&uninterrupted, &content);
+    assert_eq!(resumed_full.state(), uninterrupted.state());
+    assert_eq!(
+        resumed_full.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
 }
 
 #[test]
@@ -538,8 +725,8 @@ fn timed_event_fixture_content() -> CompiledContent {
     };
 
     CompiledContent::try_compile(ContentDraft {
-        schema_version: "forge-schema-v4".to_owned(),
-        rules_version: "forge-rules-v2".to_owned(),
+        schema_version: "forge-schema-v5".to_owned(),
+        rules_version: "forge-rules-v3".to_owned(),
         world_id: "timed-fixture".to_owned(),
         contract: ContentContract::Fixture,
         start_location: "room".to_owned(),

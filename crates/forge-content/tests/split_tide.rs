@@ -129,7 +129,7 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 6);
     assert_eq!(content.npcs().count(), 5);
-    assert_eq!(content.actions().count(), 49);
+    assert_eq!(content.actions().count(), 50);
     assert_eq!(content.character_presets().count(), 2);
     let creation = content.character_creation().expect("custom creation");
     assert_eq!(creation.slots.len(), 6);
@@ -661,6 +661,81 @@ fn rescued_worker_report_introduces_mira_and_keeps_its_source() {
         report
     );
     assert!(!definitions(&returned, &content).contains("levee.help_worker"));
+}
+
+#[test]
+fn tide_key_moves_from_yara_and_opens_a_persistent_calibration_route() {
+    let content = content();
+    let initial = new_game(&content, "rook");
+    assert_eq!(
+        initial.world.npcs["yara_dene"].inventory["split_tide.tide_key"],
+        1
+    );
+    assert!(
+        !initial
+            .character
+            .inventory
+            .contains_key("split_tide.tide_key")
+    );
+
+    let mut without_key = travel_to(initial.clone(), &content, "lowsail.docks");
+    without_key = apply(without_key, &content, "docks.ask_oren");
+    without_key = travel_to(without_key, &content, "lowsail.levee");
+    without_key = apply(without_key, &content, "levee.culvert_path");
+    assert!(!definitions(&without_key, &content).contains("floor.key_calibration"));
+
+    let docks = travel_to(initial, &content, "lowsail.docks");
+    let take_key = action_for(&docks, &content, "docks.press_yara");
+    let transfer = step(&docks, &take_key, &content, &docks.entropy).unwrap();
+    assert!(transfer.events().iter().any(|event| matches!(
+        &event.kind,
+        EventKind::NpcItemTransferredToCharacter { npc, item, count: 1 }
+            if npc == "yara_dene" && item == "split_tide.tide_key"
+    )));
+    let key_observation = content.observe_after_transition(&transfer).unwrap();
+    assert!(
+        key_observation
+            .text
+            .contains("Use Calibrate Gate at Red Sluice Floor")
+    );
+    assert!(key_observation.text.contains("You carry the Tide Key"));
+    assert!(!key_observation.text.contains("Yara keeps the Tide Key"));
+    let mut carrier = transfer.into_state();
+    assert_eq!(carrier.character.inventory["split_tide.tide_key"], 1);
+    assert!(
+        !carrier.world.npcs["yara_dene"]
+            .inventory
+            .contains_key("split_tide.tide_key")
+    );
+    assert!(!definitions(&carrier, &content).contains("docks.press_yara"));
+    carrier = apply(carrier, &content, "docks.ask_oren");
+    carrier = travel_to(carrier, &content, "lowsail.levee");
+    carrier = apply(carrier, &content, "levee.culvert_path");
+    assert!(definitions(&carrier, &content).contains("floor.key_calibration"));
+    carrier = apply(carrier, &content, "floor.key_calibration");
+    assert!(carrier.world.flags.contains("sluice_calibrated"));
+    assert!(carrier.character.deeds.contains("calibrated_with_tide_key"));
+    assert!(carrier.world.npcs["edrik_voss"].remembers("edrik_saw_key_calibration"));
+    assert!(!definitions(&carrier, &content).contains("floor.key_calibration"));
+    carrier = travel_to(carrier, &content, "red_sluice.top");
+    carrier = apply(carrier, &content, "top.check_wheels");
+    assert!(definitions(&carrier, &content).contains("top.split_flow"));
+    carrier = apply(carrier, &content, "top.split_flow");
+    carrier = apply(carrier, &content, "world.enter_aftermath");
+    assert_eq!(carrier.character.inventory["split_tide.tide_key"], 1);
+    assert!(
+        !carrier.world.npcs["yara_dene"]
+            .inventory
+            .contains_key("split_tide.tide_key")
+    );
+    assert!(carrier.world.flags.contains("flow_split"));
+    assert!(
+        content
+            .observe(&carrier)
+            .unwrap()
+            .text
+            .contains("both shores still receive a share")
+    );
 }
 
 #[test]

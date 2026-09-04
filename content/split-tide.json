@@ -1,6 +1,6 @@
 {
-  "schema_version": "forge-schema-v4",
-  "rules_version": "forge-rules-v2",
+  "schema_version": "forge-schema-v5",
+  "rules_version": "forge-rules-v3",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
@@ -351,8 +351,8 @@
         {
           "id": "yara_trusts",
           "priority": 20,
-          "condition": {"kind": "npc_remembers", "npc": "yara_dene", "memory_id": "yara_respected_rook"},
-          "text": "Yara keeps the Tide Key low and trusts the runner near her skiff."
+          "condition": {"kind": "has_item", "item": "split_tide.tide_key", "count": 1},
+          "text": "You carry the Tide Key; Yara watches the skiff with open hands."
         }
       ],
       "exits": ["lowsail_market", "lowsail.levee"],
@@ -536,6 +536,7 @@
       "id": "yara_dene",
       "name": "Yara Dene",
       "location": "lowsail.docks",
+      "inventory": {"split_tide.tide_key": 1},
       "goals": ["hide_the_key", "protect_couriers"],
       "values": ["mercy", "freedom"],
       "tags": ["courier", "witness"]
@@ -979,9 +980,9 @@
     },
     {
       "id": "docks.press_yara",
-      "label": "Press Yara",
+      "label": "Take Tide Key",
       "category": "Pressure",
-      "result": "Yara trusts your scar and offers the Tide Key.",
+      "result": "Yara hands you the Tide Key. Use Calibrate Gate at Red Sluice Floor to prepare a safe split.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "all",
@@ -996,6 +997,7 @@
         ]
       },
       "effects": [
+        {"kind": "transfer_npc_item_to_character", "npc": {"kind": "literal", "value": "yara_dene"}, "item": "split_tide.tide_key", "count": 1},
         {"kind": "set_world_flag", "flag": "tide_key_offered", "value": true},
         {"kind": "teach_npc", "npc": {"kind": "literal", "value": "yara_dene"}, "knowledge_id": "tide_key_safe", "subject": "The Tide Key is safe with the player.", "provenance": {"kind": "witnessed"}},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "yara_dene"}, "memory_id": "yara_respected_rook", "subject": "The lock-runner earned Yara's respect.", "provenance": {"kind": "witnessed"}},
@@ -1274,6 +1276,30 @@
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "gauge_stable", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "edrik_voss"}, "amount": 1},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_gauge_stable", "subject": "The player stabilized the broken gauge.", "provenance": {"kind": "witnessed"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "floor.key_calibration",
+      "label": "Calibrate Gate",
+      "category": "Repair",
+      "result": "The Tide Key aligns the gate. Check Wheels at Red Sluice Top, then choose Split Flow.",
+      "locations": ["red_sluice.floor"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "has_item", "item": "split_tide.tide_key", "count": 1},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_calibrated"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_calibrated", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "edrik_voss"}, "memory_id": "edrik_saw_key_calibration", "subject": "The player used the Tide Key to align the gate.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "calibrated_with_tide_key"},
         {"kind": "advance_time", "ticks": 1}
       ],
       "parameters": [],

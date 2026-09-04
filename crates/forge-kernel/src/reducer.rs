@@ -170,6 +170,60 @@ struct ActionCandidates<'a> {
     combinations: usize,
 }
 
+#[derive(Default)]
+struct ItemTransferRequirements {
+    source: BTreeMap<(String, String), u64>,
+    received: BTreeMap<String, u64>,
+    impossible: bool,
+}
+
+impl ItemTransferRequirements {
+    fn add_source(&mut self, source: String, item: String, count: u64) {
+        let key = (source, item);
+        let current = self.source.get(&key).copied().unwrap_or_default();
+        let Some(total) = current.checked_add(count) else {
+            self.impossible = true;
+            return;
+        };
+        self.source.insert(key, total);
+    }
+
+    fn add_received(&mut self, item: String, count: u64) {
+        let current = self.received.get(&item).copied().unwrap_or_default();
+        let Some(total) = current.checked_add(count) else {
+            self.impossible = true;
+            return;
+        };
+        self.received.insert(item, total);
+    }
+
+    fn add_sequential(&mut self, other: Self) {
+        self.impossible |= other.impossible;
+        for ((source, item), count) in other.source {
+            self.add_source(source, item, count);
+        }
+        for (item, count) in other.received {
+            self.add_received(item, count);
+        }
+    }
+
+    fn pointwise_max(&mut self, other: Self) {
+        self.impossible |= other.impossible;
+        for (key, count) in other.source {
+            self.source
+                .entry(key)
+                .and_modify(|current| *current = (*current).max(count))
+                .or_insert(count);
+        }
+        for (item, count) in other.received {
+            self.received
+                .entry(item)
+                .and_modify(|current| *current = (*current).max(count))
+                .or_insert(count);
+        }
+    }
+}
+
 /// Enumerate every legal action.  There is intentionally no action count
 /// limit: dynamic parameter domains are expanded into a complete Cartesian
 /// product and then stably sorted by semantic identity. Action hashes bind the
@@ -187,7 +241,7 @@ pub fn enumerate_legal_actions(
         content.actions().size_hint().0,
         "action candidate list",
     )?;
-    let mut total_actions = 0usize;
+    let mut raw_combinations = 0usize;
 
     for (_, definition) in content.actions() {
         if !definition.locations.is_empty()
@@ -221,7 +275,7 @@ pub fn enumerate_legal_actions(
 
         let combinations =
             checked_combination_count(domains.iter().map(|domain| domain.len()), &definition.id)?;
-        total_actions = total_actions.checked_add(combinations).ok_or_else(|| {
+        raw_combinations = raw_combinations.checked_add(combinations).ok_or_else(|| {
             KernelError::ResourceExhausted(format!(
                 "legal action count overflow after action {}",
                 definition.id
@@ -235,24 +289,28 @@ pub fn enumerate_legal_actions(
     }
 
     let mut actions = Vec::new();
-    try_reserve(&mut actions, total_actions, "legal action list")?;
+    try_reserve(&mut actions, raw_combinations, "legal action list")?;
+    let mut visited_combinations = 0usize;
     for candidate in candidates {
-        append_parameter_combinations(
+        let visited = append_parameter_combinations(
             candidate.definition,
             &candidate.domains,
             candidate.combinations,
             content.build_id(),
             &pre_state_id,
+            state,
             &mut actions,
         )?;
+        visited_combinations = visited_combinations.checked_add(visited).ok_or_else(|| {
+            KernelError::ResourceExhausted("visited action combination count overflow".to_owned())
+        })?;
     }
-    actions.sort_by(canonical_action_order);
-    if actions.len() != total_actions {
+    if visited_combinations != raw_combinations {
         return Err(KernelError::InvalidContent(format!(
-            "legal action enumeration count mismatch: expected {total_actions}, emitted {}",
-            actions.len()
+            "raw action combination count mismatch: expected {raw_combinations}, visited {visited_combinations}"
         )));
     }
+    actions.sort_by(canonical_action_order);
     let mut action_ids = Vec::new();
     try_reserve(&mut action_ids, actions.len(), "action identity list")?;
     action_ids.extend(actions.iter().map(|action| action.action_id.as_str()));
@@ -383,17 +441,18 @@ fn append_parameter_combinations(
     expected: usize,
     build_id: &str,
     pre_state_id: &str,
+    state: &GameState,
     output: &mut Vec<CanonicalAction>,
-) -> Result<(), KernelError> {
+) -> Result<usize, KernelError> {
     if expected == 0 {
-        return Ok(());
+        return Ok(0);
     }
 
     let mut indexes = Vec::new();
     try_reserve(&mut indexes, domains.len(), "parameter enumeration indexes")?;
     indexes.extend(std::iter::repeat_n(0usize, domains.len()));
 
-    let mut emitted = 0usize;
+    let mut visited = 0usize;
     loop {
         let mut parameters = BTreeMap::new();
         for (spec, (domain, index)) in definition
@@ -409,18 +468,20 @@ fn append_parameter_combinations(
             })?;
             parameters.insert(spec.name.clone(), value.clone());
         }
-        output.push(CanonicalAction::new(
-            build_id.to_owned(),
-            pre_state_id.to_owned(),
-            definition.id.clone(),
-            parameters,
-        ));
-        emitted = emitted.checked_add(1).ok_or_else(|| {
+        visited = visited.checked_add(1).ok_or_else(|| {
             KernelError::ResourceExhausted(format!(
                 "enumerated action count overflow for action {}",
                 definition.id
             ))
         })?;
+        if item_transfer_candidate_available(definition, &parameters, state)? {
+            output.push(CanonicalAction::new(
+                build_id.to_owned(),
+                pre_state_id.to_owned(),
+                definition.id.clone(),
+                parameters,
+            ));
+        }
 
         let mut advanced = false;
         for index in (0..indexes.len()).rev() {
@@ -442,13 +503,132 @@ fn append_parameter_combinations(
         }
     }
 
-    if emitted != expected {
+    if visited != expected {
         return Err(KernelError::InvalidContent(format!(
-            "parameter enumeration count mismatch for action {}: expected {expected}, emitted {emitted}",
+            "parameter enumeration count mismatch for action {}: expected {expected}, visited {visited}",
             definition.id
         )));
     }
-    Ok(())
+    Ok(visited)
+}
+
+fn item_transfer_candidate_available(
+    definition: &crate::ActionDefinition,
+    parameters: &BTreeMap<String, String>,
+    state: &GameState,
+) -> Result<bool, KernelError> {
+    if !contains_item_transfer(&definition.effects) {
+        return Ok(true);
+    }
+    let requirements = item_transfer_requirements(&definition.effects, parameters)?;
+    if requirements.impossible {
+        return Ok(false);
+    }
+    for ((source, item), required) in requirements.source {
+        let available = state
+            .world
+            .npcs
+            .get(&source)
+            .and_then(|npc| npc.inventory.get(&item))
+            .copied()
+            .map(u64::from)
+            .unwrap_or_default();
+        if available < required {
+            return Ok(false);
+        }
+    }
+    for (item, received) in requirements.received {
+        let current = state
+            .character
+            .inventory
+            .get(&item)
+            .copied()
+            .map(u64::from)
+            .unwrap_or_default();
+        let Some(total) = current.checked_add(received) else {
+            return Ok(false);
+        };
+        if total > u64::from(u32::MAX) {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn contains_item_transfer(effects: &[Effect]) -> bool {
+    effects.iter().any(|effect| match effect {
+        Effect::TransferNpcItemToCharacter { .. } => true,
+        Effect::RandomChance {
+            on_success,
+            on_failure,
+            ..
+        } => {
+            contains_item_transfer(std::slice::from_ref(on_success))
+                || contains_item_transfer(std::slice::from_ref(on_failure))
+        }
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::AdjustResource { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. }
+        | Effect::AdvanceTime { .. } => false,
+    })
+}
+
+fn item_transfer_requirements(
+    effects: &[Effect],
+    parameters: &BTreeMap<String, String>,
+) -> Result<ItemTransferRequirements, KernelError> {
+    let mut requirements = ItemTransferRequirements::default();
+    for effect in effects {
+        requirements.add_sequential(item_transfer_effect_requirements(effect, parameters)?);
+    }
+    Ok(requirements)
+}
+
+fn item_transfer_effect_requirements(
+    effect: &Effect,
+    parameters: &BTreeMap<String, String>,
+) -> Result<ItemTransferRequirements, KernelError> {
+    match effect {
+        Effect::TransferNpcItemToCharacter { npc, item, count } => {
+            let source = resolve_ref(npc, parameters)?;
+            let mut requirements = ItemTransferRequirements::default();
+            requirements.add_source(source, item.clone(), u64::from(*count));
+            requirements.add_received(item.clone(), u64::from(*count));
+            Ok(requirements)
+        }
+        Effect::RandomChance {
+            success_percent,
+            on_success,
+            on_failure,
+        } => match success_percent {
+            0 => item_transfer_effect_requirements(on_failure, parameters),
+            100 => item_transfer_effect_requirements(on_success, parameters),
+            _ => {
+                let mut requirements = item_transfer_effect_requirements(on_success, parameters)?;
+                requirements
+                    .pointwise_max(item_transfer_effect_requirements(on_failure, parameters)?);
+                Ok(requirements)
+            }
+        },
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::AdjustResource { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. }
+        | Effect::AdvanceTime { .. } => Ok(ItemTransferRequirements::default()),
+    }
 }
 
 fn try_reserve<T>(
@@ -811,6 +991,61 @@ fn apply_effect(
                 },
             });
         }
+        Effect::TransferNpcItemToCharacter { npc, item, count } => {
+            if *count == 0 {
+                return Err(KernelError::InvalidAction(
+                    "NPC item transfer count must be positive".to_owned(),
+                ));
+            }
+            let npc = resolve_ref(npc, parameters)?;
+            let source_count = state
+                .world
+                .npcs
+                .get(&npc)
+                .and_then(|npc_state| npc_state.inventory.get(item))
+                .copied()
+                .unwrap_or_default();
+            if source_count < *count {
+                return Err(KernelError::InvalidAction(format!(
+                    "NPC {npc} lacks {count} of item {item}"
+                )));
+            }
+            let character_count = state
+                .character
+                .inventory
+                .get(item)
+                .copied()
+                .unwrap_or_default();
+            let next_character_count = character_count.checked_add(*count).ok_or_else(|| {
+                KernelError::InvalidAction(format!(
+                    "character inventory cannot hold {count} more of item {item}"
+                ))
+            })?;
+
+            let npc_state = state
+                .world
+                .npcs
+                .get_mut(&npc)
+                .ok_or_else(|| KernelError::InvalidAction(format!("unknown NPC {npc}")))?;
+            let next_source_count = source_count - *count;
+            if next_source_count == 0 {
+                npc_state.inventory.remove(item);
+            } else {
+                npc_state.inventory.insert(item.clone(), next_source_count);
+            }
+            state
+                .character
+                .inventory
+                .insert(item.clone(), next_character_count);
+            events.push(Event {
+                turn,
+                kind: EventKind::NpcItemTransferredToCharacter {
+                    npc,
+                    item: item.clone(),
+                    count: *count,
+                },
+            });
+        }
         Effect::AddCharacterDeed { deed_id } => {
             state.character.deeds.insert(deed_id.clone());
             events.push(Event {
@@ -885,7 +1120,7 @@ mod tests {
     use crate::content::{
         ActionDefinition, Condition, ContentDraft, Effect, LocationDefinition, NpcDefinition,
     };
-    use crate::model::{Character, LocationRuntime, NpcState, WorldState};
+    use crate::model::{Character, NpcState, WorldState};
     use crate::{EntropyState, MAX_ENTROPY_CURSOR};
 
     fn character() -> Character {
@@ -915,8 +1150,8 @@ mod tests {
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v4".to_owned(),
-            rules_version: "forge-rules-v2".to_owned(),
+            schema_version: "forge-schema-v5".to_owned(),
+            rules_version: "forge-rules-v3".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -947,6 +1182,7 @@ mod tests {
                 goals: BTreeSet::new(),
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
+                inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
             actions,
@@ -957,29 +1193,45 @@ mod tests {
         CompiledContent::try_compile(draft(actions)).unwrap()
     }
 
+    fn content_with_mira(actions: Vec<ActionDefinition>) -> CompiledContent {
+        let mut source = draft(actions);
+        source.npcs.push(NpcDefinition {
+            id: "mira".to_owned(),
+            name: "Mira".to_owned(),
+            location: "gate".to_owned(),
+            goals: BTreeSet::new(),
+            values: BTreeSet::new(),
+            tags: BTreeSet::new(),
+            inventory: BTreeMap::new(),
+        });
+        CompiledContent::try_compile(source).unwrap()
+    }
+
     fn state(content: &CompiledContent) -> GameState {
         let mut locations = content.empty_location_runtime();
-        locations.insert("gate".to_owned(), LocationRuntime::default());
-        locations
-            .get_mut("gate")
-            .unwrap()
-            .entities
-            .insert("sava".to_owned());
-        let npcs = BTreeMap::from([(
-            "sava".to_owned(),
-            NpcState {
-                id: "sava".to_owned(),
-                location: "gate".to_owned(),
-                goals: BTreeSet::new(),
-                values: BTreeSet::new(),
-                tags: BTreeSet::new(),
-                relationships: BTreeMap::new(),
-                memories: BTreeMap::new(),
-                knowledge: BTreeMap::new(),
-                inventory: BTreeMap::new(),
-                suspicion: 0,
-            },
-        )]);
+        let mut npcs = BTreeMap::new();
+        for (id, definition) in content.npcs() {
+            locations
+                .get_mut(&definition.location)
+                .expect("test NPC location is compiled")
+                .entities
+                .insert(id.clone());
+            npcs.insert(
+                id.clone(),
+                NpcState {
+                    id: id.clone(),
+                    location: definition.location.clone(),
+                    goals: definition.goals.clone(),
+                    values: definition.values.clone(),
+                    tags: definition.tags.clone(),
+                    relationships: BTreeMap::new(),
+                    memories: BTreeMap::new(),
+                    knowledge: BTreeMap::new(),
+                    inventory: definition.inventory.clone(),
+                    suspicion: 0,
+                },
+            );
+        }
         GameState::new(
             content.build_id().to_owned(),
             WorldState::new("world-1", "gate", locations, npcs),
@@ -1001,6 +1253,14 @@ mod tests {
             parameters: Vec::new(),
             meaningful: false,
             movement: false,
+        }
+    }
+
+    fn transfer_effect(npc: StringRef, item: &str, count: u32) -> Effect {
+        Effect::TransferNpcItemToCharacter {
+            npc,
+            item: item.to_owned(),
+            count,
         }
     }
 
@@ -1113,12 +1373,22 @@ mod tests {
         let overflow_content = content(vec![simple_action(
             "overflow",
             Condition::Always,
-            vec![Effect::AdjustResource {
-                resource: "coin".to_owned(),
-                amount: 1,
-            }],
+            vec![
+                transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 1),
+                Effect::AdjustResource {
+                    resource: "coin".to_owned(),
+                    amount: 1,
+                },
+            ],
         )]);
         let mut overflowing = state(&overflow_content);
+        overflowing
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 1);
         overflowing
             .character
             .resources
@@ -1218,6 +1488,433 @@ mod tests {
             KnowledgeProvenance::Told {
                 by: "sava".to_owned()
             }
+        );
+    }
+
+    #[test]
+    fn npc_item_transfer_is_atomic_and_emits_typed_event() {
+        let content = content(vec![simple_action(
+            "take-ore",
+            Condition::Always,
+            vec![
+                Effect::SetWorldFlag {
+                    flag: "deal".to_owned(),
+                    value: true,
+                },
+                transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2),
+                Effect::AdjustNpcRelationship {
+                    npc: StringRef::Literal("sava".to_owned()),
+                    amount: 1,
+                },
+            ],
+        )]);
+        let mut initial = state(&content);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 3);
+        initial.character.inventory.insert("ore".to_owned(), 1);
+        let before = initial.clone();
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .expect("stocked transfer should be legal");
+        let transition = step(&initial, &action, &content, &initial.entropy)
+            .expect("stocked transfer should apply");
+        assert_eq!(initial, before, "item transfer leaves input immutable");
+        let next = transition.state();
+        assert_eq!(next.world.npcs["sava"].inventory["ore"], 1);
+        assert_eq!(next.character.inventory["ore"], 3);
+        assert!(matches!(transition.events(), [
+            Event { turn: 0, kind: EventKind::WorldFlagSet { flag, value: true } },
+            Event { turn: 0, kind: EventKind::NpcItemTransferredToCharacter { npc, item, count: 2 } },
+            Event { turn: 0, kind: EventKind::NpcRelationshipAdjusted { npc: related, amount: 1 } },
+        ] if flag == "deal" && npc == "sava" && item == "ore" && related == "sava"));
+    }
+
+    #[test]
+    fn item_transfer_filters_capacity_and_rechecks_without_mutation() {
+        let content = content(vec![
+            simple_action("always", Condition::Always, vec![Effect::Noop]),
+            simple_action(
+                "take-ore",
+                Condition::Always,
+                vec![transfer_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    "ore",
+                    2,
+                )],
+            ),
+        ]);
+
+        let mut missing = state(&content);
+        missing
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 1);
+        let missing_actions = enumerate_legal_actions(&missing, &content).unwrap();
+        assert!(
+            missing_actions
+                .iter()
+                .all(|action| action.definition_id != "take-ore")
+        );
+        assert!(
+            missing_actions
+                .iter()
+                .any(|action| action.definition_id == "always")
+        );
+        let missing_before = missing.clone();
+        let mut missing_entropy = missing.entropy.clone();
+        let mut missing_draws = Vec::new();
+        let mut missing_events = Vec::new();
+        let missing_result = apply_effect(
+            &mut missing,
+            &transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2),
+            &BTreeMap::new(),
+            &content,
+            &mut missing_entropy,
+            &mut missing_draws,
+            &mut missing_events,
+        );
+        assert!(matches!(
+            missing_result,
+            Err(KernelError::InvalidAction(message)) if message.contains("lacks 2 of item ore")
+        ));
+        assert_eq!(missing, missing_before);
+        assert_eq!(missing_entropy, missing_before.entropy);
+        assert!(missing_draws.is_empty());
+        assert!(missing_events.is_empty());
+
+        let mut overflow = state(&content);
+        overflow
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 2);
+        overflow
+            .character
+            .inventory
+            .insert("ore".to_owned(), u32::MAX - 1);
+        let overflow_actions = enumerate_legal_actions(&overflow, &content).unwrap();
+        assert!(
+            overflow_actions
+                .iter()
+                .all(|action| action.definition_id != "take-ore")
+        );
+        assert!(
+            overflow_actions
+                .iter()
+                .any(|action| action.definition_id == "always")
+        );
+        let overflow_before = overflow.clone();
+        let mut overflow_entropy = overflow.entropy.clone();
+        let mut overflow_draws = Vec::new();
+        let mut overflow_events = Vec::new();
+        let overflow_result = apply_effect(
+            &mut overflow,
+            &transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2),
+            &BTreeMap::new(),
+            &content,
+            &mut overflow_entropy,
+            &mut overflow_draws,
+            &mut overflow_events,
+        );
+        assert!(matches!(
+            overflow_result,
+            Err(KernelError::InvalidAction(message))
+                if message.contains("character inventory cannot hold 2 more of item ore")
+        ));
+        assert_eq!(overflow, overflow_before);
+        assert_eq!(overflow_entropy, overflow_before.entropy);
+        assert!(overflow_draws.is_empty());
+        assert!(overflow_events.is_empty());
+    }
+
+    #[test]
+    fn sequential_item_transfers_aggregate_source_stock() {
+        let content = content(vec![simple_action(
+            "take-twice",
+            Condition::Always,
+            vec![
+                transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2),
+                transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2),
+            ],
+        )]);
+
+        let mut short = state(&content);
+        short
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 3);
+        assert!(
+            enumerate_legal_actions(&short, &content)
+                .unwrap()
+                .is_empty()
+        );
+
+        let mut enough = short;
+        enough
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 4);
+        let action = enumerate_legal_actions(&enough, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .expect("aggregate stock should make the action legal");
+        let transition = step(&enough, &action, &content, &enough.entropy)
+            .expect("aggregate transfer should apply");
+        assert!(
+            !transition.state().world.npcs["sava"]
+                .inventory
+                .contains_key("ore")
+        );
+        assert_eq!(transition.state().character.inventory["ore"], 4);
+        assert_eq!(
+            transition
+                .events()
+                .iter()
+                .filter(|event| matches!(
+                    &event.kind,
+                    EventKind::NpcItemTransferredToCharacter { .. }
+                ))
+                .count(),
+            2
+        );
+
+        let mut destination_overflow = enough;
+        destination_overflow
+            .character
+            .inventory
+            .insert("ore".to_owned(), u32::MAX - 3);
+        assert!(
+            enumerate_legal_actions(&destination_overflow, &content)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn unreachable_random_item_transfer_branches_do_not_filter_actions() {
+        let zero = simple_action(
+            "random-zero",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 0,
+                on_success: Box::new(transfer_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    "ore",
+                    2,
+                )),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        );
+        let hundred = simple_action(
+            "random-hundred",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 100,
+                on_success: Box::new(Effect::Noop),
+                on_failure: Box::new(transfer_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    "ore",
+                    2,
+                )),
+            }],
+        );
+        let content = content(vec![zero, hundred]);
+        let initial = state(&content);
+        let actions = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(
+            actions
+                .iter()
+                .map(|action| action.definition_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["random-hundred", "random-zero"]
+        );
+        assert_eq!(actions.len(), 2);
+        for action in actions {
+            step(&initial, &action, &content, &initial.entropy)
+                .expect("only reachable random branch executes");
+        }
+    }
+
+    #[test]
+    fn uncertain_random_item_transfer_uses_pointwise_max_requirements() {
+        let content = content(vec![simple_action(
+            "random-ore",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(transfer_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    "ore",
+                    1,
+                )),
+                on_failure: Box::new(transfer_effect(
+                    StringRef::Literal("sava".to_owned()),
+                    "ore",
+                    2,
+                )),
+            }],
+        )]);
+        let mut short = state(&content);
+        short
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 1);
+        assert!(
+            enumerate_legal_actions(&short, &content)
+                .unwrap()
+                .is_empty()
+        );
+
+        let mut enough = short;
+        enough
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 2);
+        let action = enumerate_legal_actions(&enough, &content)
+            .unwrap()
+            .into_iter()
+            .next()
+            .expect("both random branches fit the source stock");
+        step(&enough, &action, &content, &enough.entropy)
+            .expect("pointwise-max random transfer should apply");
+    }
+
+    #[test]
+    fn parameterized_item_source_filters_candidates_and_keeps_catalog_complete() {
+        let transfer = ActionDefinition {
+            id: "take-from".to_owned(),
+            label: "Take from".to_owned(),
+            category: "Action".to_owned(),
+            result: "The item is taken.".to_owned(),
+            result_variants: Vec::new(),
+            locations: vec!["gate".to_owned()],
+            condition: Condition::Always,
+            effects: vec![transfer_effect(
+                StringRef::Parameter("source".to_owned()),
+                "ore",
+                1,
+            )],
+            parameters: vec![crate::ParameterSpec {
+                name: "source".to_owned(),
+                domain: ParameterDomain::NpcsAtCurrentLocation,
+            }],
+            meaningful: false,
+            movement: false,
+        };
+        let content = content_with_mira(vec![
+            simple_action("always", Condition::Always, vec![Effect::Noop]),
+            transfer,
+        ]);
+        let mut initial = state(&content);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("ore".to_owned(), 1);
+        let actions = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(actions.len(), 2);
+        assert_eq!(
+            actions
+                .iter()
+                .map(|action| action.definition_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["always", "take-from"]
+        );
+        let transfer_actions: Vec<_> = actions
+            .iter()
+            .filter(|action| action.definition_id == "take-from")
+            .collect();
+        assert_eq!(transfer_actions.len(), 1);
+        assert_eq!(transfer_actions[0].parameters["source"], "sava");
+    }
+
+    #[test]
+    fn alternative_sources_share_receipt_capacity_but_sequential_sources_add() {
+        let from_sava = transfer_effect(StringRef::Literal("sava".to_owned()), "ore", 2);
+        let from_mira = transfer_effect(StringRef::Literal("mira".to_owned()), "ore", 2);
+        let content = content_with_mira(vec![
+            simple_action("always", Condition::Always, vec![Effect::Noop]),
+            simple_action(
+                "either",
+                Condition::Always,
+                vec![Effect::RandomChance {
+                    success_percent: 50,
+                    on_success: Box::new(from_sava.clone()),
+                    on_failure: Box::new(from_mira.clone()),
+                }],
+            ),
+            simple_action("both", Condition::Always, vec![from_sava, from_mira]),
+        ]);
+        let mut initial = state(&content);
+        for npc in initial.world.npcs.values_mut() {
+            npc.inventory.insert("ore".to_owned(), 2);
+        }
+        initial
+            .character
+            .inventory
+            .insert("ore".to_owned(), u32::MAX - 3);
+        let mut sources = BTreeSet::new();
+        for seed in 0..8 {
+            initial.entropy = EntropyState::new(seed);
+            let actions = enumerate_legal_actions(&initial, &content).unwrap();
+            assert_eq!(
+                actions
+                    .iter()
+                    .map(|action| action.definition_id.as_str())
+                    .collect::<Vec<_>>(),
+                vec!["always", "either"]
+            );
+            let transition = step(&initial, &actions[1], &content, &initial.entropy).unwrap();
+            assert_eq!(transition.state().character.inventory["ore"], u32::MAX - 1);
+            assert!(matches!(
+                transition.events(),
+                [
+                    Event {
+                        kind: EventKind::RandomDraw { .. },
+                        ..
+                    },
+                    Event {
+                        kind: EventKind::NpcItemTransferredToCharacter { .. },
+                        ..
+                    },
+                ]
+            ));
+            for event in transition.events() {
+                if let EventKind::NpcItemTransferredToCharacter { npc, .. } = &event.kind {
+                    sources.insert(npc.clone());
+                }
+            }
+        }
+        assert_eq!(
+            sources,
+            BTreeSet::from(["sava".to_owned(), "mira".to_owned()])
         );
     }
 
@@ -1382,8 +2079,8 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v4".to_owned(),
-            rules_version: "forge-rules-v2".to_owned(),
+            schema_version: "forge-schema-v5".to_owned(),
+            rules_version: "forge-rules-v3".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -1397,6 +2094,7 @@ mod tests {
                 goals: BTreeSet::new(),
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
+                inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
             actions: vec![stress],

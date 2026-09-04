@@ -352,6 +352,11 @@ pub enum EventKind {
         npc: NpcId,
         knowledge: String,
     },
+    NpcItemTransferredToCharacter {
+        npc: NpcId,
+        item: String,
+        count: u32,
+    },
     TimeAdvanced {
         ticks: u64,
     },
