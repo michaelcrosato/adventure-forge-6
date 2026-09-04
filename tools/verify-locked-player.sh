@@ -237,7 +237,8 @@ for run in one two; do
     run_locked "$GAME_BUNDLE" "$session_dir" "$PLAY_INPUT" "$stdout_path" "$stderr_path" \
         play --character ilyan --seed 71 || fail "scripted play failed inside the sandbox"
     assert_empty "$stderr_path" "successful play wrote to private stderr"
-    assert_contains "$stdout_path" 'Your council mark makes the forgery hard to deny.' \
+    assert_contains "$stdout_path" \
+        'Your council mark exposes the forged water order, and Sava accepts your proof.' \
         "scripted canonical action did not execute"
     assert_contains "$stdout_path" 'Unknown command.' "injection was not inert CLI input"
     assert_contains "$stdout_path" 'Saved 1 step(s).' "player trace was not saved"

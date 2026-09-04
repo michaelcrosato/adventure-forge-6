@@ -538,8 +538,18 @@ pub fn step(
             &mut events,
         )?;
     }
+    resolve_due_timed_events(
+        &mut next,
+        content,
+        &mut entropy_cursor,
+        &mut entropy_draws,
+        &mut events,
+    )?;
     next.entropy = entropy_cursor.clone();
     next.event_log.extend(events.iter().cloned());
+    content
+        .validate_state(&next)
+        .map_err(|error| KernelError::InvalidState(error.to_string()))?;
     let post_state_id = next.state_id();
     Ok(Transition {
         pre_state_id,
@@ -551,6 +561,62 @@ pub fn step(
         post_state_id,
         state: next,
     })
+}
+
+fn resolve_due_timed_events(
+    state: &mut GameState,
+    content: &CompiledContent,
+    entropy: &mut EntropyState,
+    entropy_draws: &mut Vec<EntropyDraw>,
+    events: &mut Vec<Event>,
+) -> Result<(), KernelError> {
+    let due_count = state
+        .world
+        .scheduled_events
+        .partition_point(|event| event.due_time <= state.world.time);
+    if due_count == 0 {
+        return Ok(());
+    }
+
+    let mut due = std::mem::take(&mut state.world.scheduled_events);
+    state.world.scheduled_events = due.split_off(due_count);
+    let parameters = BTreeMap::new();
+    for scheduled in due {
+        let definition = content.timed_event(&scheduled.id).ok_or_else(|| {
+            KernelError::InvalidState(format!("unknown timed event {}", scheduled.id))
+        })?;
+        if definition.due_time != scheduled.due_time
+            || definition.event_kind != scheduled.event_kind
+        {
+            return Err(KernelError::InvalidState(format!(
+                "timed event {} differs from compiled content",
+                scheduled.id
+            )));
+        }
+        let applied = definition.condition.evaluate(state);
+        events.push(Event {
+            turn: state.world.time,
+            kind: EventKind::ScheduledEventResolved {
+                event_id: scheduled.id,
+                event_kind: scheduled.event_kind,
+                applied,
+            },
+        });
+        if applied {
+            for effect in &definition.effects {
+                apply_effect(
+                    state,
+                    effect,
+                    &parameters,
+                    content,
+                    entropy,
+                    entropy_draws,
+                    events,
+                )?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn resolve_ref(
@@ -827,8 +893,8 @@ mod tests {
 
     fn content(actions: Vec<ActionDefinition>) -> CompiledContent {
         CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v3".to_owned(),
-            rules_version: "forge-rules-v1".to_owned(),
+            schema_version: "forge-schema-v4".to_owned(),
+            rules_version: "forge-rules-v2".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -860,6 +926,7 @@ mod tests {
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
             }],
+            timed_events: Vec::new(),
             actions,
         })
         .unwrap()
@@ -1208,8 +1275,8 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v3".to_owned(),
-            rules_version: "forge-rules-v1".to_owned(),
+            schema_version: "forge-schema-v4".to_owned(),
+            rules_version: "forge-rules-v2".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -1224,6 +1291,7 @@ mod tests {
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
             }],
+            timed_events: Vec::new(),
             actions: vec![stress],
         })
         .unwrap();

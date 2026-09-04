@@ -18,6 +18,7 @@ pub use content::{
     CharacterCreationSlot, CharacterPatch, CharacterPreset, CompiledContent, Condition,
     ContentContract, ContentDraft, ContentValidationError, Effect, LocationDefinition,
     NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
+    TimedEventDefinition, TimedEventView,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,

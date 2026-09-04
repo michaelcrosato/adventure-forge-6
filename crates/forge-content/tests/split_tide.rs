@@ -3,11 +3,18 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_content::{compile, parse, parse_and_compile_production};
 use forge_kernel::{
     CanonicalAction, CharacterChoiceSelection, CharacterSelection, CharacterStart, CompiledContent,
-    ContentContract, GameState, KnowledgeProvenanceKind, enumerate_legal_actions,
+    ContentContract, EventKind, GameState, KnowledgeProvenanceKind, enumerate_legal_actions,
     legal_action_digest, step,
 };
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
+const SLUICE_OUTCOMES: [&str; 5] = [
+    "top.split_flow",
+    "top.hold_market",
+    "top.divert_relief",
+    "top.break_toll",
+    "top.overload",
+];
 
 fn content() -> CompiledContent {
     parse_and_compile_production(SPLIT_TIDE)
@@ -356,13 +363,11 @@ fn result_first_and_conditional_prose_show_character_and_npc_reactions() {
         .expect("audit result observation");
     assert_eq!(
         audit_observation.result.as_deref(),
-        Some("Your council mark makes the forgery hard to deny.")
+        Some("Your council mark exposes the forged water order, and Sava accepts your proof.")
     );
-    assert!(
-        audit_observation
-            .text
-            .starts_with("Your council mark makes the forgery hard to deny.")
-    );
+    assert!(audit_observation.text.starts_with(
+        "Your council mark exposes the forged water order, and Sava accepts your proof."
+    ));
     assert!(audit_observation.text.split_whitespace().count() <= 100);
 
     let pressured = apply(
@@ -576,14 +581,6 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
 
 #[test]
 fn every_sluice_outcome_excludes_the_other_four() {
-    const OUTCOMES: [&str; 5] = [
-        "top.split_flow",
-        "top.hold_market",
-        "top.divert_relief",
-        "top.break_toll",
-        "top.overload",
-    ];
-
     let content = content();
 
     let mut split = apply(
@@ -663,7 +660,7 @@ fn every_sluice_outcome_excludes_the_other_four() {
         let legal_after = definitions(&resolved, &content);
         assert!(legal_after.contains("top.return_lowsail"));
         assert!(
-            OUTCOMES
+            SLUICE_OUTCOMES
                 .iter()
                 .all(|outcome| !legal_after.contains(*outcome)),
             "an outcome remained legal after {selected}"
@@ -767,7 +764,7 @@ fn unchanged_actions_keep_their_order_while_state_bound_ids_rotate() {
     let content = content();
     let initial = new_game(&content, "ilyan");
     let before = enumerate_legal_actions(&initial, &content).unwrap();
-    let after_state = apply(initial, &content, "checkpoint.ask_sava");
+    let after_state = apply(initial, &content, "wait_tide");
     let after = enumerate_legal_actions(&after_state, &content).unwrap();
 
     let semantic_shapes = |actions: &[CanonicalAction]| {
@@ -789,4 +786,122 @@ fn unchanged_actions_keep_their_order_while_state_bound_ids_rotate() {
             .unwrap(),
         "Go to the Red Sluice and redirect the next surge before it floods Lowsail."
     );
+}
+
+#[test]
+fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
+    let content = content();
+    let mut state = new_game(&content, "ilyan");
+    let opening = content.observe(&state).unwrap();
+    assert_eq!(opening.world_time, 0);
+    assert_eq!(opening.upcoming_events.len(), 1);
+    assert_eq!(opening.upcoming_events[0].label, "Lowsail surge");
+    assert_eq!(opening.upcoming_events[0].remaining_ticks, 16);
+    let mut missing_schedule = state.clone();
+    missing_schedule.world.scheduled_events.clear();
+    assert!(enumerate_legal_actions(&missing_schedule, &content).is_err());
+
+    state = apply(state, &content, "checkpoint.show_charter");
+    state = travel_to(state, &content, "lowsail.levee");
+    state = apply(state, &content, "levee.authority_path");
+    state = travel_to(state, &content, "red_sluice.top");
+    while state.world.time < 15 {
+        state = apply(state, &content, "wait_tide");
+    }
+    assert!(definitions(&state, &content).contains("top.hold_market"));
+    let almost_due = content.observe(&state).unwrap();
+    assert_eq!(almost_due.upcoming_events[0].remaining_ticks, 1);
+
+    let action = action_for(&state, &content, "wait_tide");
+    let transition = step(&state, &action, &content, &state.entropy).unwrap();
+    let observation = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(observation.world_time, 16);
+    assert!(observation.upcoming_events.is_empty());
+    assert!(observation.result.as_deref().is_some_and(|result| {
+        result.contains("The surge hits before you redirect it. Lowsail floods.")
+    }));
+    assert!(transition.events().iter().any(|event| matches!(
+        &event.kind,
+        EventKind::ScheduledEventResolved {
+            event_id,
+            event_kind,
+            applied: true,
+        } if event_id == "lowsail.next_surge" && event_kind == "deadline"
+    )));
+    let missed = transition.into_state();
+    assert!(missed.world.flags.contains("surge_missed"));
+    assert!(missed.world.flags.contains("sluice_failure"));
+    assert!(missed.world.flags.contains("sluice_outcome_chosen"));
+    assert!(missed.world.scheduled_events.is_empty());
+    assert!(
+        missed.world.locations["lowsail.return"]
+            .flags
+            .contains("market_flooded")
+    );
+    let after_deadline = definitions(&missed, &content);
+    assert!(after_deadline.contains("top.return_lowsail"));
+    assert!(
+        SLUICE_OUTCOMES
+            .iter()
+            .all(|outcome| !after_deadline.contains(*outcome))
+    );
+
+    let mut protected = new_game(&content, "ilyan");
+    protected = apply(protected, &content, "checkpoint.show_charter");
+    protected = travel_to(protected, &content, "lowsail.levee");
+    protected = apply(protected, &content, "levee.authority_path");
+    protected = travel_to(protected, &content, "red_sluice.top");
+    protected = apply(protected, &content, "top.hold_market");
+    assert!(
+        content
+            .observe(&protected)
+            .unwrap()
+            .upcoming_events
+            .is_empty()
+    );
+    while protected.world.time < 16 {
+        protected = apply(protected, &content, "wait_tide");
+    }
+    assert!(!protected.world.flags.contains("surge_missed"));
+    assert!(protected.event_log.iter().any(|event| matches!(
+        &event.kind,
+        EventKind::ScheduledEventResolved {
+            event_id,
+            applied: false,
+            ..
+        } if event_id == "lowsail.next_surge"
+    )));
+}
+
+#[test]
+fn discoveries_retire_and_the_intake_map_unlocks_a_safe_split() {
+    let content = content();
+    let mut state = new_game(&content, "ilyan");
+    state = apply(state, &content, "checkpoint.ask_sava");
+    assert!(!definitions(&state, &content).contains("checkpoint.ask_sava"));
+
+    state = apply(state, &content, "checkpoint.audit_order");
+    assert_eq!(
+        content
+            .action_result(&state, "checkpoint.audit_order")
+            .unwrap(),
+        "Your council mark exposes the forged water order, and Sava accepts your proof."
+    );
+    assert!(!definitions(&state, &content).contains("checkpoint.audit_order"));
+
+    state = apply(state, &content, "checkpoint.show_charter");
+    state = travel_to(state, &content, "lowsail.levee");
+    state = apply(state, &content, "levee.authority_path");
+    let dive = action_for(&state, &content, "floor.dive_intake");
+    let transition = step(&state, &dive, &content, &state.entropy).unwrap();
+    let observation = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(
+        observation.result.as_deref(),
+        Some("The intake map reveals a safe split. Check the wheels at Red Sluice Top.")
+    );
+    state = transition.into_state();
+    assert!(!definitions(&state, &content).contains("floor.dive_intake"));
+    state = travel_to(state, &content, "red_sluice.top");
+    state = apply(state, &content, "top.check_wheels");
+    assert!(definitions(&state, &content).contains("top.split_flow"));
 }

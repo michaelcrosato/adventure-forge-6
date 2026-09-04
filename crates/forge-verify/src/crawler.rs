@@ -250,6 +250,19 @@ pub fn crawl_production(
             content
                 .validate_state(&next_state)
                 .map_err(|_| VerifyError::new("crawler transition produced an invalid state"))?;
+            let definition = content.action(&action.definition_id).ok_or_else(|| {
+                VerifyError::new("crawler transition referenced an unknown action definition")
+            })?;
+            if !definition.movement
+                && definition.category != "Time"
+                && definition.parameters.is_empty()
+                && definition.condition.evaluate(&next_state)
+            {
+                return Err(VerifyError::new(format!(
+                    "resolved non-time action {} remains legal after use",
+                    definition.id
+                )));
+            }
             report.successful_actions = report
                 .successful_actions
                 .checked_add(1)
@@ -664,23 +677,27 @@ fn join_ids(ids: &BTreeSet<String>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use forge_content::parse_and_compile_production;
+    use forge_content::{compile_production, parse, parse_and_compile_production};
 
     const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 
     #[test]
     fn bounded_crawl_executes_every_split_tide_definition() {
         let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
-        let report = crawl_production(&content, CrawlBudget::default()).unwrap();
+        let budget = CrawlBudget {
+            max_expanded_states: 96,
+            ..CrawlBudget::default()
+        };
+        let report = crawl_production(&content, budget).unwrap();
         assert!(report.is_complete());
         assert_eq!(report.advertised_definitions.len(), 49);
         assert_eq!(report.reached_locations.len(), 6);
         assert!(report.successful_actions >= report.advertised_definitions.len());
-        assert!(report.expanded_states <= 72);
+        assert!(report.expanded_states <= 96);
         assert!(report.discovered_frontiers <= 512);
         assert_eq!(report.execution_receipt.len(), 64);
 
-        let repeated = crawl_production(&content, CrawlBudget::default()).unwrap();
+        let repeated = crawl_production(&content, budget).unwrap();
         assert_eq!(report.execution_receipt, repeated.execution_receipt);
     }
 
@@ -694,6 +711,24 @@ mod tests {
         assert_eq!(
             location_distance(&content, "red_sluice.top", "lowsail.return").unwrap(),
             1
+        );
+    }
+
+    #[test]
+    fn crawl_rejects_a_resolved_non_time_action_that_remains_legal() {
+        let mut draft = parse(SPLIT_TIDE).unwrap();
+        draft
+            .actions
+            .iter_mut()
+            .find(|action| action.id == "checkpoint.read_flag")
+            .unwrap()
+            .condition = Condition::Always;
+        let content = compile_production(draft).unwrap();
+        let error = crawl_production(&content, CrawlBudget::default()).unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("resolved non-time action checkpoint.read_flag remains legal")
         );
     }
 

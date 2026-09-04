@@ -1,6 +1,6 @@
 {
-  "schema_version": "forge-schema-v3",
-  "rules_version": "forge-rules-v1",
+  "schema_version": "forge-schema-v4",
+  "rules_version": "forge-rules-v2",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
@@ -461,6 +461,25 @@
       "tags": ["worker", "organizer"]
     }
   ],
+  "timed_events": [
+    {
+      "id": "lowsail.next_surge",
+      "due_time": 16,
+      "event_kind": "deadline",
+      "label": "Lowsail surge",
+      "result": "The surge hits before you redirect it. Lowsail floods.",
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}
+      },
+      "effects": [
+        {"kind": "set_world_flag", "flag": "sluice_outcome_chosen", "value": true},
+        {"kind": "set_world_flag", "flag": "surge_missed", "value": true},
+        {"kind": "set_world_flag", "flag": "sluice_failure", "value": true},
+        {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "market_flooded", "value": true}
+      ]
+    }
+  ],
   "actions": [
     {
       "id": "travel_adjacent",
@@ -498,7 +517,10 @@
       "category": "Inspect",
       "result": "Go to the Red Sluice and redirect the next surge before it floods Lowsail.",
       "locations": ["lowsail_market"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "warning_seen"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail_market"}, "flag": "warning_seen", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -521,7 +543,10 @@
         }
       ],
       "locations": ["lowsail_market"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "met_player_checkpoint"}
+      },
       "effects": [
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": 1},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "met_player_checkpoint", "subject": "The player asked at the checkpoint.", "provenance": {"kind": "witnessed"}},
@@ -547,7 +572,7 @@
               {"kind": "has_tag", "tag": "tide-ear"}
             ]
           },
-          "text": "Your council mark makes the forgery hard to deny."
+          "text": "Your council mark exposes the forged water order, and Sava accepts your proof."
         },
         {
           "id": "wanted_runner",
@@ -559,7 +584,7 @@
               {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}}
             ]
           },
-          "text": "Your wanted name makes the forgery a dangerous accusation."
+          "text": "Your wanted name makes the proof risky, but Sava sees the forged water order."
         }
       ],
       "locations": ["lowsail_market"],
@@ -569,7 +594,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
           {"kind": "has_tag", "tag": "tide-ear"},
-          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "order_audited"}}
         ]
       },
       "effects": [
@@ -596,7 +622,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "has_tag", "tag": "order"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
-          {"kind": "facet_at_least", "axis": "aptitude.presence", "value": 5}
+          {"kind": "facet_at_least", "axis": "aptitude.presence", "value": 5},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "council_route"}}
         ]
       },
       "effects": [
@@ -623,7 +650,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "has_tag", "tag": "freedom"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
-          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"}}
         ]
       },
       "effects": [
@@ -649,7 +677,8 @@
         "conditions": [
           {"kind": "character_has_deed", "deed_id": "saved_worker"},
           {"kind": "has_tag", "tag": "order"},
-          {"kind": "facet_at_least", "axis": "affiliation.council", "value": 2}
+          {"kind": "facet_at_least", "axis": "affiliation.council", "value": 2},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "worker_credit"}}
         ]
       },
       "effects": [
@@ -673,7 +702,8 @@
         "conditions": [
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "has_tag", "tag": "wanted"},
-          {"kind": "facet_at_least", "axis": "aptitude.might", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.might", "value": 6},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "checkpoint_alert"}}
         ]
       },
       "effects": [
@@ -697,7 +727,8 @@
         "conditions": [
           {"kind": "character_has_deed", "deed_id": "stole_permit"},
           {"kind": "facet_equals", "axis": "origin", "value": {"kind": "text", "value": "red-sluice"}},
-          {"kind": "facet_at_least", "axis": "reputation.notoriety", "value": 2}
+          {"kind": "facet_at_least", "axis": "reputation.notoriety", "value": 2},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "stolen_route"}}
         ]
       },
       "effects": [
@@ -717,7 +748,10 @@
       "category": "Search",
       "result": "You find rope marks near the locked tide chest.",
       "locations": ["lowsail.docks"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "crate_searched"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "crate_searched", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -732,7 +766,10 @@
       "category": "Warn",
       "result": "The warning bell sends ferries toward higher water.",
       "locations": ["lowsail.docks"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "world_flag", "flag": "market_warned"}
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "market_warned", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_heard_warning", "subject": "The player rang the market warning bell.", "provenance": {"kind": "witnessed"}},
@@ -748,7 +785,10 @@
       "category": "Talk",
       "result": "Oren reveals the submerged culvert beneath Lowsail Levee and asks you to break the toll.",
       "locations": ["lowsail.docks"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_revealed_culvert"}
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
@@ -766,10 +806,16 @@
       "result": "Yara leads you to the submerged culvert.",
       "locations": ["lowsail.docks"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
-          {"kind": "has_tag", "tag": "night-eyes"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
+              {"kind": "has_tag", "tag": "night-eyes"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "courier_followed"}}
         ]
       },
       "effects": [
@@ -794,7 +840,8 @@
         "conditions": [
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "has_tag", "tag": "tide-ear"},
-          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "ledger_read"}}
         ]
       },
       "effects": [
@@ -822,7 +869,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "has_tag", "tag": "freedom"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
-          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "tide_key_offered"}}
         ]
       },
       "effects": [
@@ -846,7 +894,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
-          {"kind": "has_tag", "tag": "freedom"}
+          {"kind": "has_tag", "tag": "freedom"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ferry_aid"}}
         ]
       },
       "effects": [
@@ -867,7 +916,10 @@
       "category": "Inspect",
       "result": "Fresh marks show water struck the levee.",
       "locations": ["lowsail.levee"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "lowsail.levee", "flag": "damage_seen"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.levee"}, "flag": "damage_seen", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -882,7 +934,10 @@
       "category": "Aid",
       "result": "The worker reaches safety and Mira hears about it.",
       "locations": ["lowsail.levee"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "world_flag", "flag": "worker_helped"}
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "worker_helped", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 1},
@@ -900,7 +955,13 @@
       "category": "Report",
       "result": "Sava's report reaches Edrik through the levee.",
       "locations": ["lowsail.levee"],
-      "condition": {"kind": "world_flag", "flag": "forged_order_found"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "forged_order_found"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "report_sent"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "report_sent", "value": true},
         {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "forged_order", "subject": "The water order is forged.", "provenance": {"kind": "told", "by": "sava_rusk"}},
@@ -918,7 +979,13 @@
       "category": "Signal",
       "result": "Edrik hears that Lowsail expects the surge.",
       "locations": ["lowsail.levee"],
-      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "warning_received"}}
+        ]
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "warning_received", "value": true},
         {"kind": "teach_npc", "npc": {"kind": "literal", "value": "edrik_voss"}, "knowledge_id": "market_warned", "subject": "Lowsail expects a surge.", "provenance": {"kind": "rumor", "from": "oren_pell"}},
@@ -1022,7 +1089,10 @@
         }
       ],
       "locations": ["red_sluice.floor"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "pressure_read", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -1037,7 +1107,13 @@
       "category": "Repair",
       "result": "The gauge steadies and Edrik lowers his guard.",
       "locations": ["red_sluice.floor"],
-      "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "red_sluice.floor", "flag": "pressure_read"},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "gauge_stable"}}
+        ]
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "gauge_stable", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "edrik_voss"}, "amount": 1},
@@ -1060,7 +1136,8 @@
           {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "fenborn"}},
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "has_tag", "tag": "tide-ear"},
-          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "harmonics_read"}}
         ]
       },
       "effects": [
@@ -1079,13 +1156,14 @@
       "id": "floor.dive_intake",
       "label": "Dive Intake",
       "category": "Dive",
-      "result": "The intake map reveals a clear route.",
+      "result": "The intake map reveals a safe split. Check the wheels at Red Sluice Top.",
       "locations": ["red_sluice.floor"],
       "condition": {
         "kind": "all",
         "conditions": [
           {"kind": "facet_equals", "axis": "lineage", "value": {"kind": "text", "value": "fenborn"}},
-          {"kind": "has_tag", "tag": "tide-ear"}
+          {"kind": "has_tag", "tag": "tide-ear"},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "intake_mapped"}}
         ]
       },
       "effects": [
@@ -1111,7 +1189,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "has_tag", "tag": "heat-sense"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
-          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6}
+          {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "high_route_open"}}
         ]
       },
       "effects": [
@@ -1139,7 +1218,13 @@
         }
       ],
       "locations": ["red_sluice.floor"],
-      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "relief_channel_open"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "relief_channel_open", "value": true},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "relief_ready", "value": true},
@@ -1162,7 +1247,8 @@
         "conditions": [
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "facet_at_least", "axis": "aptitude.might", "value": 7},
-          {"kind": "has_tag", "tag": "wanted"}
+          {"kind": "has_tag", "tag": "wanted"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_breached"}}
         ]
       },
       "effects": [
@@ -1182,7 +1268,13 @@
       "category": "Report",
       "result": "Edrik confirms the report and prepares the gauge.",
       "locations": ["red_sluice.floor"],
-      "condition": {"kind": "world_flag", "flag": "report_sent"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "report_sent"},
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "report_received"}}
+        ]
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "report_received", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "edrik_voss"}, "amount": 1},
@@ -1200,7 +1292,10 @@
       "category": "Inspect",
       "result": "The control wheels turn, but the split still needs a choice.",
       "locations": ["red_sluice.top"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.top"}, "flag": "wheels_checked", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -1215,7 +1310,10 @@
       "category": "Rescue",
       "result": "Mira's worker reaches the platform.",
       "locations": ["red_sluice.top"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "world_flag", "flag": "worker_rescued"}
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "worker_rescued", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 2},
@@ -1237,14 +1335,20 @@
           "id": "crew_turns_wheels",
           "priority": 15,
           "condition": {"kind": "world_flag", "flag": "worker_rescued"},
-          "text": "The rescued crew turns the wheels together."
+          "text": "The rescued crew turns together, splitting water safely between both shores."
         }
       ],
       "locations": ["red_sluice.top"],
       "condition": {
         "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "sluice_calibrated"},
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "sluice_calibrated"},
+              {"kind": "location_flag", "location": "red_sluice.floor", "flag": "intake_mapped"}
+            ]
+          },
           {"kind": "location_flag", "location": "red_sluice.top", "flag": "wheels_checked"},
           {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
@@ -1386,7 +1490,13 @@
       "category": "Signal",
       "result": "A warning signal reaches Oren before the surge.",
       "locations": ["red_sluice.top"],
-      "condition": {"kind": "world_flag", "flag": "market_warned"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "market_warned"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "signal_sent"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "signal_sent", "value": true},
         {"kind": "teach_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "knowledge_id": "sluice_signal", "subject": "The Sluice sent a signal before the surge.", "provenance": {"kind": "told", "by": "edrik_voss"}},
@@ -1445,7 +1555,10 @@
         }
       ],
       "locations": ["lowsail.return"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "result_seen"}
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.return"}, "flag": "result_seen", "value": true},
         {"kind": "advance_time", "ticks": 1}
@@ -1460,7 +1573,10 @@
       "category": "Talk",
       "result": "Oren names the price of the new water route.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "always"},
+      "condition": {
+        "kind": "not",
+        "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_saw_return"}
+      },
       "effects": [
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 1},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_return", "subject": "Oren saw the player return after the surge.", "provenance": {"kind": "witnessed"}},
@@ -1488,7 +1604,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
-          {"kind": "world_flag", "flag": "flow_split"}
+          {"kind": "world_flag", "flag": "flow_split"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_accord"}}
         ]
       },
       "effects": [
@@ -1507,7 +1624,13 @@
       "category": "Ending",
       "result": "The market stays open, but the dry works lose ground.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_council"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "ending_council", "value": true},
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_saw_council_result", "subject": "The player returned with the market protected.", "provenance": {"kind": "witnessed"}},
@@ -1524,7 +1647,13 @@
       "category": "Ending",
       "result": "The market moves inland before the next surge.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "lowsail.return", "flag": "market_moved"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_relief"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "ending_relief", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 1},
@@ -1541,7 +1670,13 @@
       "category": "Ending",
       "result": "The free ferry route links both shores.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_freedom"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "ending_freedom", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "oren_pell"}, "amount": 2},
@@ -1558,7 +1693,13 @@
       "category": "Ending",
       "result": "The lower market floods and the broken gates remain.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ending_disaster"}}
+        ]
+      },
       "effects": [
         {"kind": "set_world_flag", "flag": "ending_disaster", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": -2},
@@ -1575,7 +1716,13 @@
       "category": "Report",
       "result": "Sava records the report and watches the changed water.",
       "locations": ["lowsail.return"],
-      "condition": {"kind": "world_flag", "flag": "report_sent"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "report_sent"},
+          {"kind": "not", "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "sava_received_return_report"}}
+        ]
+      },
       "effects": [
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_return_report", "subject": "The player returned after sending the Sluice report.", "provenance": {"kind": "told", "by": "edrik_voss"}},
         {"kind": "advance_time", "ticks": 1}

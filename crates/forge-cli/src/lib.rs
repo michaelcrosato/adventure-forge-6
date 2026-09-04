@@ -888,8 +888,25 @@ fn public_action_label(action: &ActionView) -> String {
     }
 }
 
+fn public_timing_summary(observation: &Observation) -> String {
+    let mut parts = vec![format!("Tide step {}", observation.world_time)];
+    parts.extend(observation.upcoming_events.iter().map(|event| {
+        let unit = if event.remaining_ticks == 1 {
+            "step"
+        } else {
+            "steps"
+        };
+        format!(
+            "{}: {} tide {unit} remaining",
+            event.label, event.remaining_ticks
+        )
+    }));
+    parts.join(" · ")
+}
+
 fn render_observation<W: Write>(observation: &Observation, output: &mut W) -> Result<(), CliError> {
     writeln!(output, "\n{}", observation.title).map_err(io_error)?;
+    writeln!(output, "{}", public_timing_summary(observation)).map_err(io_error)?;
     writeln!(output, "{}", observation.text).map_err(io_error)?;
     writeln!(
         output,
@@ -1295,7 +1312,11 @@ mod tests {
             "find Audit Order\n1\nquit\n",
         )
         .unwrap();
-        assert!(output.contains("Your council mark makes the forgery hard to deny."));
+        assert!(output.contains(
+            "Your council mark exposes the forged water order, and Sava accepts your proof."
+        ));
+        assert!(output.contains("Tide step 0 · Lowsail surge: 16 tide steps remaining"));
+        assert!(output.contains("Tide step 1 · Lowsail surge: 15 tide steps remaining"));
         assert!(output.contains("legal action(s)"));
         assert!(!output.contains("event_log"));
         assert!(!output.contains("scheduled_events"));

@@ -8,7 +8,7 @@ pub use forge_kernel::{
     ActionDefinition, ActionPage, ActionView, CharacterCreationChoice, CharacterCreationDefinition,
     CharacterCreationSlot, CharacterPatch, CharacterPreset, CharacterSelection, Condition,
     ContentContract, ContentDraft, Effect, LocationDefinition, NpcDefinition, Observation,
-    ParameterDomain, ParameterSpec, StringRef, TextVariant,
+    ParameterDomain, ParameterSpec, StringRef, TextVariant, TimedEventDefinition, TimedEventView,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -94,6 +94,7 @@ mod tests {
             character_creation: None,
             locations: Vec::new(),
             npcs: Vec::new(),
+            timed_events: Vec::new(),
             actions: Vec::new(),
         };
         let error = compile_production(source).unwrap_err();
@@ -106,14 +107,14 @@ mod tests {
     #[test]
     fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
         let duplicate_top_level = r#"{
-            "schema_version":"forge-schema-v3",
+            "schema_version":"forge-schema-v4",
             "schema_version":"shadow"
         }"#;
         assert!(parse(duplicate_top_level).is_err());
 
         let duplicate_nested_map = r#"{
-            "schema_version":"forge-schema-v3",
-            "rules_version":"forge-rules-v1",
+            "schema_version":"forge-schema-v4",
+            "rules_version":"forge-rules-v2",
             "world_id":"world",
             "character_creation":{
                 "base":{"resources":{"coin":1,"coin":2}},

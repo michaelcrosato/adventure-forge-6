@@ -1,4 +1,7 @@
-use super::{CliError, atomic_write, load_content, public_action_label, short_hash, write_trace};
+use super::{
+    CliError, atomic_write, load_content, public_action_label, public_timing_summary, short_hash,
+    write_trace,
+};
 use forge_kernel::{
     CompiledContent, Observation, enumerate_legal_actions, validate_unique_json_keys,
 };
@@ -461,11 +464,12 @@ fn public_view(
         ));
     }
     let mut view = format!(
-        "Observation canary: {}\nTurn: {}/{}\n\n{}\n{}\n{} legal action(s) · set {}\nActions 1–{} of {}:\n",
+        "Observation canary: {}\nTurn: {}/{}\n\n{}\n{}\n{}\n{} legal action(s) · set {}\nActions 1–{} of {}:\n",
         config.observation_canary,
         session.trace().steps.len(),
         config.maximum_turns,
         observation.title,
+        public_timing_summary(observation),
         observation.text,
         observation.action_count,
         short_hash(&observation.action_set_digest),

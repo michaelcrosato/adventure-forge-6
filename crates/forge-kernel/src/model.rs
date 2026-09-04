@@ -355,6 +355,11 @@ pub enum EventKind {
     TimeAdvanced {
         ticks: u64,
     },
+    ScheduledEventResolved {
+        event_id: String,
+        event_kind: String,
+        applied: bool,
+    },
     RandomDraw {
         algorithm: String,
         cursor: u64,

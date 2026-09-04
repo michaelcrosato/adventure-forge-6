@@ -19,7 +19,7 @@ cargo run -p forge-cli -- play --character ilyan
 cargo run -p forge-cli -- demo --character rook --output rook.trace.json
 ```
 
-The creator offers six authored two-way axes—lineage, origin, calling, value, burden, and history—for 64 validated combinations. The CLI submits only the chosen public IDs; the kernel derives the complete character and binds its canonical recipe into state and replay provenance. During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
+The creator offers six authored two-way axes—lineage, origin, calling, value, burden, and history—for 64 validated combinations. The CLI submits only the chosen public IDs; the kernel derives the complete character and binds its canonical recipe into state and replay provenance. During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. The player view shows the authoritative tide step and the remaining time before the Lowsail surge. Completed discoveries leave the catalog instead of inviting consequence-free repetition. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
 
 ```bash
 cargo run -p forge-cli -- replay rook.trace.json
@@ -47,7 +47,7 @@ An accepted run requires clean `main` equal to `origin/main`, compiles the lates
 
 The globally installed Vercel plugin remains available to the manager but is disabled and absent from the blind player's isolated Codex home. Successful local reports are written under `artifacts/local/live-blind-llm/`. They preserve the model-authored findings, public transcript, player-safe trace, Codex events, prompt-context audit, tool allowlist, hashes, timing, token usage, and independent replay result. Codex currently injects generic host skill and developer context even with callable development features disabled, so these reports claim source-isolated model play—not a strict proof that every model-visible token came from the game interface.
 
-All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, all five Split Tide outcomes, and one representative path through each authored area:
+All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, the missed-surge deadline, all five chosen Split Tide outcomes, and one representative path through each authored area:
 
 ```bash
 cargo run -p forge-verify -- scenarios
@@ -55,6 +55,7 @@ cargo run -p forge-verify -- crawl
 cargo run -p forge-verify -- scale
 cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-custom-cross-current.json
+cargo run -p forge-verify -- check evidence/witnesses/m1-deadline-missed-surge.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-outcome-split-flow.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-area-red-sluice.json
 cargo run -p forge-verify -- check-scale evidence/scale/synthetic-ring-500.json

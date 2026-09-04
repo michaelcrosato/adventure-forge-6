@@ -1,9 +1,9 @@
 use crate::build_manifest::BuildManifest;
 use crate::hash::sha256_json;
 use crate::model::{
-    Character, CharacterChoiceSelection, CharacterSelection, CharacterStart, FacetValue, GameState,
-    KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, NpcId, NpcState,
-    is_reserved_character_facet_axis,
+    Character, CharacterChoiceSelection, CharacterSelection, CharacterStart, EventKind, FacetValue,
+    GameState, KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, NpcId, NpcState,
+    ScheduledEvent, is_reserved_character_facet_axis,
 };
 use crate::{EntropyState, LocationRuntime};
 use serde::{Deserialize, Serialize};
@@ -12,6 +12,7 @@ use std::fmt::{Display, Formatter};
 
 const MAX_CREATION_SLOTS: usize = 16;
 const MAX_CREATION_CHOICES_PER_SLOT: usize = 64;
+const MAX_TIMED_EVENTS: usize = 64;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -128,6 +129,29 @@ pub struct CharacterCreationDefinition {
     pub slots: Vec<CharacterCreationSlot>,
 }
 
+/// A deterministic content-authored event resolved by the kernel after an
+/// accepted canonical action advances world time to or beyond `due_time`.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TimedEventDefinition {
+    pub id: String,
+    pub due_time: u64,
+    pub event_kind: String,
+    pub label: String,
+    pub result: String,
+    #[serde(default)]
+    pub condition: Condition,
+    #[serde(default)]
+    pub effects: Vec<Effect>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct TimedEventView {
+    pub label: String,
+    pub remaining_ticks: u64,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Observation {
@@ -138,6 +162,8 @@ pub struct Observation {
     /// Result-first, then the current location description.
     pub text: String,
     pub result: Option<String>,
+    pub world_time: u64,
+    pub upcoming_events: Vec<TimedEventView>,
     pub action_set_digest: String,
     pub action_count: usize,
 }
@@ -187,6 +213,8 @@ pub struct ContentDraft {
     pub locations: Vec<LocationDefinition>,
     #[serde(default)]
     pub npcs: Vec<NpcDefinition>,
+    #[serde(default)]
+    pub timed_events: Vec<TimedEventDefinition>,
     #[serde(default)]
     pub actions: Vec<ActionDefinition>,
 }
@@ -587,6 +615,7 @@ struct ContentIdentity<'a> {
     character_creation: &'a Option<CharacterCreationDefinition>,
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
+    timed_events: &'a BTreeMap<String, TimedEventDefinition>,
     actions: &'a BTreeMap<String, ActionDefinition>,
 }
 
@@ -602,6 +631,7 @@ pub struct CompiledContent {
     character_creation: Option<CharacterCreationDefinition>,
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
+    timed_events: BTreeMap<String, TimedEventDefinition>,
     actions: BTreeMap<String, ActionDefinition>,
     build_id: String,
 }
@@ -651,6 +681,11 @@ impl CompiledContent {
             .into_iter()
             .map(|npc| (npc.id.clone(), npc))
             .collect::<BTreeMap<_, _>>();
+        let timed_events = draft
+            .timed_events
+            .into_iter()
+            .map(|event| (event.id.clone(), event))
+            .collect::<BTreeMap<_, _>>();
         let actions = draft
             .actions
             .into_iter()
@@ -684,6 +719,7 @@ impl CompiledContent {
             character_creation: &character_creation,
             locations: &locations,
             npcs: &npcs,
+            timed_events: &timed_events,
             actions: &actions,
         };
         let build_id = sha256_json(&identity).expect("validated content must be serializable");
@@ -696,6 +732,7 @@ impl CompiledContent {
             character_creation,
             locations,
             npcs,
+            timed_events,
             actions,
             build_id,
         })
@@ -753,6 +790,10 @@ impl CompiledContent {
         self.actions.get(id)
     }
 
+    pub fn timed_event(&self, id: &str) -> Option<&TimedEventDefinition> {
+        self.timed_events.get(id)
+    }
+
     pub fn locations(&self) -> impl Iterator<Item = (&LocationId, &LocationDefinition)> {
         self.locations.iter()
     }
@@ -763,6 +804,10 @@ impl CompiledContent {
 
     pub fn actions(&self) -> impl Iterator<Item = (&String, &ActionDefinition)> {
         self.actions.iter()
+    }
+
+    pub fn timed_events(&self) -> impl Iterator<Item = (&String, &TimedEventDefinition)> {
+        self.timed_events.iter()
     }
 
     pub fn has_location(&self, id: &str) -> bool {
@@ -783,6 +828,7 @@ impl CompiledContent {
             character_creation: &self.character_creation,
             locations: &self.locations,
             npcs: &self.npcs,
+            timed_events: &self.timed_events,
             actions: &self.actions,
         };
         sha256_json(&identity).is_ok_and(|digest| digest == self.build_id)
@@ -992,6 +1038,20 @@ impl CompiledContent {
             EntropyState::new(seed),
         );
         state.character_start = character_start;
+        state.world.scheduled_events = self
+            .timed_events
+            .values()
+            .map(|event| ScheduledEvent {
+                id: event.id.clone(),
+                due_time: event.due_time,
+                event_kind: event.event_kind.clone(),
+            })
+            .collect();
+        state.world.scheduled_events.sort_by(|left, right| {
+            left.due_time
+                .cmp(&right.due_time)
+                .then_with(|| left.id.cmp(&right.id))
+        });
         self.validate_state(&state)?;
         Ok(state)
     }
@@ -1012,7 +1072,8 @@ impl CompiledContent {
         let action = self.action(definition_id).ok_or_else(|| {
             single_validation_error(format!("unknown action definition {definition_id}"))
         })?;
-        self.observe_with_result(state, Some(action))
+        let result = select_variant_text(&action.result, &action.result_variants, state);
+        self.observe_with_result(state, Some(result))
     }
 
     /// Render a result-first observation bound to a reducer transition.
@@ -1046,7 +1107,33 @@ impl CompiledContent {
                 "transition events are not the state event-log suffix",
             ));
         }
-        self.observe_action(transition.state(), &action.definition_id)
+        let definition = self
+            .action(&action.definition_id)
+            .expect("validated transition action must be compiled");
+        let mut result_parts = vec![select_variant_text(
+            &definition.result,
+            &definition.result_variants,
+            transition.state(),
+        )];
+        for event in transition.events() {
+            if let EventKind::ScheduledEventResolved {
+                event_id,
+                event_kind,
+                applied: true,
+            } = &event.kind
+            {
+                let timed = self.timed_event(event_id).ok_or_else(|| {
+                    single_validation_error("transition resolved an unknown timed event")
+                })?;
+                if timed.event_kind != *event_kind {
+                    return Err(single_validation_error(
+                        "transition timed-event kind does not match compiled content",
+                    ));
+                }
+                result_parts.push(timed.result.clone());
+            }
+        }
+        self.observe_with_result(transition.state(), Some(result_parts.join(" ")))
     }
 
     pub fn location_description(
@@ -1164,7 +1251,7 @@ impl CompiledContent {
     fn observe_with_result(
         &self,
         state: &GameState,
-        result_action: Option<&ActionDefinition>,
+        result: Option<String>,
     ) -> Result<Observation, ContentValidationError> {
         self.validate_state(state)?;
         let location = self
@@ -1176,8 +1263,6 @@ impl CompiledContent {
             .map_err(|error| single_validation_error(error.to_string()))?;
         let location_text =
             select_variant_text(&location.description, &location.description_variants, state);
-        let result = result_action
-            .map(|action| select_variant_text(&action.result, &action.result_variants, state));
         let text = match &result {
             Some(result) => format!("{result} {location_text}"),
             None => location_text,
@@ -1187,6 +1272,19 @@ impl CompiledContent {
                 "combined routine observation exceeds 100 words",
             ));
         }
+        let upcoming_events = state
+            .world
+            .scheduled_events
+            .iter()
+            .filter_map(|scheduled| {
+                self.timed_event(&scheduled.id)
+                    .filter(|definition| definition.condition.evaluate(state))
+                    .map(|definition| TimedEventView {
+                        label: definition.label.clone(),
+                        remaining_ticks: scheduled.due_time.saturating_sub(state.world.time),
+                    })
+            })
+            .collect();
         Ok(Observation {
             build_id: self.build_id.clone(),
             state_id: state.state_id(),
@@ -1194,6 +1292,8 @@ impl CompiledContent {
             title: location.name.clone(),
             text,
             result,
+            world_time: state.world.time,
+            upcoming_events,
             action_set_digest,
             action_count: actions.len(),
         })
@@ -1330,13 +1430,66 @@ impl CompiledContent {
                 }
             }
         }
-        let mut event_ids = BTreeSet::new();
-        for event in &state.world.scheduled_events {
-            if event.id.trim().is_empty() || event.event_kind.trim().is_empty() {
-                errors.push("scheduled event has an empty id or event kind");
+        let mut expected_scheduled = self
+            .timed_events
+            .values()
+            .filter(|definition| definition.due_time > state.world.time)
+            .map(|definition| ScheduledEvent {
+                id: definition.id.clone(),
+                due_time: definition.due_time,
+                event_kind: definition.event_kind.clone(),
+            })
+            .collect::<Vec<_>>();
+        expected_scheduled.sort_by(|left, right| {
+            left.due_time
+                .cmp(&right.due_time)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+        if state.world.scheduled_events != expected_scheduled {
+            errors.push("state pending timed events differ from compiled content and world time");
+        }
+        for event in &state.event_log {
+            if let EventKind::ScheduledEventResolved {
+                event_id,
+                event_kind,
+                ..
+            } = &event.kind
+            {
+                match self.timed_event(event_id) {
+                    Some(definition)
+                        if definition.event_kind == *event_kind
+                            && event.turn >= definition.due_time
+                            && event.turn <= state.world.time => {}
+                    Some(_) => errors.push(format!(
+                        "resolved timed event {event_id} has invalid kind or turn"
+                    )),
+                    None => errors.push(format!(
+                        "event log references unknown timed event {event_id}"
+                    )),
+                }
             }
-            if !event_ids.insert(&event.id) {
-                errors.push(format!("duplicate scheduled event id {}", event.id));
+        }
+        for definition in self
+            .timed_events
+            .values()
+            .filter(|definition| definition.due_time <= state.world.time)
+        {
+            let resolutions = state
+                .event_log
+                .iter()
+                .filter(|event| {
+                    matches!(
+                        &event.kind,
+                        EventKind::ScheduledEventResolved { event_id, .. }
+                            if event_id == &definition.id
+                    )
+                })
+                .count();
+            if resolutions != 1 {
+                errors.push(format!(
+                    "timed event {} has {resolutions} resolutions; expected exactly one",
+                    definition.id
+                ));
             }
         }
         for (item, count) in &state.character.inventory {
@@ -1517,6 +1670,17 @@ fn validate_draft(
             &npc_ids,
             &mut errors,
         );
+    }
+
+    if draft.timed_events.len() > MAX_TIMED_EVENTS {
+        errors.push(format!("content exceeds {MAX_TIMED_EVENTS} timed events"));
+    }
+    let mut timed_event_ids = BTreeSet::new();
+    for event in &draft.timed_events {
+        validate_timed_event(event, &location_ids, &npc_ids, &mut errors);
+        if !timed_event_ids.insert(&event.id) {
+            errors.push(format!("duplicate timed event id {}", event.id));
+        }
     }
 
     let mut action_ids = BTreeSet::new();
@@ -2160,6 +2324,95 @@ fn validate_action(
     }
 }
 
+fn validate_timed_event(
+    event: &TimedEventDefinition,
+    location_ids: &BTreeSet<&String>,
+    npc_ids: &BTreeSet<&String>,
+    errors: &mut ContentValidationError,
+) {
+    let owner = format!("timed event {}", event.id);
+    if event.id.trim().is_empty() {
+        errors.push("timed event id cannot be empty");
+    }
+    if event.due_time == 0 {
+        errors.push(format!("{owner} must be due after world time zero"));
+    }
+    if event.event_kind.trim().is_empty() {
+        errors.push(format!("{owner} has an empty event kind"));
+    }
+    if event.label.trim().is_empty() || word_count(&event.label) > 8 {
+        errors.push(format!("{owner} label must contain at most 8 words"));
+    }
+    let result_sentences = split_sentences(event.result.trim());
+    if event.result.trim().is_empty()
+        || word_count(&event.result) > 60
+        || result_sentences
+            .iter()
+            .any(|sentence| word_count(sentence) > 18)
+    {
+        errors.push(format!("{owner} result exceeds concise text limits"));
+    }
+    if event.condition.contains_never() || event.condition.is_obviously_never() {
+        errors.push(format!(
+            "{owner} contains or reduces to an impossible condition"
+        ));
+    }
+    validate_condition(&event.condition, &owner, location_ids, npc_ids, errors, 0);
+    if event.effects.is_empty() || !event.effects.iter().any(Effect::changes_state) {
+        errors.push(format!("{owner} has no state-changing effect"));
+    }
+    if event.effects.iter().any(effect_advances_time) {
+        errors.push(format!("{owner} cannot advance time while resolving"));
+    }
+
+    let validation_action = ActionDefinition {
+        id: owner,
+        label: event.label.clone(),
+        category: event.event_kind.clone(),
+        result: event.result.clone(),
+        result_variants: Vec::new(),
+        locations: Vec::new(),
+        condition: Condition::Always,
+        effects: Vec::new(),
+        parameters: Vec::new(),
+        meaningful: true,
+        movement: false,
+    };
+    let parameters = BTreeSet::new();
+    let mut roles = BTreeMap::new();
+    validate_effects(
+        &event.effects,
+        &validation_action,
+        location_ids,
+        npc_ids,
+        &parameters,
+        &mut roles,
+        errors,
+        0,
+    );
+}
+
+fn effect_advances_time(effect: &Effect) -> bool {
+    match effect {
+        Effect::AdvanceTime { .. } => true,
+        Effect::RandomChance {
+            on_success,
+            on_failure,
+            ..
+        } => effect_advances_time(on_success) || effect_advances_time(on_failure),
+        Effect::Noop
+        | Effect::SetFlag { .. }
+        | Effect::SetWorldFlag { .. }
+        | Effect::SetLocationFlag { .. }
+        | Effect::AdjustResource { .. }
+        | Effect::MoveCharacter { .. }
+        | Effect::AdjustNpcRelationship { .. }
+        | Effect::AddNpcMemory { .. }
+        | Effect::TeachNpc { .. }
+        | Effect::AddCharacterDeed { .. } => false,
+    }
+}
+
 fn validate_condition(
     condition: &Condition,
     owner: &str,
@@ -2784,6 +3037,7 @@ mod tests {
                 values: BTreeSet::new(),
                 tags: BTreeSet::new(),
             }],
+            timed_events: Vec::new(),
             actions,
         }
     }
@@ -2917,6 +3171,56 @@ mod tests {
         content.npcs[0].values.insert("order".to_owned());
         content.npcs[0].tags.insert("guard".to_owned());
         content
+    }
+
+    #[test]
+    fn timed_events_validate_closed_effects_and_compile_into_identity() {
+        let mut source = draft(vec![action(
+            "wait",
+            Condition::Always,
+            vec![Effect::AdvanceTime { ticks: 1 }],
+        )]);
+        source.timed_events.push(TimedEventDefinition {
+            id: "test.deadline".to_owned(),
+            due_time: 2,
+            event_kind: "deadline".to_owned(),
+            label: "Test deadline".to_owned(),
+            result: "The test deadline arrives.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "deadline_reached".to_owned(),
+                value: true,
+            }],
+        });
+        let compiled = compile(source.clone()).expect("valid timed event");
+        assert_eq!(compiled.timed_event("test.deadline").unwrap().due_time, 2);
+
+        let mut changed = source.clone();
+        changed.timed_events[0].due_time = 3;
+        let changed = compile(changed).expect("changed timed event");
+        assert_ne!(compiled.build_id(), changed.build_id());
+
+        let mut immediate = source.clone();
+        immediate.timed_events[0].due_time = 0;
+        assert!(
+            compile(immediate)
+                .unwrap_err()
+                .to_string()
+                .contains("due after world time zero")
+        );
+
+        let mut recursive_time = source;
+        recursive_time.timed_events[0].effects = vec![Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(Effect::AdvanceTime { ticks: 1 }),
+            on_failure: Box::new(Effect::Noop),
+        }];
+        assert!(
+            compile(recursive_time)
+                .unwrap_err()
+                .to_string()
+                .contains("cannot advance time while resolving")
+        );
     }
 
     fn npc_state(id: &str, location: &str) -> NpcState {

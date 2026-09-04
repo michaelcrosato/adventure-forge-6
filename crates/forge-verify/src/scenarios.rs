@@ -16,6 +16,7 @@ const REQUIRED_SCENARIO_IDS: &[&str] = &[
     "m0-rook",
     "m1-custom-cross-current",
     "m1-custom-unlikely-ally",
+    "m1-deadline-missed-surge",
     "m1-outcome-split-flow",
     "m1-outcome-hold-market",
     "m1-outcome-relief-channel",
@@ -127,6 +128,25 @@ const CUSTOM_UNLIKELY_ALLY_CHOICES: &[(&str, &str)] = &[
 const CUSTOM_UNLIKELY_ALLY_STEPS: &[ScenarioStep] = &[
     action!("checkpoint.recall_worker"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
+];
+
+const DEADLINE_MISSED_STEPS: &[ScenarioStep] = &[
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
+    action!("wait_tide"),
 ];
 
 const SPLIT_FLOW_STEPS: &[ScenarioStep] = &[
@@ -301,6 +321,36 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_location_flags: &[],
             required_deeds: &["saved_worker"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            forbidden_legal_definitions: &[],
+        },
+    },
+    ScenarioSpec {
+        id: "m1-deadline-missed-surge",
+        claim_id: "split-tide.deadline.missed-surge",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: DEADLINE_MISSED_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "lowsail_market",
+            final_action_definition: "wait_tide",
+            final_observation_contains: "The surge hits before you redirect it. Lowsail floods.",
+            exclusive_after_action: "",
+            required_world_flags: &["sluice_outcome_chosen", "surge_missed", "sluice_failure"],
+            forbidden_world_flags: &[
+                "flow_split",
+                "flow_locked_market",
+                "flow_relief",
+                "old_channel_open",
+                "ending_accord",
+                "ending_council",
+                "ending_relief",
+                "ending_freedom",
+            ],
+            required_location_flags: &[("lowsail.return", "market_flooded")],
+            required_deeds: &[],
+            required_visited_locations: &["lowsail_market"],
             forbidden_legal_definitions: &[],
         },
     },

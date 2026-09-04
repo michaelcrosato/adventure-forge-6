@@ -817,8 +817,8 @@ mod tests {
 
     fn content_draft() -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v3".to_owned(),
-            rules_version: "forge-rules-v1".to_owned(),
+            schema_version: "forge-schema-v4".to_owned(),
+            rules_version: "forge-rules-v2".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
@@ -843,6 +843,7 @@ mod tests {
                 },
             ],
             npcs: Vec::new(),
+            timed_events: Vec::new(),
             actions: vec![
                 ActionDefinition {
                     id: "mark".to_owned(),
@@ -1416,8 +1417,8 @@ mod tests {
         let content = content();
         let trace = two_step_trace(&content);
         let other_draft = ContentDraft {
-            schema_version: "forge-schema-v3".to_owned(),
-            rules_version: "forge-rules-v1".to_owned(),
+            schema_version: "forge-schema-v4".to_owned(),
+            rules_version: "forge-rules-v2".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
@@ -1442,6 +1443,7 @@ mod tests {
                 },
             ],
             npcs: Vec::new(),
+            timed_events: Vec::new(),
             actions: vec![ActionDefinition {
                 id: "different".to_owned(),
                 label: "Different".to_owned(),

@@ -1,274 +1,329 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "7b8e2473d7e761f982263eb02bcbaa865ecca11ae732d146806a8fdb22767cc7",
+  "verifier_id": "3b51569d6d2abd5f05cac7b4ae1e14c74fd90f04815124b7f32876068dd9c910",
   "scenario_id": "m1-outcome-split-flow",
   "scenario_binding": "9edc71ffa21745c13c1bad5e6f8732bfaed4253cb8d4966b81271185a47726cd",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
+    "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
     "start": {
       "kind": "character_preset",
       "character_preset_id": "ilyan",
       "seed": 71
     },
     "action_ids": [
-      "d8c0ae33eb0f7a49b079f49200bfb053c94b7feafa8f6d3250e8f89bb84533cc",
-      "202ff50f2aad0bac5d62d3d6b0ff7eeecabba86b028dfbd88143c2bcce92a301",
-      "f020418dcf7fe19438df727a9e72b39c96608f247ef1787904990a863fe6749c",
-      "a5de3d843cc95244c7f809db88c5ecefcc7681642fca4569ea061c0e4cd48427",
-      "76742556f1d86e34d73734b1ba97ad59d3ef7a2fe329d5f79324794c0d48f771",
-      "547b0bbae0dcc8ea6fae6ed9289f36ee211afa19665c9783b7091c846b96d632",
-      "4a928babfc122970a5c591bdacc348bfeca6784b3df1be4f14794c9b0f66768a",
-      "038334d5f765a536b5f32c5ee8e25d3bab3943efc08838bd34f346c62f75a9fe",
-      "c29bccaef9996c1ab35b05782d950fe01b302d1dd1a752c294bb48dff21a3c1a"
+      "b7fdcff8dc1a33d93c06d32700cc84269f07122e5a81a9e37708194bfcc61f3f",
+      "5c877add74ba06d13fbd33da3ac736cf544d9c46c0a45af5eb7f077d97ee1ea1",
+      "4d2e57a447281ee1c628525e01ca03329fe758ba454303f288d57a5667428525",
+      "60a978d50d818b37a8df5c4a336eadbdc07a59743d28bd7966f36af3c330a3d4",
+      "38aefcbe84affb1ebeb114f292ec96e88c2a1c9d5259f9d59633a08e5192990d",
+      "3c9192b348ea682eb1a04bf2ab100793326aa03cf9f99d086a1e112bfdf4a49a",
+      "f5a9b74b0a63c5bc77d3bdd862c33024c4ee9093aebae7dc063e54d5f3b26039",
+      "fda263eb33ee113890e367591d84a031927a978fed7329aeb9ba221910295d1e",
+      "40905a1b341fca72c13bd23c984ed6d80a277e4a15423e56dffece044d7e5bb2"
     ],
-    "final_state_id": "b84267a8879d547b8b4c2a16e8597e8286c7935f81c5ccec72c41ea9a2c00b30",
-    "final_receipt": "8a91b8b96028c0970232e52fbe1519ef3d9642e82254fbdd77b4c1a868660e9c"
+    "final_state_id": "55373b1a9b715b1165f87d0817fe7e70e670e635bc8dac95be5646a88f2e6b36",
+    "final_receipt": "b27fbfdec1791d6cd853737a719d7a8be0864bcb3727b3c3ce185ce39bf80897"
   },
-  "initial_state_id": "8beffec800040a40efb6cea256b6fe6cb542e116c1428f54d49c5df1377b1d96",
+  "initial_state_id": "55339badb52c9dc865db9b4044208d85cb61c311102156accee188a0a397228e",
   "initial_observation": {
-    "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-    "state_id": "8beffec800040a40efb6cea256b6fe6cb542e116c1428f54d49c5df1377b1d96",
+    "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+    "state_id": "55339badb52c9dc865db9b4044208d85cb61c311102156accee188a0a397228e",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "Sava lifts the chain for a clerk with a council mark.",
     "result": null,
-    "action_set_digest": "43313f733489992a37ea985f45d2397b6b9547cb06d18dfd11eaf965097351f4",
+    "world_time": 0,
+    "upcoming_events": [
+      {
+        "label": "Lowsail surge",
+        "remaining_ticks": 16
+      }
+    ],
+    "action_set_digest": "4160ad0f67a2ad63f92410faa8ab50bcd7ffa23ca644057f1442baa2fc285fd7",
     "action_count": 8
   },
-  "initial_observation_hash": "98759bb57918257a1073fa23ad66265f601a9ef934dd9fe6dc5fe25e0f24ee4b",
-  "initial_receipt": "5422876a10e47eb16d3899ae236de157fe645c26c7fdec0ba9654da843504b2e",
+  "initial_observation_hash": "eed5c5f5a72798d46d8cd8d2b5a16e3ecbf59efcdc0dda393417d7c5ad4a91c0",
+  "initial_receipt": "5b5c3ebfd1b50443c48a0d80b7e39546a5d63eb41ce040f45b176c70abc0bd28",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "d8c0ae33eb0f7a49b079f49200bfb053c94b7feafa8f6d3250e8f89bb84533cc",
+      "action_id": "b7fdcff8dc1a33d93c06d32700cc84269f07122e5a81a9e37708194bfcc61f3f",
       "action_definition_id": "checkpoint.show_charter",
       "action_parameters": {},
-      "legal_action_set_digest": "43313f733489992a37ea985f45d2397b6b9547cb06d18dfd11eaf965097351f4",
-      "pre_state_id": "8beffec800040a40efb6cea256b6fe6cb542e116c1428f54d49c5df1377b1d96",
+      "legal_action_set_digest": "4160ad0f67a2ad63f92410faa8ab50bcd7ffa23ca644057f1442baa2fc285fd7",
+      "pre_state_id": "55339badb52c9dc865db9b4044208d85cb61c311102156accee188a0a397228e",
       "events_hash": "7759ca7348d932c1da9f74c96b3798307aed0ceb93f327c6b1a599f59457a507",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "97cf506cd60bd0f561b424bbcdb846c063810d559a08f23af0175660d13033a5",
+      "post_state_id": "1f1b56e7afe48cd46dc0a80a794782f878f873c767eb45681799f8149556a07c",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "97cf506cd60bd0f561b424bbcdb846c063810d559a08f23af0175660d13033a5",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "1f1b56e7afe48cd46dc0a80a794782f878f873c767eb45681799f8149556a07c",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "Sava honors your charter, opening the Authority Path at Lowsail Levee. Sava lifts the chain for a clerk with a council mark.",
         "result": "Sava honors your charter, opening the Authority Path at Lowsail Levee.",
-        "action_set_digest": "3d771d61e12a17b287b1038c6843678aa52b11820315b85e781fa68bb659f0f0",
-        "action_count": 8
+        "world_time": 1,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 15
+          }
+        ],
+        "action_set_digest": "3cb5ce804f26e939d92cdcad86236e51038a7c496e9dc1b09e632f239742ba6f",
+        "action_count": 7
       },
-      "observation_hash": "47730f107133092aa133b0e4ef6e86b8f39c15a500849c9b20cdc57d927a1655",
-      "receipt": "2565b359d2f33a7f62b6455f580965fd047a68d6ce85b078e8d04859124d7168"
+      "observation_hash": "44e4012f18bff46486950bfb2982bd54c6a719bfa01a7367b39cbe6ff657242f",
+      "receipt": "239c5249df88adb078343816df2563a852d133d799bc7ef83e1357a22f0ed15a"
     },
     {
       "step_index": 1,
-      "action_id": "202ff50f2aad0bac5d62d3d6b0ff7eeecabba86b028dfbd88143c2bcce92a301",
+      "action_id": "5c877add74ba06d13fbd33da3ac736cf544d9c46c0a45af5eb7f077d97ee1ea1",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.levee"
       },
-      "legal_action_set_digest": "3d771d61e12a17b287b1038c6843678aa52b11820315b85e781fa68bb659f0f0",
-      "pre_state_id": "97cf506cd60bd0f561b424bbcdb846c063810d559a08f23af0175660d13033a5",
+      "legal_action_set_digest": "3cb5ce804f26e939d92cdcad86236e51038a7c496e9dc1b09e632f239742ba6f",
+      "pre_state_id": "1f1b56e7afe48cd46dc0a80a794782f878f873c767eb45681799f8149556a07c",
       "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "51212dc534d35746b7fa8b8e378553311bf66e4df37d34c948cb92bcd95333a0",
+      "post_state_id": "aaf1db11355846eba83e577cfafcf99261770106ba60d2d3feca06083d9f874d",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "51212dc534d35746b7fa8b8e378553311bf66e4df37d34c948cb92bcd95333a0",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "aaf1db11355846eba83e577cfafcf99261770106ba60d2d3feca06083d9f874d",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You move along the connected path. The levee road runs east to the Sluice. Flood marks show fresh damage.",
         "result": "You move along the connected path.",
-        "action_set_digest": "6d6b839ebf063cf47ac5bc7b79f6cb7f862aae8959b95c3196e2a18a0870f494",
+        "world_time": 2,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 14
+          }
+        ],
+        "action_set_digest": "678ad4d81f3de49ff613a4799865c3bf267f50c53a9be00da01a239d82f38ddf",
         "action_count": 5
       },
-      "observation_hash": "93233919b01bc037c199fc2109245b3804acf2941c24191263808326832be8f0",
-      "receipt": "4f24b4bfc028d06d6df94545d9b2081d6835c633cef0f2fe792c2c059c02541b"
+      "observation_hash": "b04680299cbdb34ef43685508f4009cc02d5cfed150ae9d109aecf845f88058a",
+      "receipt": "edb00a1a2b56f673cecf55a56b5680f7a02e8672de00397d6839ab9740a5d654"
     },
     {
       "step_index": 2,
-      "action_id": "f020418dcf7fe19438df727a9e72b39c96608f247ef1787904990a863fe6749c",
+      "action_id": "4d2e57a447281ee1c628525e01ca03329fe758ba454303f288d57a5667428525",
       "action_definition_id": "levee.authority_path",
       "action_parameters": {},
-      "legal_action_set_digest": "6d6b839ebf063cf47ac5bc7b79f6cb7f862aae8959b95c3196e2a18a0870f494",
-      "pre_state_id": "51212dc534d35746b7fa8b8e378553311bf66e4df37d34c948cb92bcd95333a0",
+      "legal_action_set_digest": "678ad4d81f3de49ff613a4799865c3bf267f50c53a9be00da01a239d82f38ddf",
+      "pre_state_id": "aaf1db11355846eba83e577cfafcf99261770106ba60d2d3feca06083d9f874d",
       "events_hash": "e52a1860ca653df18d928d726a1730f6f85473f073144a86c69461c36b8b47a5",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "9bb69c3d177799c25baefae68eaa86ea838923ee0911e6e5e1f9239166fddb1f",
+      "post_state_id": "b9f48492c04bab38c115aee0f402f3bad05584b67fc204689b7fb231512b51de",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "9bb69c3d177799c25baefae68eaa86ea838923ee0911e6e5e1f9239166fddb1f",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "b9f48492c04bab38c115aee0f402f3bad05584b67fc204689b7fb231512b51de",
         "location_id": "red_sluice.floor",
         "title": "Red Sluice Floor",
         "text": "The charter opens the guarded Sluice path. Water pounds the lower gate. Edrik holds a broken gauge above the intake.",
         "result": "The charter opens the guarded Sluice path.",
-        "action_set_digest": "8c8afc809cbfbe5ad62513d1807c968c5a2acc201ca221d0197f3cca7132ab19",
+        "world_time": 3,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 13
+          }
+        ],
+        "action_set_digest": "513ccb99126f56a3a4ed2a8f12c4ec1aea63b9f020d992be228e7ec72bd9cd3c",
         "action_count": 6
       },
-      "observation_hash": "ded793a82a2b10431af354d657add8eb8786d7d40f9eccb8c3c403b827e77c0e",
-      "receipt": "6a65201fda7c1a96deef57452318ca9e1239e4da3a386d95491ccd6100f82c6c"
+      "observation_hash": "150042c837aa18c213584dc40c4de8b2c80e1000d8e73b1bf23d34158346a02b",
+      "receipt": "0b1e85ab933f7921a1ceb43210b2a07a8c0ca7bbbe8f07381a18bf4c60e9e238"
     },
     {
       "step_index": 3,
-      "action_id": "a5de3d843cc95244c7f809db88c5ecefcc7681642fca4569ea061c0e4cd48427",
+      "action_id": "60a978d50d818b37a8df5c4a336eadbdc07a59743d28bd7966f36af3c330a3d4",
       "action_definition_id": "floor.read_harmonics",
       "action_parameters": {},
-      "legal_action_set_digest": "8c8afc809cbfbe5ad62513d1807c968c5a2acc201ca221d0197f3cca7132ab19",
-      "pre_state_id": "9bb69c3d177799c25baefae68eaa86ea838923ee0911e6e5e1f9239166fddb1f",
+      "legal_action_set_digest": "513ccb99126f56a3a4ed2a8f12c4ec1aea63b9f020d992be228e7ec72bd9cd3c",
+      "pre_state_id": "b9f48492c04bab38c115aee0f402f3bad05584b67fc204689b7fb231512b51de",
       "events_hash": "1b3e884d1f0144366baddee3a2d03e4610bf70c5e120257aa799e6b3fe9705e2",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "b7979bea0b673bcc34e8a1553e7920e52e92e03f49d54ca033a5464a59f1ff82",
+      "post_state_id": "0f4f30fef03f4e83e174ec3ec4e25a3402842bb23f8f8d9b77f7ba897d0c5e88",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "b7979bea0b673bcc34e8a1553e7920e52e92e03f49d54ca033a5464a59f1ff82",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "0f4f30fef03f4e83e174ec3ec4e25a3402842bb23f8f8d9b77f7ba897d0c5e88",
         "location_id": "red_sluice.floor",
         "title": "Red Sluice Floor",
         "text": "You hear a safe pattern in the gate. The broken gauge hums in a safe pattern and Edrik sees a shared route.",
         "result": "You hear a safe pattern in the gate.",
-        "action_set_digest": "15889f9b31db8961aa0a130b752d4d03dc32bc168cc61712eec705d9c554b317",
-        "action_count": 6
+        "world_time": 4,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 12
+          }
+        ],
+        "action_set_digest": "c325b49938cd234dd6e1bb9bb5cbb276134b40eda8a0f0ecf40853b19552e2d3",
+        "action_count": 5
       },
-      "observation_hash": "9e5ada86519976eec5bc43d6dc4433802f3e029843bc79c3ff508b60d8323f04",
-      "receipt": "be1dcda68d8fdba093a96fa23669b8dba839567a1f9cee94b4383b5492d49870"
+      "observation_hash": "37d7b4d3f6105ee8fffbc03ec30e882c9b0b7fd4a7d9dc57c82d9152531be85a",
+      "receipt": "8b0e5d21590bed8519ef0a30c201c577c9d735009c7a8660534eb6a4fe516bfb"
     },
     {
       "step_index": 4,
-      "action_id": "76742556f1d86e34d73734b1ba97ad59d3ef7a2fe329d5f79324794c0d48f771",
+      "action_id": "38aefcbe84affb1ebeb114f292ec96e88c2a1c9d5259f9d59633a08e5192990d",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "red_sluice.top"
       },
-      "legal_action_set_digest": "15889f9b31db8961aa0a130b752d4d03dc32bc168cc61712eec705d9c554b317",
-      "pre_state_id": "b7979bea0b673bcc34e8a1553e7920e52e92e03f49d54ca033a5464a59f1ff82",
+      "legal_action_set_digest": "c325b49938cd234dd6e1bb9bb5cbb276134b40eda8a0f0ecf40853b19552e2d3",
+      "pre_state_id": "0f4f30fef03f4e83e174ec3ec4e25a3402842bb23f8f8d9b77f7ba897d0c5e88",
       "events_hash": "99df3c27f7b8471dcf19ab0cc93a4c8d4ed091bff1b3485a4e134b20225218ec",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "78a065f1cef1c17cab8330b78306a7475261b6b2b77b5abe97bff0f9a5c4e04f",
+      "post_state_id": "c2c2ea109bdc5fcc020522c49c2461ba425373826b8108517f93eca76baca477",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "78a065f1cef1c17cab8330b78306a7475261b6b2b77b5abe97bff0f9a5c4e04f",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "c2c2ea109bdc5fcc020522c49c2461ba425373826b8108517f93eca76baca477",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "You move along the connected path. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
         "result": "You move along the connected path.",
-        "action_set_digest": "a163b8a9e675ec6831d835775d35bd8d2bc3f19a55aa9a59b1826ae6670c8da8",
+        "world_time": 5,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 11
+          }
+        ],
+        "action_set_digest": "cc55d95f8045ff09b29e696a764d93c4fbbd11268605ac96d694ed9eceef5830",
         "action_count": 5
       },
-      "observation_hash": "1ac745138017888e9fbb577893c91156a0ace7113031077d1974b45dcc90e840",
-      "receipt": "dcc1bc63cab97d59434f55674f12115831498fd80f3aa4089d0e31b9ff9b9e1d"
+      "observation_hash": "b2333e5ae6c80ab39350baa692fef4754cd14977a39de1b66e94e3289f91d176",
+      "receipt": "cd986ab72ed0c7ac0caca36d2db4a0303a99faad7bdd96b80bbc74fa3f17c3ed"
     },
     {
       "step_index": 5,
-      "action_id": "547b0bbae0dcc8ea6fae6ed9289f36ee211afa19665c9783b7091c846b96d632",
+      "action_id": "3c9192b348ea682eb1a04bf2ab100793326aa03cf9f99d086a1e112bfdf4a49a",
       "action_definition_id": "top.check_wheels",
       "action_parameters": {},
-      "legal_action_set_digest": "a163b8a9e675ec6831d835775d35bd8d2bc3f19a55aa9a59b1826ae6670c8da8",
-      "pre_state_id": "78a065f1cef1c17cab8330b78306a7475261b6b2b77b5abe97bff0f9a5c4e04f",
+      "legal_action_set_digest": "cc55d95f8045ff09b29e696a764d93c4fbbd11268605ac96d694ed9eceef5830",
+      "pre_state_id": "c2c2ea109bdc5fcc020522c49c2461ba425373826b8108517f93eca76baca477",
       "events_hash": "10dff035504a31d822584a95980665c83a0df55124800158b486017d76d04383",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "0b8677ebe7e04a0f2577134a3147e7a64ce0be4bad78c117b45055955ab51453",
+      "post_state_id": "cb5f2b8b0c5380dab56879508c202cf18879c8d3034998e13ffc20f56e94c667",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "0b8677ebe7e04a0f2577134a3147e7a64ce0be4bad78c117b45055955ab51453",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "cb5f2b8b0c5380dab56879508c202cf18879c8d3034998e13ffc20f56e94c667",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "The control wheels turn, but the split still needs a choice. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
         "result": "The control wheels turn, but the split still needs a choice.",
-        "action_set_digest": "928cb8d5caca0212e8d08b7100ceecc36b521116af09ffc15a692993bb927e6f",
-        "action_count": 6
+        "world_time": 6,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 10
+          }
+        ],
+        "action_set_digest": "62064fe64974b9e166f43da638b5018d98439c467ea5eb8004b8db5bd5990761",
+        "action_count": 5
       },
-      "observation_hash": "f35d570417fbf9697f0e808e3c83489a878b128aeac7b7b7c3b23413ae29c963",
-      "receipt": "3757cffddca473d3a4b69231dcc4726b2732fa5b9b0da00f5ddbd49ebbf63600"
+      "observation_hash": "25636c5887ea6c64e19d225efd99dd53970c9d03f5ea01f0174acb8f1899a7cd",
+      "receipt": "24420f0105908aada03a778474d8d0872eb3a8ddeda034e847017ecdd51d9cbc"
     },
     {
       "step_index": 6,
-      "action_id": "4a928babfc122970a5c591bdacc348bfeca6784b3df1be4f14794c9b0f66768a",
+      "action_id": "f5a9b74b0a63c5bc77d3bdd862c33024c4ee9093aebae7dc063e54d5f3b26039",
       "action_definition_id": "top.split_flow",
       "action_parameters": {},
-      "legal_action_set_digest": "928cb8d5caca0212e8d08b7100ceecc36b521116af09ffc15a692993bb927e6f",
-      "pre_state_id": "0b8677ebe7e04a0f2577134a3147e7a64ce0be4bad78c117b45055955ab51453",
+      "legal_action_set_digest": "62064fe64974b9e166f43da638b5018d98439c467ea5eb8004b8db5bd5990761",
+      "pre_state_id": "cb5f2b8b0c5380dab56879508c202cf18879c8d3034998e13ffc20f56e94c667",
       "events_hash": "1df81954e56077c4a77119cded1432dbed12856f37db96ef9471e1438551e81e",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "396e9d3ee82b07e518f51a1eef91e0ca1cffde1f84d59395ed0e65cdf85467fb",
+      "post_state_id": "7aa191e4c67daedfb3980af4d3b07f3008135581e355ec568179a0a713ebf2e9",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "396e9d3ee82b07e518f51a1eef91e0ca1cffde1f84d59395ed0e65cdf85467fb",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "7aa191e4c67daedfb3980af4d3b07f3008135581e355ec568179a0a713ebf2e9",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "The gates share water between both shores. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
         "result": "The gates share water between both shores.",
-        "action_set_digest": "1205355fa0d95038da222ee433f34f761920c907222cbac2b1014476f547900f",
-        "action_count": 5
+        "world_time": 7,
+        "upcoming_events": [],
+        "action_set_digest": "154e7e35f9fadefd5f4b6bec0360fe5788cad9a8c911ab79bcd4ceb7212232fa",
+        "action_count": 4
       },
-      "observation_hash": "5ae877ed456ea33ad6208c2f852088b0e9441e86193c3671200205efc47498a0",
-      "receipt": "60ac610eed286452eec55aa7a8a3456efebf02d60d7ade4e9c0ee73133ce57ec"
+      "observation_hash": "0af35de10fe242a9f46379b3288a03e9a9f28de02a0d879d4464aad9f2a5125a",
+      "receipt": "7c6428bd2a16e2c6cc78ca491a5f6b468d5c3e9cffacbf64f8e1b4f491b7d3cd"
     },
     {
       "step_index": 7,
-      "action_id": "038334d5f765a536b5f32c5ee8e25d3bab3943efc08838bd34f346c62f75a9fe",
+      "action_id": "fda263eb33ee113890e367591d84a031927a978fed7329aeb9ba221910295d1e",
       "action_definition_id": "top.return_lowsail",
       "action_parameters": {},
-      "legal_action_set_digest": "1205355fa0d95038da222ee433f34f761920c907222cbac2b1014476f547900f",
-      "pre_state_id": "396e9d3ee82b07e518f51a1eef91e0ca1cffde1f84d59395ed0e65cdf85467fb",
+      "legal_action_set_digest": "154e7e35f9fadefd5f4b6bec0360fe5788cad9a8c911ab79bcd4ceb7212232fa",
+      "pre_state_id": "7aa191e4c67daedfb3980af4d3b07f3008135581e355ec568179a0a713ebf2e9",
       "events_hash": "14e82c8ce9b8b190ea571c6f44dd8ed7a73a80cdf9eee60ee54d8c7aa01d0018",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "77a05ef558b1837d950fba095530c6774d4a30b515e5d9054df98788f4d4c978",
+      "post_state_id": "0308bbf9344d73a1ce1b70bc90d1221c4323e08653f7845d5b634163f0c6eb94",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "77a05ef558b1837d950fba095530c6774d4a30b515e5d9054df98788f4d4c978",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "0308bbf9344d73a1ce1b70bc90d1221c4323e08653f7845d5b634163f0c6eb94",
         "location_id": "lowsail.return",
         "title": "Lowsail Return",
         "text": "You return to Lowsail and see what the changed water has done. The market stands above calm water while both shores still receive a share.",
         "result": "You return to Lowsail and see what the changed water has done.",
-        "action_set_digest": "a5fc33ff95d7aa8d74e366c08df628518fe8aa4cae8a81ebd58335b1ed49a2ba",
+        "world_time": 8,
+        "upcoming_events": [],
+        "action_set_digest": "88f4170a4e53688d0a578e8aab34889ec620390751061aa51d51b3350dc79780",
         "action_count": 6
       },
-      "observation_hash": "47596a2c0ae568241fc95ace9b41810e6d5ea3adfc7539795b154c4a85fb8010",
-      "receipt": "6cd45cebdc8bb6fd94238e9e16e4b5a8cf621bdad04cdc92e78c8765406a1a91"
+      "observation_hash": "1546eba8269539e66e021c9fdc4309bb6fdb47dd716cc5feb6e3060974459aa7",
+      "receipt": "047cf0adf2d8e2cbb118b80547b34b81e0393fa4f51168514b6b685914a60405"
     },
     {
       "step_index": 8,
-      "action_id": "c29bccaef9996c1ab35b05782d950fe01b302d1dd1a752c294bb48dff21a3c1a",
+      "action_id": "40905a1b341fca72c13bd23c984ed6d80a277e4a15423e56dffece044d7e5bb2",
       "action_definition_id": "return.share_water",
       "action_parameters": {},
-      "legal_action_set_digest": "a5fc33ff95d7aa8d74e366c08df628518fe8aa4cae8a81ebd58335b1ed49a2ba",
-      "pre_state_id": "77a05ef558b1837d950fba095530c6774d4a30b515e5d9054df98788f4d4c978",
+      "legal_action_set_digest": "88f4170a4e53688d0a578e8aab34889ec620390751061aa51d51b3350dc79780",
+      "pre_state_id": "0308bbf9344d73a1ce1b70bc90d1221c4323e08653f7845d5b634163f0c6eb94",
       "events_hash": "5df66600738f95d48b99ecb2bd625b709c359a682d696e8ce01abc64495c3dc5",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "b84267a8879d547b8b4c2a16e8597e8286c7935f81c5ccec72c41ea9a2c00b30",
+      "post_state_id": "55373b1a9b715b1165f87d0817fe7e70e670e635bc8dac95be5646a88f2e6b36",
       "observation": {
-        "build_id": "885dd692a32d0893164557cb1c625eef048506824485b895ac7a5bcefc706b99",
-        "state_id": "b84267a8879d547b8b4c2a16e8597e8286c7935f81c5ccec72c41ea9a2c00b30",
+        "build_id": "59b29cec7a7da52b2ecd5594b805c41217d5005cef8fcc7f1e32f491f41ed370",
+        "state_id": "55373b1a9b715b1165f87d0817fe7e70e670e635bc8dac95be5646a88f2e6b36",
         "location_id": "lowsail.return",
         "title": "Lowsail Return",
         "text": "Mira records the shared flow as a new market charter. The market stands above calm water while both shores still receive a share.",
         "result": "Mira records the shared flow as a new market charter.",
-        "action_set_digest": "9d167e94fcb3aaacbea39116c2318215ce89edeb09b8d0bd62070658fd645b7a",
-        "action_count": 6
+        "world_time": 9,
+        "upcoming_events": [],
+        "action_set_digest": "759c51ce254f96c9e287469b575f2272e06e15a9d970fe18b643f3fcb39d95f9",
+        "action_count": 5
       },
-      "observation_hash": "2b546b5bfb97619fdeb951559563ac8844452b58a21193e482740c43ae93269c",
-      "receipt": "8a91b8b96028c0970232e52fbe1519ef3d9642e82254fbdd77b4c1a868660e9c"
+      "observation_hash": "27523ccf5e0228e8f6fa0f7e220de3550b891954341848a0b2a474c53279f337",
+      "receipt": "b27fbfdec1791d6cd853737a719d7a8be0864bcb3727b3c3ce185ce39bf80897"
     }
   ],
-  "final_state_id": "b84267a8879d547b8b4c2a16e8597e8286c7935f81c5ccec72c41ea9a2c00b30",
-  "final_receipt": "8a91b8b96028c0970232e52fbe1519ef3d9642e82254fbdd77b4c1a868660e9c"
+  "final_state_id": "55373b1a9b715b1165f87d0817fe7e70e670e635bc8dac95be5646a88f2e6b36",
+  "final_receipt": "b27fbfdec1791d6cd853737a719d7a8be0864bcb3727b3c3ce185ce39bf80897"
 }
