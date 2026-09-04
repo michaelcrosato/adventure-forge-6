@@ -1,4 +1,4 @@
-use forge_cli::{PlayerMcpConfig, run_player_mcp, run_player_mcp_socket};
+use forge_cli::{PlayerMcpConfig, run_player_mcp};
 use std::env;
 use std::io::{self, BufReader};
 use std::process::ExitCode;
@@ -13,16 +13,11 @@ fn main() -> ExitCode {
         }
     };
 
-    let result = if config.socket_path.is_some() {
-        run_player_mcp_socket(&config)
-    } else {
-        let stdin = io::stdin();
-        let mut input = BufReader::new(stdin.lock());
-        let stdout = io::stdout();
-        let mut output = stdout.lock();
-        run_player_mcp(&config, &mut input, &mut output)
-    };
-    match result {
+    let stdin = io::stdin();
+    let mut input = BufReader::new(stdin.lock());
+    let stdout = io::stdout();
+    let mut output = stdout.lock();
+    match run_player_mcp(&config, &mut input, &mut output) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("player adapter error: {error}");

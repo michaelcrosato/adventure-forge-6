@@ -4,13 +4,16 @@ use forge_kernel::{
 };
 use forge_replay::Session;
 use serde_json::{Value, json};
+use std::fs::File;
 use std::io::{BufRead, Read, Write};
+use std::net::TcpListener;
 use std::path::PathBuf;
 
 const MCP_PROTOCOL_VERSION: &str = "2025-06-18";
 const MAX_MCP_LINE_BYTES: usize = 128 * 1024;
 const MAX_MCP_REQUESTS: usize = 512;
 const MAX_PUBLIC_TRANSCRIPT_BYTES: usize = 16 * 1024 * 1024;
+const LINUX_ENOSYS: i32 = 38;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlayerMcpConfig {
@@ -18,10 +21,12 @@ pub struct PlayerMcpConfig {
     pub seed: u64,
     pub trace_path: PathBuf,
     pub transcript_path: PathBuf,
+    pub completion_path: PathBuf,
+    pub denied_read_path: Option<PathBuf>,
+    pub require_network_denied: bool,
     pub observation_canary: String,
     pub minimum_turns: usize,
     pub maximum_turns: usize,
-    pub socket_path: Option<PathBuf>,
 }
 
 impl PlayerMcpConfig {
@@ -30,18 +35,31 @@ impl PlayerMcpConfig {
         let mut seed = None;
         let mut trace_path = None;
         let mut transcript_path = None;
+        let mut completion_path = None;
+        let mut denied_read_path = None;
+        let mut require_network_denied = false;
         let mut observation_canary = None;
         let mut minimum_turns = None;
         let mut maximum_turns = None;
-        let mut socket_path = None;
         let mut index = 0usize;
         while index < args.len() {
             let target = match args[index].as_str() {
                 "--character" => &mut character,
                 "--trace" => &mut trace_path,
                 "--transcript" => &mut transcript_path,
+                "--complete" => &mut completion_path,
+                "--deny-read" => &mut denied_read_path,
                 "--canary" => &mut observation_canary,
-                "--socket" => &mut socket_path,
+                "--require-network-denied" => {
+                    if require_network_denied {
+                        return Err(CliError::new(
+                            "duplicate player adapter option --require-network-denied",
+                        ));
+                    }
+                    require_network_denied = true;
+                    index += 1;
+                    continue;
+                }
                 "--seed" | "--min-turns" | "--max-turns" => {
                     let option = args[index].clone();
                     index = index
@@ -103,18 +121,14 @@ impl PlayerMcpConfig {
         let transcript_path = PathBuf::from(
             transcript_path.ok_or_else(|| CliError::new("--transcript is required"))?,
         );
-        if trace_path == transcript_path {
-            return Err(CliError::new(
-                "player trace and transcript paths must differ",
-            ));
-        }
-        let socket_path = socket_path.map(PathBuf::from);
-        if socket_path
-            .as_ref()
-            .is_some_and(|path| path == &trace_path || path == &transcript_path)
+        let completion_path =
+            PathBuf::from(completion_path.ok_or_else(|| CliError::new("--complete is required"))?);
+        if trace_path == transcript_path
+            || trace_path == completion_path
+            || transcript_path == completion_path
         {
             return Err(CliError::new(
-                "player socket, trace, and transcript paths must differ",
+                "player trace, transcript, and completion paths must differ",
             ));
         }
 
@@ -123,42 +137,14 @@ impl PlayerMcpConfig {
             seed,
             trace_path,
             transcript_path,
+            completion_path,
+            denied_read_path: denied_read_path.map(PathBuf::from),
+            require_network_denied,
             observation_canary,
             minimum_turns,
             maximum_turns,
-            socket_path,
         })
     }
-}
-
-#[cfg(unix)]
-pub fn run_player_mcp_socket(config: &PlayerMcpConfig) -> Result<(), CliError> {
-    use std::os::unix::fs::PermissionsExt;
-    use std::os::unix::net::UnixListener;
-
-    let path = config
-        .socket_path
-        .as_ref()
-        .ok_or_else(|| CliError::new("player adapter socket path is required"))?;
-    let listener = UnixListener::bind(path)
-        .map_err(|_| CliError::new("could not create player adapter socket"))?;
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o666))
-        .map_err(|_| CliError::new("could not secure player adapter socket"))?;
-    let (stream, _) = listener
-        .accept()
-        .map_err(|_| CliError::new("could not accept player adapter connection"))?;
-    let mut input = std::io::BufReader::new(
-        stream
-            .try_clone()
-            .map_err(|_| CliError::new("could not prepare player adapter connection"))?,
-    );
-    let mut output = stream;
-    run_player_mcp(config, &mut input, &mut output)
-}
-
-#[cfg(not(unix))]
-pub fn run_player_mcp_socket(_config: &PlayerMcpConfig) -> Result<(), CliError> {
-    Err(CliError::new("player adapter sockets require Unix"))
 }
 
 fn set_once(target: &mut Option<String>, value: &str, option: &str) -> Result<(), CliError> {
@@ -186,6 +172,7 @@ pub fn run_player_mcp<R: BufRead, W: Write>(
     input: &mut R,
     output: &mut W,
 ) -> Result<(), CliError> {
+    verify_process_isolation(config)?;
     let content = load_content()?;
     let mut session = Session::new_game(&config.character, config.seed, &content)
         .map_err(super::public_session_error)?;
@@ -209,7 +196,7 @@ pub fn run_player_mcp<R: BufRead, W: Write>(
         let Some(line) = read_mcp_line(input)? else {
             persist_public_session(config, &session, &transcript)?;
             return if finished {
-                Ok(())
+                atomic_write(&config.completion_path, b"forge-player-mcp-complete-v1\n")
             } else {
                 Err(CliError::new("player adapter disconnected before finish"))
             };
@@ -255,6 +242,32 @@ pub fn run_player_mcp<R: BufRead, W: Write>(
         };
         write_json_line(output, &response)?;
     }
+}
+
+fn verify_process_isolation(config: &PlayerMcpConfig) -> Result<(), CliError> {
+    if let Some(path) = &config.denied_read_path {
+        match File::open(path) {
+            Ok(_) => return Err(CliError::new("player adapter filesystem isolation failed")),
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {}
+            Err(_) => {
+                return Err(CliError::new(
+                    "player adapter filesystem isolation probe was inconclusive",
+                ));
+            }
+        }
+    }
+    if config.require_network_denied {
+        match TcpListener::bind(("127.0.0.1", 0)) {
+            Ok(_) => return Err(CliError::new("player adapter network isolation failed")),
+            Err(error) if error.raw_os_error() == Some(LINUX_ENOSYS) => {}
+            Err(_) => {
+                return Err(CliError::new(
+                    "player adapter network isolation probe was inconclusive",
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn read_mcp_line<R: BufRead>(input: &mut R) -> Result<Option<String>, CliError> {
@@ -559,10 +572,12 @@ mod tests {
             seed: 71,
             trace_path: std::env::temp_dir().join(format!("{stem}.trace.json")),
             transcript_path: std::env::temp_dir().join(format!("{stem}.transcript.txt")),
+            completion_path: std::env::temp_dir().join(format!("{stem}.complete")),
+            denied_read_path: None,
+            require_network_denied: false,
             observation_canary: "blind-observation-0123456789abcdef".to_owned(),
             minimum_turns: 1,
             maximum_turns: 4,
-            socket_path: None,
         }
     }
 
@@ -579,9 +594,7 @@ mod tests {
     fn cleanup(config: &PlayerMcpConfig) {
         let _ = fs::remove_file(&config.trace_path);
         let _ = fs::remove_file(&config.transcript_path);
-        if let Some(path) = &config.socket_path {
-            let _ = fs::remove_file(path);
-        }
+        let _ = fs::remove_file(&config.completion_path);
     }
 
     #[test]
@@ -640,6 +653,10 @@ mod tests {
         let transcript = fs::read_to_string(&config.transcript_path).unwrap();
         assert!(transcript.contains("Session finished after 1 action(s)."));
         assert!(transcript.contains(&config.observation_canary));
+        assert_eq!(
+            fs::read_to_string(&config.completion_path).unwrap(),
+            "forge-player-mcp-complete-v1\n"
+        );
         cleanup(&config);
     }
 
@@ -670,6 +687,7 @@ mod tests {
             PlayerTrace::from_json(&trace_json).unwrap().action_count(),
             0
         );
+        assert!(!config.completion_path.exists());
         cleanup(&config);
     }
 
@@ -687,20 +705,27 @@ mod tests {
             "/tmp/a.json",
             "--transcript",
             "/tmp/a.txt",
+            "--complete",
+            "/tmp/a.complete",
+            "--deny-read",
+            "/definitely/not/a/real/player/path",
+            "--require-network-denied",
             "--canary",
             "blind-observation-abcdef",
             "--min-turns",
             "2",
             "--max-turns",
             "8",
-            "--socket",
-            "/tmp/player.sock",
         ]))
         .unwrap();
         assert_eq!(parsed.character, "rook");
         assert_eq!(parsed.minimum_turns, 2);
         assert_eq!(parsed.maximum_turns, 8);
-        assert_eq!(parsed.socket_path, Some(PathBuf::from("/tmp/player.sock")));
+        assert_eq!(
+            parsed.denied_read_path,
+            Some(PathBuf::from("/definitely/not/a/real/player/path"))
+        );
+        assert!(parsed.require_network_denied);
         assert!(
             PlayerMcpConfig::parse(&strings(&["--character", "rook", "--character", "ilyan"]))
                 .is_err()
@@ -715,48 +740,34 @@ mod tests {
         cleanup(&config);
     }
 
-    #[cfg(unix)]
     #[test]
-    fn unix_socket_transport_requires_and_records_an_explicit_finish() {
-        use std::io::{Read, Write};
-        use std::net::Shutdown;
-        use std::os::unix::net::UnixStream;
-        use std::thread;
-        use std::time::Duration;
-
+    fn adapter_rejects_a_readable_denied_path() {
         let mut config = test_config();
-        config.socket_path = Some(config.trace_path.with_extension("sock"));
-        let worker_config = config.clone();
-        let worker = thread::spawn(move || run_player_mcp_socket(&worker_config));
-        let socket_path = config.socket_path.as_ref().unwrap();
-        let mut stream = (0..100)
-            .find_map(|_| match UnixStream::connect(socket_path) {
-                Ok(stream) => Some(stream),
-                Err(_) => {
-                    thread::sleep(Duration::from_millis(1));
-                    None
-                }
-            })
-            .expect("player socket should become ready");
-        let input = [
-            call(1, "act", json!({ "action_number": 1 })),
-            call(2, "finish", json!({})),
-        ]
-        .join("\n")
-            + "\n";
-        stream.write_all(input.as_bytes()).unwrap();
-        stream.shutdown(Shutdown::Write).unwrap();
-        let mut output = String::new();
-        stream.read_to_string(&mut output).unwrap();
-        worker.join().unwrap().unwrap();
-
-        assert_eq!(output.lines().count(), 2);
-        assert!(output.contains("Session finished after 1 action(s)."));
-        assert!(
-            fs::read_to_string(&config.transcript_path)
-                .unwrap()
-                .contains("Finish")
+        config.denied_read_path = Some(config.transcript_path.clone());
+        fs::write(&config.transcript_path, b"credential canary").unwrap();
+        let mut reader = Cursor::new(Vec::<u8>::new());
+        let mut output = Vec::new();
+        let error = run_player_mcp(&config, &mut reader, &mut output).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "player adapter filesystem isolation failed"
         );
+        assert!(output.is_empty());
+        cleanup(&config);
+    }
+
+    #[test]
+    fn adapter_rejects_a_missing_denied_path_as_inconclusive() {
+        let mut config = test_config();
+        config.denied_read_path = Some(config.trace_path.with_extension("missing"));
+        let mut reader = Cursor::new(Vec::<u8>::new());
+        let mut output = Vec::new();
+        let error = run_player_mcp(&config, &mut reader, &mut output).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "player adapter filesystem isolation probe was inconclusive"
+        );
+        assert!(output.is_empty());
         cleanup(&config);
     }
 }

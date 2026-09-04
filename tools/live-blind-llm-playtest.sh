@@ -6,7 +6,6 @@ REPO_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 BUILD_TARGET_DIR="$REPO_DIR/target/live-blind-llm"
 LOCAL_REPORT_ROOT="$REPO_DIR/artifacts/local/live-blind-llm"
 WORK_DIR=""
-GAME_PID=""
 
 fail() {
     printf 'live blind LLM playtest failed: %s\n' "$1" >&2
@@ -14,10 +13,6 @@ fail() {
 }
 
 cleanup() {
-    if [[ -n "$GAME_PID" ]] && kill -0 "$GAME_PID" 2>/dev/null; then
-        kill "$GAME_PID" 2>/dev/null || true
-        wait "$GAME_PID" 2>/dev/null || true
-    fi
     if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
         case "$WORK_DIR" in
             /tmp/forge-live-blind.*)
@@ -212,7 +207,7 @@ run_main() {
         fail "Linux Bubblewrap is required"
         return 1
     }
-    for command in awk basename bwrap cargo chmod cmp cp date file find git grep id jq ldd mkdir mktemp mv ps readelf readlink rm rustc rustfmt sed sha256sum sleep sort strings strip timeout uname wc xargs; do
+    for command in awk basename bwrap cargo chmod cmp cp date enosys file find git grep jq ldd mkdir mktemp mv readelf readlink rm sed setpriv sha256sum sort strings strip timeout uname wc xargs; do
         command -v "$command" >/dev/null 2>&1 || {
             fail "required command is unavailable: $command"
             return 1
@@ -268,12 +263,12 @@ run_main() {
     native_codex="$(find_native_codex "$codex_command")" || return 1
     WORK_DIR="$(mktemp -d /tmp/forge-live-blind.XXXXXX)"
     local game_bundle="$WORK_DIR/game-bundle"
-    local proxy_bundle="$WORK_DIR/proxy-bundle"
+    local setpriv_bundle="$WORK_DIR/setpriv-bundle"
     local codex_bundle="$WORK_DIR/codex-bundle"
     local isolated_home="$WORK_DIR/codex-home"
     local player_session="$WORK_DIR/player-session"
     local private_dir="$WORK_DIR/builder-private"
-    mkdir -p "$game_bundle" "$proxy_bundle" "$codex_bundle" "$isolated_home" "$player_session" "$private_dir"
+    mkdir -p "$game_bundle" "$setpriv_bundle" "$codex_bundle" "$isolated_home" "$player_session" "$private_dir"
     chmod 0700 "$isolated_home" "$private_dir"
     chmod 0777 "$player_session"
 
@@ -293,12 +288,9 @@ run_main() {
         unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS
         cargo build --locked --release --target-dir "$BUILD_TARGET_DIR" -p forge-cli -p forge-verify
     )
-    rustfmt --edition 2024 --check "$SCRIPT_DIR/locked-player-mcp-proxy.rs"
-    rustc --edition=2024 -D warnings -C opt-level=2 -C debuginfo=0 -C strip=symbols -C panic=abort \
-        "$SCRIPT_DIR/locked-player-mcp-proxy.rs" -o "$WORK_DIR/locked-player-mcp-proxy"
 
     make_dynamic_bundle "$BUILD_TARGET_DIR/release/forge-player-mcp" "$game_bundle"
-    make_dynamic_bundle "$WORK_DIR/locked-player-mcp-proxy" "$proxy_bundle"
+    make_dynamic_bundle "$(command -v setpriv)" "$setpriv_bundle"
     cp -- "$native_codex" "$codex_bundle/codex"
     chmod 0555 "$codex_bundle" "$codex_bundle/codex"
     cp -- "$BUILD_TARGET_DIR/release/forge-verify" "$WORK_DIR/forge-verify"
@@ -331,12 +323,22 @@ run_main() {
     local final_path="$player_session/final.json"
     local trace_path="$player_session/player.trace.json"
     local transcript_path="$player_session/public-transcript.txt"
-    local game_stdout="$player_session/game.stdout"
-    local game_stderr="$player_session/game.stderr"
+    local completion_path="$player_session/player.complete"
+    local network_filter="$player_session/network-deny.bpf"
     local prompt_audit="$player_session/model-visible-prompt.json"
     local tool_config="$player_session/tool-config.txt"
     local trusted_check="$player_session/trusted-check.txt"
     local trusted_check_stderr="$player_session/trusted-check.stderr"
+
+    enosys --dump="$network_filter" \
+        -s socket -s socketpair -s connect -s bind -s listen -s accept -s accept4 \
+        -s sendto -s sendmsg -s sendmmsg -s recvfrom -s recvmsg -s recvmmsg -s shutdown \
+        /bin/true
+    [[ -s "$network_filter" ]] || {
+        fail "the game network-denial filter was not generated"
+        return 1
+    }
+    chmod 0444 "$network_filter"
 
     printf '%s\n' \
         'You are independently playtesting a compiled deterministic adventure game as a first-time player.' \
@@ -362,68 +364,6 @@ run_main() {
         }
     }' >"$schema_path"
 
-    local host_uid host_thread_count sandbox_process_limit
-    host_uid="$(id -u)"
-    host_thread_count="$(ps -eLo ruid= | awk -v uid="$host_uid" '$1 == uid { count++ } END { print count + 0 }')"
-    sandbox_process_limit="$((host_thread_count + 128))"
-    (
-        ulimit -c 0
-        ulimit -f 32768
-        ulimit -n 32
-        ulimit -u "$sandbox_process_limit"
-        ulimit -s 8192
-        ulimit -t 180
-        ulimit -v 1048576
-        timeout --kill-after=5s 900s \
-            bwrap \
-                --die-with-parent \
-                --new-session \
-                --unshare-all \
-                --unshare-user \
-                --disable-userns \
-                --assert-userns-disabled \
-                --clearenv \
-                --uid 65534 \
-                --gid 65534 \
-                --cap-drop ALL \
-                --hostname blind-game \
-                --ro-bind "$game_bundle" /bundle \
-                --dir /session \
-                --bind "$player_session" /session \
-                --chdir /session \
-                --setenv HOME /nonexistent \
-                --setenv PATH /nonexistent \
-                --setenv RUST_BACKTRACE 0 \
-                --setenv RUST_LOG off \
-                -- \
-                /bundle/runtime/loader --library-path /bundle/runtime /bundle/program \
-                    --character "$character" \
-                    --seed "$seed" \
-                    --trace /session/player.trace.json \
-                    --transcript /session/public-transcript.txt \
-                    --canary "$public_nonce" \
-                    --min-turns "$minimum_turns" \
-                    --max-turns "$maximum_turns" \
-                    --socket /session/player.sock
-    ) >"$game_stdout" 2>"$game_stderr" &
-    GAME_PID="$!"
-
-    local socket_ready="false"
-    for _ in {1..500}; do
-        if [[ -S "$player_session/player.sock" ]]; then
-            socket_ready="true"
-            break
-        fi
-        if ! kill -0 "$GAME_PID" 2>/dev/null; then
-            break
-        fi
-        sleep 0.01
-    done
-    [[ "$socket_ready" == "true" ]] || {
-        fail "the locked game adapter did not become ready"
-        return 1
-    }
-
     local resolv_conf
     resolv_conf="$(readlink -f /etc/resolv.conf)"
     local -a codex_sandbox=(
@@ -438,15 +378,16 @@ run_main() {
         --disable-userns
         --assert-userns-disabled
         --clearenv
-        --uid 0
-        --gid 0
+        --uid 65534
+        --gid 65534
         --cap-drop ALL
         --hostname blind-model
         --proc /proc
         --dev /dev
         --tmpfs /tmp
         --ro-bind "$codex_bundle" /codex
-        --ro-bind "$proxy_bundle" /proxy
+        --ro-bind "$setpriv_bundle" /setpriv
+        --ro-bind "$game_bundle" /game
         --bind "$isolated_home" /codex-home
         --bind "$player_session" /work
         --dir /etc
@@ -456,6 +397,8 @@ run_main() {
         --ro-bind "$resolv_conf" /etc/resolv.conf
         --ro-bind /etc/hosts /etc/hosts
         --ro-bind /etc/nsswitch.conf /etc/nsswitch.conf
+        --ro-bind /etc/passwd /etc/passwd
+        --ro-bind /etc/group /etc/group
         --chdir /work
         --setenv HOME /codex-home
         --setenv CODEX_HOME /codex-home
@@ -492,10 +435,40 @@ run_main() {
         --disable unified_exec
         --disable view_image
     )
+    local locked_game_args
+    locked_game_args="$(jq -cn \
+        --arg character "$character" \
+        --arg seed "$seed" \
+        --arg public_nonce "$public_nonce" \
+        --arg minimum_turns "$minimum_turns" \
+        --arg maximum_turns "$maximum_turns" \
+        '[
+            "--library-path", "/setpriv/runtime", "/setpriv/program",
+            "--pdeathsig", "keep",
+            "--nnp",
+            "--inh-caps=-all",
+            "--ambient-caps=-all",
+            "--landlock-access", "fs",
+            "--landlock-rule", "path-beneath:execute,read-file,read-dir:/game",
+            "--landlock-rule", "path-beneath:read-file,read-dir,write-file,remove-file,make-reg,refer,truncate:/work",
+            "--seccomp-filter", "/work/network-deny.bpf",
+            "--reset-env",
+            "/game/runtime/loader", "--library-path", "/game/runtime", "/game/program",
+            "--character", $character,
+            "--seed", $seed,
+            "--trace", "/work/player.trace.json",
+            "--transcript", "/work/public-transcript.txt",
+            "--complete", "/work/player.complete",
+            "--deny-read", "/codex-home/auth.json",
+            "--require-network-denied",
+            "--canary", $public_nonce,
+            "--min-turns", $minimum_turns,
+            "--max-turns", $maximum_turns
+        ]')"
     local -a mcp_args=(
         -c 'web_search="disabled"'
-        -c 'mcp_servers.forge_player.command="/proxy/runtime/loader"'
-        -c 'mcp_servers.forge_player.args=["--library-path","/proxy/runtime","/proxy/program"]'
+        -c 'mcp_servers.forge_player.command="/setpriv/runtime/loader"'
+        -c "mcp_servers.forge_player.args=$locked_game_args"
         -c 'mcp_servers.forge_player.required=true'
         -c 'mcp_servers.forge_player.startup_timeout_sec=10'
         -c 'mcp_servers.forge_player.tool_timeout_sec=30'
@@ -545,42 +518,16 @@ run_main() {
     end_ns="$(date +%s%N)"
     elapsed_ms="$(((end_ns - start_ns) / 1000000))"
 
-    local game_stopped="false"
-    for _ in {1..500}; do
-        if ! kill -0 "$GAME_PID" 2>/dev/null; then
-            game_stopped="true"
-            break
-        fi
-        sleep 0.01
-    done
-    if [[ "$game_stopped" != "true" ]]; then
-        kill "$GAME_PID" 2>/dev/null || true
-        wait "$GAME_PID" 2>/dev/null || true
-        GAME_PID=""
-        fail "the game adapter did not close after the model session"
-        return 1
-    fi
-    local game_status
-    set +e
-    wait "$GAME_PID"
-    game_status="$?"
-    set -e
-    GAME_PID=""
-
     [[ "$codex_status" -eq 0 ]] || {
         fail "Codex exited with status $codex_status"
         return 1
     }
-    [[ "$game_status" -eq 0 ]] || {
-        fail "the game adapter exited with status $game_status"
-        return 1
-    }
-    [[ ! -s "$game_stdout" && ! -s "$game_stderr" ]] || {
-        fail "the successful game adapter wrote unexpected private output"
-        return 1
-    }
-    [[ -s "$events_path" && -s "$final_path" && -s "$trace_path" && -s "$transcript_path" ]] || {
+    [[ -s "$events_path" && -s "$final_path" && -s "$trace_path" && -s "$transcript_path" && -s "$completion_path" ]] || {
         fail "the live session omitted a required artifact"
+        return 1
+    }
+    [[ "$(<"$completion_path")" == "forge-player-mcp-complete-v1" ]] || {
+        fail "the locked game adapter omitted its clean completion marker"
         return 1
     }
     jq -e . "$events_path" >/dev/null || {
@@ -606,7 +553,7 @@ run_main() {
         return 1
     }
     local turn_count
-    turn_count="$(jq -r '.steps | length' "$trace_path")"
+    turn_count="$(jq -r '.action_ids | length' "$trace_path")"
     ((turn_count >= minimum_turns && turn_count <= maximum_turns)) || {
         fail "the recorded action count is outside the accepted bounds"
         return 1
@@ -639,7 +586,7 @@ run_main() {
         return 1
     }
 
-    for path in "$events_path" "$final_path" "$trace_path" "$transcript_path" "$codex_stderr"; do
+    for path in "$events_path" "$final_path" "$trace_path" "$transcript_path" "$completion_path" "$codex_stderr"; do
         assert_absent "$path" "$private_token" "the private source canary leaked into a public artifact" || return 1
         assert_absent "$path" "$REPO_DIR" "a repository path leaked into a model-session artifact" || return 1
     done
@@ -667,7 +614,7 @@ run_main() {
     }
     mkdir -p "$(dirname -- "$output_dir")"
     mkdir -- "$output_dir"
-    for name in codex-events.jsonl codex.stderr final.json model-visible-prompt.json player.trace.json public-transcript.txt tool-config.txt trusted-check.txt; do
+    for name in codex-events.jsonl codex.stderr final.json model-visible-prompt.json network-deny.bpf player.complete player.trace.json public-transcript.txt tool-config.txt trusted-check.txt; do
         cp -- "$player_session/$name" "$output_dir/$name"
     done
 
@@ -698,14 +645,17 @@ run_main() {
         --arg game_cli_sha256 "$(sha256_file "$BUILD_TARGET_DIR/release/forge")" \
         --arg checker_binary_sha256 "$(sha256_file "$WORK_DIR/forge-verify")" \
         --arg game_runtime_sha256 "$(sha256_tree "$game_bundle/runtime")" \
-        --arg proxy_binary_sha256 "$(sha256_file "$proxy_bundle/program")" \
+        --arg setpriv_binary_sha256 "$(sha256_file "$setpriv_bundle/program")" \
+        --arg setpriv_runtime_sha256 "$(sha256_tree "$setpriv_bundle/runtime")" \
+        --arg network_filter_sha256 "$(sha256_file "$network_filter")" \
         --arg codex_binary_sha256 "$(sha256_file "$codex_bundle/codex")" \
-        --arg policy_sha256 "$({ sha256_file "$0"; sha256_file "$SCRIPT_DIR/locked-player-mcp-proxy.rs"; } | sha256sum | awk '{ print $1 }')" \
+        --arg policy_sha256 "$(sha256_file "$0")" \
         --arg events_sha256 "$(sha256_file "$events_path")" \
         --arg final_sha256 "$(sha256_file "$final_path")" \
         --arg prompt_audit_sha256 "$(sha256_file "$prompt_audit")" \
         --arg trace_sha256 "$(sha256_file "$trace_path")" \
         --arg transcript_sha256 "$(sha256_file "$transcript_path")" \
+        --arg completion_sha256 "$(sha256_file "$completion_path")" \
         --arg tool_config_sha256 "$(sha256_file "$tool_config")" \
         --arg trusted_check_sha256 "$(sha256_file "$trusted_check")" \
         --slurpfile findings "$final_path" \
@@ -727,7 +677,16 @@ run_main() {
                 maximum_turns: $maximum_turns,
                 completed_turns: $turn_count,
                 explicit_finish: true,
-                network_unshared: true,
+                clean_adapter_completion: true,
+                uid: 65534,
+                gid: 65534,
+                no_new_privs: true,
+                capabilities_dropped: true,
+                network_syscalls_denied: true,
+                network_socket_probe_passed: true,
+                filesystem_landlocked_to_game_and_session: true,
+                authentication_files_blocked_by_landlock: true,
+                authentication_read_probe_passed: true,
                 repository_unmounted: true
             },
             model: {
@@ -770,7 +729,9 @@ run_main() {
             },
             hashes: {
                 checker_binary_sha256: $checker_binary_sha256,
-                proxy_binary_sha256: $proxy_binary_sha256,
+                setpriv_binary_sha256: $setpriv_binary_sha256,
+                setpriv_runtime_sha256: $setpriv_runtime_sha256,
+                network_seccomp_filter_sha256: $network_filter_sha256,
                 codex_binary_sha256: $codex_binary_sha256,
                 policy_sha256: $policy_sha256,
                 codex_events_sha256: $events_sha256,
@@ -778,6 +739,7 @@ run_main() {
                 model_visible_prompt_sha256: $prompt_audit_sha256,
                 player_trace_sha256: $trace_sha256,
                 public_transcript_sha256: $transcript_sha256,
+                clean_completion_sha256: $completion_sha256,
                 tool_config_sha256: $tool_config_sha256,
                 trusted_check_sha256: $trusted_check_sha256
             },
