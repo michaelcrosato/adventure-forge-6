@@ -148,7 +148,7 @@ run_main() {
     local maximum_turns="20"
     local output_dir=""
     local auth_check_only="false"
-    local codex_command saved_home auth_source native_codex
+    local codex_command saved_home auth_source native_codex native_code_mode_host
     local option value
 
     while (($#)); do
@@ -261,6 +261,11 @@ run_main() {
     }
 
     native_codex="$(find_native_codex "$codex_command")" || return 1
+    native_code_mode_host="$(dirname -- "$native_codex")/codex-code-mode-host"
+    [[ -x "$native_code_mode_host" ]] || {
+        fail "the installed Codex code-mode host is unavailable"
+        return 1
+    }
     WORK_DIR="$(mktemp -d /tmp/forge-live-blind.XXXXXX)"
     local game_bundle="$WORK_DIR/game-bundle"
     local setpriv_bundle="$WORK_DIR/setpriv-bundle"
@@ -292,7 +297,8 @@ run_main() {
     make_dynamic_bundle "$BUILD_TARGET_DIR/release/forge-player-mcp" "$game_bundle"
     make_dynamic_bundle "$(command -v setpriv)" "$setpriv_bundle"
     cp -- "$native_codex" "$codex_bundle/codex"
-    chmod 0555 "$codex_bundle" "$codex_bundle/codex"
+    cp -- "$native_code_mode_host" "$codex_bundle/codex-code-mode-host"
+    chmod 0555 "$codex_bundle" "$codex_bundle/codex" "$codex_bundle/codex-code-mode-host"
     cp -- "$BUILD_TARGET_DIR/release/forge-verify" "$WORK_DIR/forge-verify"
     strip --strip-unneeded "$WORK_DIR/forge-verify"
 
@@ -417,7 +423,7 @@ run_main() {
         --disable apps
         --disable auth_elicitation
         --disable browser_use
-        --disable code_mode_host
+        --enable code_mode_host
         --disable computer_use
         --disable fast_mode
         --disable goals
@@ -649,6 +655,7 @@ run_main() {
         --arg setpriv_runtime_sha256 "$(sha256_tree "$setpriv_bundle/runtime")" \
         --arg network_filter_sha256 "$(sha256_file "$network_filter")" \
         --arg codex_binary_sha256 "$(sha256_file "$codex_bundle/codex")" \
+        --arg code_mode_host_sha256 "$(sha256_file "$codex_bundle/codex-code-mode-host")" \
         --arg policy_sha256 "$(sha256_file "$0")" \
         --arg events_sha256 "$(sha256_file "$events_path")" \
         --arg final_sha256 "$(sha256_file "$final_path")" \
@@ -701,6 +708,7 @@ run_main() {
                 default_config_ignored: true,
                 default_plugins_absent: true,
                 vercel_plugin_available_to_player: false,
+                code_mode_host_enabled: true,
                 filesystem_outer_sandbox: true,
                 configured_tools: ["forge_player.observe", "forge_player.act", "forge_player.finish"],
                 observed_event_item_types: ($model_item_types | split(",") | map(select(length > 0)))
@@ -733,6 +741,7 @@ run_main() {
                 setpriv_runtime_sha256: $setpriv_runtime_sha256,
                 network_seccomp_filter_sha256: $network_filter_sha256,
                 codex_binary_sha256: $codex_binary_sha256,
+                codex_code_mode_host_sha256: $code_mode_host_sha256,
                 policy_sha256: $policy_sha256,
                 codex_events_sha256: $events_sha256,
                 model_final_sha256: $final_sha256,
