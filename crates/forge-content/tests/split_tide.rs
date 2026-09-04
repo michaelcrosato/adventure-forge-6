@@ -761,3 +761,32 @@ fn production_text_ids_and_action_pages_are_stable() {
     let error = compile(draft).expect_err("overlong location text must fail compilation");
     assert!(error.to_string().contains("exceeds 18 words"));
 }
+
+#[test]
+fn unchanged_actions_keep_their_order_while_state_bound_ids_rotate() {
+    let content = content();
+    let initial = new_game(&content, "ilyan");
+    let before = enumerate_legal_actions(&initial, &content).unwrap();
+    let after_state = apply(initial, &content, "checkpoint.ask_sava");
+    let after = enumerate_legal_actions(&after_state, &content).unwrap();
+
+    let semantic_shapes = |actions: &[CanonicalAction]| {
+        actions
+            .iter()
+            .map(|action| (action.definition_id.clone(), action.parameters.clone()))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(semantic_shapes(&before), semantic_shapes(&after));
+    assert!(
+        before
+            .iter()
+            .zip(&after)
+            .all(|(left, right)| left.action_id != right.action_id)
+    );
+    assert_eq!(
+        content
+            .action_result(&after_state, "checkpoint.read_flag")
+            .unwrap(),
+        "Go to the Red Sluice and redirect the next surge before it floods Lowsail."
+    );
+}

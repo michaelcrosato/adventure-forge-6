@@ -3,6 +3,7 @@ use crate::hash::{HashError, sha256_json};
 use crate::model::{ActionId, Event, EventKind, GameState, Knowledge, Memory};
 use crate::{EntropyDraw, EntropyError, EntropyState};
 use serde::{Deserialize, Serialize};
+use std::cmp::Ordering;
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Display, Formatter};
 
@@ -171,7 +172,9 @@ struct ActionCandidates<'a> {
 
 /// Enumerate every legal action.  There is intentionally no action count
 /// limit: dynamic parameter domains are expanded into a complete Cartesian
-/// product and then stably sorted by canonical identity.
+/// product and then stably sorted by semantic identity. Action hashes bind the
+/// current state, so using them as presentation order would reshuffle otherwise
+/// unchanged choices after every turn.
 pub fn enumerate_legal_actions(
     state: &GameState,
     content: &CompiledContent,
@@ -243,22 +246,30 @@ pub fn enumerate_legal_actions(
             &mut actions,
         )?;
     }
-    actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+    actions.sort_by(canonical_action_order);
     if actions.len() != total_actions {
         return Err(KernelError::InvalidContent(format!(
             "legal action enumeration count mismatch: expected {total_actions}, emitted {}",
             actions.len()
         )));
     }
-    if actions
-        .windows(2)
-        .any(|window| window[0].action_id == window[1].action_id)
-    {
+    let mut action_ids = Vec::new();
+    try_reserve(&mut action_ids, actions.len(), "action identity list")?;
+    action_ids.extend(actions.iter().map(|action| action.action_id.as_str()));
+    action_ids.sort_unstable();
+    if action_ids.windows(2).any(|window| window[0] == window[1]) {
         return Err(KernelError::InvalidContent(
             "legal action identity collision".to_owned(),
         ));
     }
     Ok(actions)
+}
+
+fn canonical_action_order(left: &CanonicalAction, right: &CanonicalAction) -> Ordering {
+    left.definition_id
+        .cmp(&right.definition_id)
+        .then_with(|| left.parameters.cmp(&right.parameters))
+        .then_with(|| left.action_id.cmp(&right.action_id))
 }
 
 fn ensure_content_and_state(
@@ -1037,7 +1048,7 @@ mod tests {
     }
 
     #[test]
-    fn parameter_domains_are_complete_and_sorted() {
+    fn parameter_domains_are_complete_and_semantically_sorted() {
         let action = ActionDefinition {
             id: "move-and-greet".to_owned(),
             label: "Move and greet".to_owned(),
@@ -1071,10 +1082,12 @@ mod tests {
         let compiled = content(vec![action]);
         let actions = enumerate_legal_actions(&state(&compiled), &compiled).unwrap();
         assert_eq!(actions.len(), 2);
-        assert!(
+        assert_eq!(
             actions
-                .windows(2)
-                .all(|window| window[0].action_id < window[1].action_id)
+                .iter()
+                .map(|action| action.parameters["destination"].as_str())
+                .collect::<Vec<_>>(),
+            vec!["gate", "yard"]
         );
         let mut reversed = actions.clone();
         reversed.reverse();
@@ -1219,10 +1232,14 @@ mod tests {
 
         let unique_ids: BTreeSet<_> = all.iter().map(|action| action.action_id.as_str()).collect();
         assert_eq!(unique_ids.len(), 256);
-        let ordered_ids: Vec<_> = all.iter().map(|action| action.action_id.as_str()).collect();
-        let mut independently_sorted_ids = ordered_ids.clone();
-        independently_sorted_ids.sort_unstable();
-        assert_eq!(ordered_ids, independently_sorted_ids);
+        let ordered_destinations: Vec<_> = all
+            .iter()
+            .map(|action| action.parameters["destination"].as_str())
+            .collect();
+        assert_eq!(
+            ordered_destinations,
+            destinations.iter().map(String::as_str).collect::<Vec<_>>()
+        );
 
         let mut paged = Vec::new();
         for page in all.chunks(17) {

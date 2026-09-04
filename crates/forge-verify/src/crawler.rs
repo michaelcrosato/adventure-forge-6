@@ -539,12 +539,19 @@ fn verify_catalog(
     legal: &[CanonicalAction],
     page_size: usize,
 ) -> Result<(), VerifyError> {
-    if legal
-        .windows(2)
-        .any(|pair| pair[0].action_id.as_str() >= pair[1].action_id.as_str())
-    {
+    if legal.windows(2).any(|pair| {
+        (
+            pair[0].definition_id.as_str(),
+            &pair[0].parameters,
+            pair[0].action_id.as_str(),
+        ) >= (
+            pair[1].definition_id.as_str(),
+            &pair[1].parameters,
+            pair[1].action_id.as_str(),
+        )
+    }) {
         return Err(VerifyError::new(
-            "crawler kernel enumeration is not in canonical action-ID order",
+            "crawler kernel enumeration is not in canonical semantic order",
         ));
     }
     let expected_digest = legal_action_digest(legal)

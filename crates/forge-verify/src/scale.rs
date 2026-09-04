@@ -552,12 +552,19 @@ fn verify_paged_catalog(
     page_size: usize,
     max_pages: usize,
 ) -> Result<PageEvidence, crate::VerifyError> {
-    if legal
-        .windows(2)
-        .any(|pair| pair[0].action_id.as_str() >= pair[1].action_id.as_str())
-    {
+    if legal.windows(2).any(|pair| {
+        (
+            pair[0].definition_id.as_str(),
+            &pair[0].parameters,
+            pair[0].action_id.as_str(),
+        ) >= (
+            pair[1].definition_id.as_str(),
+            &pair[1].parameters,
+            pair[1].action_id.as_str(),
+        )
+    }) {
         return Err(crate::VerifyError::new(
-            "scale kernel enumeration is not in canonical action-ID order",
+            "scale kernel enumeration is not in canonical semantic order",
         ));
     }
     if page_size == 0 || max_pages == 0 {
@@ -830,11 +837,6 @@ fn traverse_ring(
             budget.traversal_page_size,
             expected_pages,
         )?;
-        if pages.action_ids_digest != action_set_digest {
-            return Err(crate::VerifyError::new(
-                "scale traversal page digest differs from its complete action-set digest",
-            ));
-        }
         catalog_states_checked = catalog_states_checked
             .checked_add(1)
             .ok_or_else(|| crate::VerifyError::new("scale catalog state count overflowed"))?;

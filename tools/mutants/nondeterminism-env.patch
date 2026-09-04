@@ -1,10 +1,10 @@
 diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
 --- a/crates/forge-kernel/src/reducer.rs
 +++ b/crates/forge-kernel/src/reducer.rs
-@@ -243,6 +243,9 @@ pub fn enumerate_legal_actions(
+@@ -246,6 +246,9 @@ pub fn enumerate_legal_actions(
          )?;
      }
-     actions.sort_by(|left, right| left.action_id.cmp(&right.action_id));
+     actions.sort_by(canonical_action_order);
 +    if std::env::var_os("FORGE_MUTANT_ACTION_ORDER").is_some() {
 +        actions.reverse();
 +    }
