@@ -381,7 +381,7 @@ fn result_first_and_conditional_prose_show_character_and_npc_reactions() {
     assert!(audit_observation.text.starts_with(
         "Your council mark exposes the forged water order, and Sava accepts your proof."
     ));
-    assert!(audit_observation.text.split_whitespace().count() <= 100);
+    assert!(audit_observation.text.split_whitespace().count() < 100);
 
     let pressured = apply(
         new_game(&content, "rook"),
@@ -625,6 +625,42 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
         KnowledgeProvenanceKind::Told
     );
     assert!(reported.world.npcs["edrik_voss"].remembers("edrik_received_report"));
+}
+
+#[test]
+fn rescued_worker_report_introduces_mira_and_keeps_its_source() {
+    let content = content();
+    let state = travel_to(new_game(&content, "rook"), &content, "lowsail.levee");
+    assert!(!state.world.npcs["mira_kett"].remembers("levee_worker_helped"));
+    let action = action_for(&state, &content, "levee.help_worker");
+    let transition = step(&state, &action, &content, &state.entropy).unwrap();
+    assert_eq!(
+        content
+            .observe_after_transition(&transition)
+            .unwrap()
+            .result
+            .as_deref(),
+        Some("You pull the worker clear. Their report reaches Mira, Red Sluice's crew leader.")
+    );
+    let helped = transition.into_state();
+    let report = helped.world.npcs["mira_kett"].memories["levee_worker_helped"].clone();
+    assert_eq!(report.turn, 1);
+    assert_eq!(
+        report.provenance,
+        forge_kernel::KnowledgeProvenance::Read {
+            source: "levee_worker_report".to_owned()
+        }
+    );
+    assert_eq!(helped.world.npcs["mira_kett"].location, "red_sluice.top");
+    assert_eq!(helped.world.npcs["mira_kett"].relationships["player"], 1);
+    assert!(helped.character.deeds.contains("helped_worker"));
+    let away = travel_to(helped, &content, "lowsail_market");
+    let returned = travel_to(away, &content, "lowsail.levee");
+    assert_eq!(
+        returned.world.npcs["mira_kett"].memories["levee_worker_helped"],
+        report
+    );
+    assert!(!definitions(&returned, &content).contains("levee.help_worker"));
 }
 
 #[test]

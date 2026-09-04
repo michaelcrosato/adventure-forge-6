@@ -483,9 +483,15 @@ fn public_view(
             public_action_label(action)
         ));
     }
-    view.push_str(
-        "Choose one action_number with act, or call finish when your playtest is complete.",
-    );
+    if session.trace().steps.len() >= config.maximum_turns {
+        view.push_str(
+            "Playtest action limit reached. Further playtest actions are disabled. Call finish.",
+        );
+    } else {
+        view.push_str(
+            "Choose one action_number with act, or call finish when your playtest is complete.",
+        );
+    }
     if view.len() > MAX_PUBLIC_TRANSCRIPT_BYTES {
         return Err(CliError::new(
             "public player view exceeds the resource budget",
@@ -648,6 +654,84 @@ mod tests {
         let transcript = fs::read_to_string(&config.transcript_path).unwrap();
         assert!(transcript.contains("Session finished after 1 action(s)."));
         assert!(transcript.contains(&config.observation_canary));
+        assert_eq!(
+            fs::read_to_string(&config.completion_path).unwrap(),
+            "forge-player-mcp-finished-v1\n"
+        );
+        cleanup(&config);
+    }
+
+    #[test]
+    fn action_limit_guidance_preserves_catalog_and_requires_finish() {
+        let mut config = test_config();
+        config.minimum_turns = 1;
+        config.maximum_turns = 1;
+        let input = [
+            call(0, "observe", json!({})),
+            call(1, "act", json!({ "action_number": 1 })),
+            call(2, "observe", json!({})),
+            call(3, "act", json!({ "action_number": 1 })),
+            call(4, "finish", json!({})),
+        ]
+        .join("\n")
+            + "\n";
+        let mut reader = Cursor::new(input.as_bytes());
+        let mut output = Vec::new();
+        run_player_mcp(&config, &mut reader, &mut output).unwrap();
+        let output = String::from_utf8(output).unwrap();
+        let responses: Vec<Value> = output
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect();
+        assert_eq!(responses.len(), 5);
+
+        let response_text = |index: usize| {
+            responses[index]["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .to_owned()
+        };
+        let before_cap = response_text(0);
+        assert!(before_cap.contains("Choose one action_number with act"));
+        assert!(!before_cap.contains("Playtest action limit reached"));
+
+        let after_action = response_text(1);
+        let after_observe = response_text(2);
+        for view in [&after_action, &after_observe] {
+            assert!(view.contains("Playtest action limit reached."));
+            assert!(view.contains("Further playtest actions are disabled."));
+            assert!(view.contains("Call finish."));
+            assert!(!view.contains("Choose one action_number with act"));
+        }
+
+        let content = load_content().unwrap();
+        let trace_json = fs::read_to_string(&config.trace_path).unwrap();
+        let trace = PlayerTrace::from_json(&trace_json).unwrap();
+        assert_eq!(trace.action_count(), 1);
+        let resumed = resume_player_trace(&trace, &content).unwrap();
+        let page = content.action_page(resumed.state(), 0, usize::MAX).unwrap();
+        assert_eq!(page.actions.len(), page.total);
+        assert!(page.next_offset.is_none());
+        assert!(after_observe.contains(&format!("{} legal action(s)", page.total)));
+        assert!(after_observe.contains(&format!("Actions 1–{} of {}:", page.total, page.total)));
+        let rendered_rows = after_observe
+            .lines()
+            .filter(|line| {
+                let number = line.trim_start().split_once(". ").map(|(number, _)| number);
+                number.is_some_and(|number| number.parse::<usize>().is_ok())
+            })
+            .count();
+        assert_eq!(rendered_rows, page.total);
+        for action in &page.actions {
+            assert!(
+                after_observe.contains(&public_action_label(action)),
+                "catalog row disappeared at the action cap"
+            );
+        }
+        assert_eq!(responses[3]["result"]["isError"], true);
+        assert!(response_text(3).contains("turn limit is reached"));
+        assert_eq!(responses[4]["result"]["isError"], false);
+        assert!(response_text(4).contains("Session finished after 1 action(s)."));
         assert_eq!(
             fs::read_to_string(&config.completion_path).unwrap(),
             "forge-player-mcp-finished-v1\n"

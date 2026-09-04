@@ -1059,7 +1059,7 @@
       "id": "levee.help_worker",
       "label": "Help Worker",
       "category": "Aid",
-      "result": "The worker reaches safety and Mira hears about it.",
+      "result": "You pull the worker clear. Their report reaches Mira, Red Sluice's crew leader.",
       "locations": ["lowsail.levee"],
       "condition": {
         "kind": "all",
@@ -1071,7 +1071,7 @@
       "effects": [
         {"kind": "set_world_flag", "flag": "worker_helped", "value": true},
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "mira_kett"}, "amount": 1},
-        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "levee_worker_helped", "subject": "The player helped a worker on the levee.", "provenance": {"kind": "told", "by": "sava_rusk"}},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "mira_kett"}, "memory_id": "levee_worker_helped", "subject": "The player helped a worker on the levee.", "provenance": {"kind": "read", "source": "levee_worker_report"}},
         {"kind": "add_character_deed", "deed_id": "helped_worker"},
         {"kind": "advance_time", "ticks": 1}
       ],

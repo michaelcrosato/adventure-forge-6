@@ -13,6 +13,8 @@ use std::fmt::{Display, Formatter};
 const MAX_CREATION_SLOTS: usize = 16;
 const MAX_CREATION_CHOICES_PER_SLOT: usize = 64;
 const MAX_TIMED_EVENTS: usize = 64;
+const ROUTINE_OBSERVATION_WORD_LIMIT: usize = 100;
+const DEFAULT_ACTION_RESULT: &str = "The action is complete.";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -762,7 +764,7 @@ impl CompiledContent {
                     action.category = "Action".to_owned();
                 }
                 if action.result.trim().is_empty() {
-                    action.result = "The action is complete.".to_owned();
+                    action.result = DEFAULT_ACTION_RESULT.to_owned();
                 }
                 sort_variants(&mut action.result_variants);
                 action.locations.sort();
@@ -1339,9 +1341,9 @@ impl CompiledContent {
             Some(result) => format!("{result} {location_text}"),
             None => location_text,
         };
-        if word_count(&text) > 100 {
+        if word_count(&text) >= ROUTINE_OBSERVATION_WORD_LIMIT {
             return Err(single_validation_error(
-                "combined routine observation exceeds 100 words",
+                "combined routine observation must stay below 100 words",
             ));
         }
         let upcoming_events = state
@@ -1925,10 +1927,79 @@ fn validate_draft(
         }
     }
     if errors.issues.is_empty() {
+        validate_observation_budgets(draft, &mut errors);
+    }
+    if errors.issues.is_empty() {
         Ok(())
     } else {
         Err(errors)
     }
+}
+
+fn maximum_text_words(base: &str, variants: &[TextVariant]) -> usize {
+    std::iter::once(base)
+        .chain(variants.iter().map(|variant| variant.text.as_str()))
+        .map(word_count)
+        .max()
+        .unwrap_or_default()
+}
+
+// Called only after the individual texts, time costs, and event count validate.
+// Conservative co-occurrence is intentional: no legal action may yield a
+// transition whose complete result cannot be shown within the routine budget.
+fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValidationError) {
+    let location_words = draft
+        .locations
+        .iter()
+        .map(|location| maximum_text_words(&location.description, &location.description_variants))
+        .max()
+        .unwrap_or_default();
+    let mut timed_words: Vec<_> = draft
+        .timed_events
+        .iter()
+        .map(|event| (event.due_time, word_count(&event.result)))
+        .collect();
+    timed_words.sort_unstable();
+    let mut event_budget_by_ticks = BTreeMap::new();
+    for action in &draft.actions {
+        let time_cost = action_time_cost(&action.effects).expect("validated action time cost");
+        let event_words = *event_budget_by_ticks
+            .entry(time_cost.maximum_ticks)
+            .or_insert_with(|| maximum_event_words(&timed_words, time_cost.maximum_ticks));
+        let result = if action.result.trim().is_empty() {
+            DEFAULT_ACTION_RESULT
+        } else {
+            &action.result
+        };
+        let result_words = maximum_text_words(result, &action.result_variants);
+        let combined = result_words + location_words + event_words;
+        if combined >= ROUTINE_OBSERVATION_WORD_LIMIT {
+            errors.push(format!(
+                "action {} combined routine observation may reach {combined} words; must stay below 100 (result {result_words}, location {location_words}, timed events {event_words})",
+                action.id
+            ));
+        }
+    }
+}
+
+fn maximum_event_words(events: &[(u64, usize)], ticks: u64) -> usize {
+    if ticks == 0 {
+        return 0;
+    }
+    let mut left = 0;
+    let mut words = 0;
+    let mut maximum = 0;
+    for (due_time, result_words) in events {
+        words += result_words;
+        // Pending events lie in (start, start + ticks]. Integer due times
+        // exactly `ticks` apart cannot both fall within that open/closed window.
+        while due_time - events[left].0 >= ticks {
+            words -= events[left].1;
+            left += 1;
+        }
+        maximum = maximum.max(words);
+    }
+    maximum
 }
 
 fn validate_character_creation(
@@ -3643,6 +3714,178 @@ mod tests {
         );
     }
 
+    fn budget_text(words: usize) -> String {
+        vec!["word"; words]
+            .chunks(18)
+            .map(|sentence| format!("{}.", sentence.join(" ")))
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+
+    fn observation_budget_draft(ticks: u64, events: &[(u64, usize)]) -> ContentDraft {
+        let mut wait = action(
+            "wait",
+            Condition::Always,
+            vec![Effect::AdvanceTime { ticks }],
+        );
+        wait.result = budget_text(60);
+        let mut source = production_draft(vec![wait]);
+        source.locations[0].description = budget_text(36);
+        source.timed_events = events
+            .iter()
+            .enumerate()
+            .map(|(index, (due_time, words))| TimedEventDefinition {
+                id: format!("event.{index}"),
+                due_time: *due_time,
+                event_kind: "notice".to_owned(),
+                label: "Test notice".to_owned(),
+                result: budget_text(*words),
+                condition: Condition::Always,
+                effects: vec![Effect::SetWorldFlag {
+                    flag: format!("notice_{index}"),
+                    value: true,
+                }],
+            })
+            .collect();
+        source
+    }
+
+    #[test]
+    fn routine_observation_limit_is_strictly_below_one_hundred() {
+        let content = compile(draft(Vec::new())).unwrap();
+        let state = state(&content);
+        let ninety_nine = content
+            .observe_with_result(&state, Some(budget_text(95)))
+            .unwrap();
+        assert_eq!(word_count(&ninety_nine.text), 99);
+        assert!(
+            content
+                .observe_with_result(&state, Some(budget_text(96)))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn compilation_bounds_the_combined_action_event_and_location_text() {
+        let content = compile(observation_budget_draft(1, &[(1, 3)])).unwrap();
+        let state = content.new_game("hero", 9).unwrap();
+        let action = crate::enumerate_legal_actions(&state, &content)
+            .unwrap()
+            .remove(0);
+        let transition = crate::step(&state, &action, &content, &state.entropy).unwrap();
+        assert_eq!(
+            word_count(&content.observe_after_transition(&transition).unwrap().text),
+            99
+        );
+
+        for event_words in [4, 5] {
+            let error = compile(observation_budget_draft(1, &[(1, event_words)]))
+                .expect_err("100-word and longer observations must fail compilation");
+            assert!(error.to_string().contains("combined routine observation"));
+        }
+    }
+
+    #[test]
+    fn observation_budget_uses_crossing_windows_not_all_future_events() {
+        // Adjacent integer deadlines cannot both fall in a one-tick window.
+        assert!(compile(observation_budget_draft(1, &[(1, 2), (2, 2)])).is_ok());
+        assert!(compile(observation_budget_draft(2, &[(1, 2), (2, 2)])).is_err());
+        assert!(compile(observation_budget_draft(1, &[(2, 2), (2, 2)])).is_err());
+        assert!(compile(observation_budget_draft(0, &[(2, 60), (2, 60)])).is_ok());
+    }
+
+    #[test]
+    fn observation_budget_counts_the_compiled_fixture_result_fallback() {
+        for event_words in [59, 60] {
+            let mut source = observation_budget_draft(1, &[(1, event_words)]);
+            source.contract = ContentContract::Fixture;
+            source.actions[0].result = " \n ".to_owned();
+            if event_words == 60 {
+                assert!(compile(source).is_err());
+                continue;
+            }
+            let content = compile(source).unwrap();
+            assert_eq!(
+                content.action("wait").unwrap().result,
+                DEFAULT_ACTION_RESULT
+            );
+            let state = content.new_game("hero", 9).unwrap();
+            let action = crate::enumerate_legal_actions(&state, &content)
+                .unwrap()
+                .remove(0);
+            let transition = crate::step(&state, &action, &content, &state.entropy).unwrap();
+            assert_eq!(
+                word_count(&content.observe_after_transition(&transition).unwrap().text),
+                99
+            );
+        }
+    }
+
+    #[test]
+    fn observation_budget_includes_variants_and_uncertain_time_costs() {
+        let mut result_variant = observation_budget_draft(1, &[(1, 46)]);
+        result_variant.actions[0].result = "Done.".to_owned();
+        assert!(compile(result_variant.clone()).is_ok());
+        result_variant.actions[0].result_variants.push(TextVariant {
+            id: "longer-result".to_owned(),
+            priority: 1,
+            condition: Condition::Always,
+            text: budget_text(18),
+        });
+        assert!(compile(result_variant).is_err());
+
+        let mut location_variant = observation_budget_draft(1, &[(1, 22)]);
+        location_variant.locations[0].description = "A gate stands ahead.".to_owned();
+        assert!(compile(location_variant.clone()).is_ok());
+        location_variant.locations[0]
+            .description_variants
+            .push(TextVariant {
+                id: "longer-place".to_owned(),
+                priority: 1,
+                condition: Condition::Always,
+                text: budget_text(18),
+            });
+        assert!(compile(location_variant).is_err());
+
+        let mut uncertain = observation_budget_draft(1, &[(1, 2), (2, 2)]);
+        uncertain.actions[0].effects = vec![Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(Effect::AdvanceTime { ticks: 2 }),
+            on_failure: Box::new(Effect::AdvanceTime { ticks: 1 }),
+        }];
+        assert!(compile(uncertain.clone()).is_err());
+        let Effect::RandomChance {
+            success_percent, ..
+        } = &mut uncertain.actions[0].effects[0]
+        else {
+            unreachable!()
+        };
+        *success_percent = 0;
+        assert!(compile(uncertain).is_ok());
+    }
+
+    #[test]
+    fn event_word_window_matches_an_independent_integer_time_oracle() {
+        let events = [(2, 7), (2, 11), (3, 5), (6, 13), (9, 17)];
+        for ticks in 0..=10 {
+            let expected = (0..=10)
+                .map(|start| {
+                    events
+                        .iter()
+                        .filter(|(due, _)| *due > start && *due <= start + ticks)
+                        .map(|(_, words)| words)
+                        .sum::<usize>()
+                })
+                .max()
+                .unwrap();
+            assert_eq!(maximum_event_words(&events, ticks), expected);
+        }
+        let near_limit = [(u64::MAX - 1, 2), (u64::MAX, 3)];
+        assert_eq!(maximum_event_words(&near_limit, 1), 3);
+        assert_eq!(maximum_event_words(&near_limit, 2), 5);
+        assert_eq!(maximum_event_words(&near_limit, u64::MAX), 5);
+    }
+
     fn npc_state(id: &str, location: &str) -> NpcState {
         NpcState {
             id: id.to_owned(),
@@ -4654,7 +4897,7 @@ mod tests {
         assert!(observation.text.starts_with("The marked result appears."));
         assert_eq!(observation.location_id, "gate");
         assert_eq!(observation.title, "Gate");
-        assert!(observation.text.split_whitespace().count() <= 100);
+        assert!(observation.text.split_whitespace().count() < 100);
     }
 
     #[test]

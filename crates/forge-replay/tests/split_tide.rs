@@ -1,6 +1,11 @@
 use forge_content::parse_and_compile_production;
-use forge_kernel::{CanonicalAction, EventKind, KnowledgeProvenance};
-use forge_replay::{PlayerTrace, Session, Trace, resume_player_trace, verify};
+use forge_kernel::{
+    ActionDefinition, CanonicalAction, Character, CompiledContent, Condition, ContentContract,
+    ContentDraft, Effect, EntropyState, EventKind, GameState, KnowledgeProvenance,
+    LocationDefinition, ScheduledEvent, TimedEventDefinition, WorldState,
+};
+use forge_replay::{PlayerTrace, Session, Trace, resume, resume_player_trace, verify};
+use std::collections::{BTreeMap, BTreeSet};
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 
@@ -485,4 +490,317 @@ fn malformed_production_state_is_rejected_without_panicking() {
         Err(error) => error,
     };
     assert!(error.to_string().contains("location"));
+}
+
+#[test]
+fn rescued_worker_report_replays_with_its_source_and_miras_role() {
+    let content = content();
+    let mut session = Session::new_game("rook", 71, &content).unwrap();
+    record(
+        &mut session,
+        &content,
+        "travel_adjacent",
+        Some(("destination", "lowsail.levee")),
+    );
+    record(&mut session, &content, "levee.help_worker", None);
+    let decoded = Trace::from_json(&session.trace().to_json().unwrap()).unwrap();
+    let verified = verify(&decoded, &content).unwrap();
+    assert_eq!(&verified, session.state());
+    assert_eq!(
+        verified.world.npcs["mira_kett"].memories["levee_worker_helped"].provenance,
+        KnowledgeProvenance::Read {
+            source: "levee_worker_report".to_owned()
+        }
+    );
+    assert_eq!(
+        decoded.steps[1].observation.result.as_deref(),
+        Some("You pull the worker clear. Their report reaches Mira, Red Sluice's crew leader.")
+    );
+    let resumed = resume_player_save(&session, &content);
+    assert_eq!(resumed.state(), session.state());
+    assert_eq!(resumed.trace().final_receipt, session.trace().final_receipt);
+}
+
+fn timed_event_fixture_content() -> CompiledContent {
+    let event = |id: &str, due_time: u64, condition: Condition, flag: &str, result: &str| {
+        TimedEventDefinition {
+            id: id.to_owned(),
+            due_time,
+            event_kind: "fixture".to_owned(),
+            label: format!("Event {id}"),
+            result: result.to_owned(),
+            condition,
+            effects: vec![Effect::SetWorldFlag {
+                flag: flag.to_owned(),
+                value: true,
+            }],
+        }
+    };
+
+    CompiledContent::try_compile(ContentDraft {
+        schema_version: "forge-schema-v4".to_owned(),
+        rules_version: "forge-rules-v2".to_owned(),
+        world_id: "timed-fixture".to_owned(),
+        contract: ContentContract::Fixture,
+        start_location: "room".to_owned(),
+        character_presets: Vec::new(),
+        character_creation: None,
+        locations: vec![LocationDefinition {
+            id: "room".to_owned(),
+            name: "Room".to_owned(),
+            description: "A quiet test room.".to_owned(),
+            description_variants: Vec::new(),
+            exits: Vec::new(),
+            terminal: true,
+        }],
+        npcs: Vec::new(),
+        // Deliberately shuffled: equal-time events must be ordered by ID.
+        timed_events: vec![
+            event(
+                "c.after",
+                4,
+                Condition::WorldFlag {
+                    flag: "b_seen".to_owned(),
+                },
+                "c_seen",
+                "C resolved.",
+            ),
+            event(
+                "b.requires",
+                2,
+                Condition::WorldFlag {
+                    flag: "a_seeded".to_owned(),
+                },
+                "b_seen",
+                "B resolved.",
+            ),
+            event(
+                "future",
+                8,
+                Condition::Always,
+                "future_seen",
+                "Future resolved.",
+            ),
+            event(
+                "a.seed",
+                2,
+                Condition::WorldFlag {
+                    flag: "jumped".to_owned(),
+                },
+                "a_seeded",
+                "A resolved.",
+            ),
+        ],
+        actions: vec![ActionDefinition {
+            id: "jump_five".to_owned(),
+            label: "Jump Five".to_owned(),
+            category: "Travel".to_owned(),
+            result: "Jumped five ticks.".to_owned(),
+            result_variants: Vec::new(),
+            locations: vec!["room".to_owned()],
+            condition: Condition::Always,
+            effects: vec![
+                // This flag makes the action-before-events boundary observable.
+                Effect::SetWorldFlag {
+                    flag: "jumped".to_owned(),
+                    value: true,
+                },
+                Effect::AdvanceTime { ticks: 5 },
+            ],
+            parameters: Vec::new(),
+            meaningful: false,
+            movement: false,
+        }],
+    })
+    .expect("timed event fixture compiles")
+}
+
+fn timed_event_fixture_state(content: &CompiledContent) -> GameState {
+    let mut state = GameState::new(
+        content.build_id().to_owned(),
+        WorldState::new(
+            content.world_id().to_owned(),
+            "room",
+            content.empty_location_runtime(),
+            BTreeMap::new(),
+        ),
+        Character {
+            id: "hero".to_owned(),
+            lineage: "fenborn".to_owned(),
+            origin: "room".to_owned(),
+            background: "tester".to_owned(),
+            aptitudes: BTreeMap::new(),
+            skills: BTreeSet::new(),
+            values: BTreeSet::new(),
+            traits: BTreeSet::new(),
+            flaws: BTreeSet::new(),
+            appearance: BTreeMap::new(),
+            affiliations: BTreeMap::new(),
+            reputation: BTreeMap::new(),
+            knowledge: BTreeSet::new(),
+            inventory: BTreeMap::new(),
+            resources: BTreeMap::new(),
+            injuries: BTreeSet::new(),
+            deeds: BTreeSet::new(),
+            promises: BTreeSet::new(),
+            discoveries: BTreeSet::new(),
+            facets: BTreeMap::new(),
+        },
+        EntropyState::new(17),
+    );
+    state.world.scheduled_events = content
+        .timed_events()
+        .map(|(_, event)| ScheduledEvent {
+            id: event.id.clone(),
+            due_time: event.due_time,
+            event_kind: event.event_kind.clone(),
+        })
+        .collect();
+    state.world.scheduled_events.sort_by(|left, right| {
+        left.due_time
+            .cmp(&right.due_time)
+            .then_with(|| left.id.cmp(&right.id))
+    });
+    state
+}
+
+fn timed_event_action(session: &Session<'_>, content: &CompiledContent) -> CanonicalAction {
+    forge_kernel::enumerate_legal_actions(session.state(), content)
+        .expect("fixture state enumerates")
+        .into_iter()
+        .find(|action| action.definition_id == "jump_five")
+        .expect("jump action is legal")
+}
+
+fn resolved_event_ids(events: &[forge_kernel::Event]) -> Vec<&str> {
+    events
+        .iter()
+        .filter_map(|event| match &event.kind {
+            EventKind::ScheduledEventResolved { event_id, .. } => Some(event_id.as_str()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[test]
+fn shuffled_timed_events_cross_atomically_and_resume_with_parity() {
+    let content = timed_event_fixture_content();
+    let initial = timed_event_fixture_state(&content);
+    content
+        .validate_state(&initial)
+        .expect("fixture state has the compiled schedule");
+    assert_eq!(
+        initial
+            .world
+            .scheduled_events
+            .iter()
+            .map(|event| event.id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["a.seed", "b.requires", "c.after", "future"]
+    );
+
+    let initial_before_step = initial.clone();
+    let mut continuous = Session::new(initial.clone(), &content).expect("session starts");
+    let first_action = timed_event_action(&continuous, &content);
+    let direct = forge_kernel::step(&initial, &first_action, &content, &initial.entropy)
+        .expect("five-tick jump succeeds");
+    assert_eq!(initial, initial_before_step, "step leaves input immutable");
+    assert_eq!(direct.state().world.time, 5);
+    assert_eq!(
+        resolved_event_ids(direct.events()),
+        vec!["a.seed", "b.requires", "c.after"]
+    );
+    assert!(
+        direct
+            .events()
+            .iter()
+            .filter_map(|event| match &event.kind {
+                EventKind::ScheduledEventResolved { .. } => Some(event.turn),
+                _ => None,
+            })
+            .all(|turn| turn == 5)
+    );
+
+    let first = continuous
+        .record(&first_action)
+        .expect("first jump records");
+    assert_eq!(first.events, direct.events().to_vec());
+    assert_eq!(continuous.state().world.time, 5);
+    assert!(continuous.state().world.flags.contains("jumped"));
+    assert!(continuous.state().world.flags.contains("a_seeded"));
+    assert!(continuous.state().world.flags.contains("b_seen"));
+    assert!(continuous.state().world.flags.contains("c_seen"));
+    assert!(!continuous.state().world.flags.contains("future_seen"));
+    assert_eq!(continuous.state().world.scheduled_events.len(), 1);
+    assert_eq!(continuous.state().world.scheduled_events[0].id, "future");
+    assert_eq!(
+        first.observation.result.as_deref(),
+        Some("Jumped five ticks. A resolved. B resolved. C resolved.")
+    );
+    assert!(first.observation.text.contains("A resolved."));
+    assert!(first.observation.text.contains("B resolved."));
+    assert!(first.observation.text.contains("C resolved."));
+
+    let checkpoint = Trace::from_json(
+        &continuous
+            .trace()
+            .to_json()
+            .expect("checkpoint trace serializes"),
+    )
+    .expect("checkpoint trace parses");
+    let mut resumed = resume(&checkpoint, &content).expect("checkpoint resumes");
+    let second_action = timed_event_action(&continuous, &content);
+    continuous
+        .record(&second_action)
+        .expect("second jump records");
+    resumed
+        .record(&second_action)
+        .expect("resumed jump records");
+
+    assert_eq!(continuous.state(), resumed.state());
+    assert_eq!(continuous.trace(), resumed.trace());
+    assert_eq!(continuous.state().world.time, 10);
+    assert!(continuous.state().world.flags.contains("future_seen"));
+    assert!(continuous.state().world.scheduled_events.is_empty());
+    assert_eq!(
+        resolved_event_ids(&continuous.trace().steps[1].events),
+        vec!["future"]
+    );
+    assert!(
+        continuous.trace().steps[1]
+            .events
+            .iter()
+            .filter_map(|event| match &event.kind {
+                EventKind::ScheduledEventResolved { .. } => Some(event.turn),
+                _ => None,
+            })
+            .all(|turn| turn == 10)
+    );
+    assert_eq!(
+        continuous.trace().steps[1].observation.result.as_deref(),
+        Some("Jumped five ticks. Future resolved.")
+    );
+    assert_eq!(
+        continuous
+            .trace()
+            .steps
+            .iter()
+            .flat_map(|step| resolved_event_ids(&step.events))
+            .collect::<Vec<_>>(),
+        vec!["a.seed", "b.requires", "c.after", "future"]
+    );
+
+    let encoded = continuous.trace().to_json().expect("trace serializes");
+    let decoded = Trace::from_json(&encoded).expect("trace parses");
+    let verified = verify(&decoded, &content).expect("trace verifies");
+    assert_eq!(verified, *continuous.state());
+    let resumed_full = resume(&decoded, &content).expect("full trace resumes");
+    assert_eq!(resumed_full.state(), continuous.state());
+    assert_eq!(resumed_full.trace(), continuous.trace());
+
+    let page = content
+        .action_page(&initial, 0, 1)
+        .expect("action page renders");
+    assert_eq!(page.actions[0].time_cost.minimum_ticks, 5);
+    assert_eq!(page.actions[0].time_cost.maximum_ticks, 5);
 }
