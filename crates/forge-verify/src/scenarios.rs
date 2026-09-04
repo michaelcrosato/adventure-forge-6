@@ -27,6 +27,7 @@ const REQUIRED_SCENARIO_IDS: &[&str] = &[
     "m1-tide-key-split-flow",
     "m1-warning-unrelayed",
     "m1-warning-relayed",
+    "m1-paid-towline-relief",
 ];
 
 const OUTCOME_DEFINITIONS: &[&str] = &[
@@ -65,6 +66,14 @@ struct ScenarioNpcKnowledgeAbsence {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcMemoryExpectation {
+    npc: &'static str,
+    memory_id: &'static str,
+    provenance: ScenarioKnowledgeProvenance,
+    turn: u64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 struct ScenarioNpcLocationExpectation {
     npc: &'static str,
     location: &'static str,
@@ -74,6 +83,12 @@ struct ScenarioNpcLocationExpectation {
 struct ScenarioInventoryExpectation {
     item: &'static str,
     count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioResourceExpectation {
+    resource: &'static str,
+    amount: i64,
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
@@ -98,7 +113,9 @@ pub(super) struct ScenarioExpectations {
     required_npc_locations: &'static [ScenarioNpcLocationExpectation],
     required_npc_knowledge: &'static [ScenarioNpcKnowledgeExpectation],
     forbidden_npc_knowledge: &'static [ScenarioNpcKnowledgeAbsence],
+    required_npc_memories: &'static [ScenarioNpcMemoryExpectation],
     required_character_inventory: &'static [ScenarioInventoryExpectation],
+    required_character_resources: &'static [ScenarioResourceExpectation],
     forbidden_npc_inventory: &'static [ScenarioNpcInventoryAbsence],
     required_legal_definitions: &'static [&'static str],
     forbidden_legal_definitions: &'static [&'static str],
@@ -307,6 +324,20 @@ const RELIEF_CHANNEL_STEPS: &[ScenarioStep] = &[
     action!("return.move_inland"),
 ];
 
+const PAID_TOWLINE_RELIEF_STEPS: &[ScenarioStep] = &[
+    action!("travel_adjacent", "destination" => "lowsail.docks"),
+    action!("docks.ring_warning"),
+    action!("docks.rig_towline"),
+    action!("levee.relay_warning"),
+    action!("levee.culvert_path"),
+    action!("floor.open_relief"),
+    action!("travel_adjacent", "destination" => "red_sluice.top"),
+    action!("top.check_wheels"),
+    action!("top.divert_relief"),
+    action!("world.enter_aftermath"),
+    action!("return.move_inland"),
+];
+
 const BREAK_TOLL_STEPS: &[ScenarioStep] = &[
     action!("checkpoint.blend_workers"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
@@ -387,6 +418,46 @@ const TIDE_KEY_YARA_INVENTORY_ABSENCE: &[ScenarioNpcInventoryAbsence] =
         item: "split_tide.tide_key",
     }];
 
+const PAID_TOWLINE_REQUIRED_NPC_MEMORIES: &[ScenarioNpcMemoryExpectation] =
+    &[ScenarioNpcMemoryExpectation {
+        npc: "oren_pell",
+        memory_id: "oren_saw_towline",
+        provenance: ScenarioKnowledgeProvenance::Witnessed,
+        turn: 2,
+    }];
+
+const PAID_TOWLINE_REQUIRED_NPC_KNOWLEDGE: &[ScenarioNpcKnowledgeExpectation] = &[
+    ScenarioNpcKnowledgeExpectation {
+        npc: "oren_pell",
+        knowledge_id: "market_warned",
+        provenance: ScenarioKnowledgeProvenance::Witnessed,
+        turn: 1,
+    },
+    ScenarioNpcKnowledgeExpectation {
+        npc: "edrik_voss",
+        knowledge_id: "market_warned",
+        provenance: ScenarioKnowledgeProvenance::Rumor { from: "oren_pell" },
+        turn: 3,
+    },
+];
+
+const PAID_TOWLINE_CHARACTER_INVENTORY: &[ScenarioInventoryExpectation] = &[
+    ScenarioInventoryExpectation {
+        item: "rope",
+        count: 1,
+    },
+    ScenarioInventoryExpectation {
+        item: "wire",
+        count: 1,
+    },
+];
+
+const PAID_TOWLINE_CHARACTER_RESOURCES: &[ScenarioResourceExpectation] =
+    &[ScenarioResourceExpectation {
+        resource: "coin",
+        amount: 2,
+    }];
+
 #[cfg(test)]
 const WRONG_TIDE_KEY_CHARACTER_INVENTORY: &[ScenarioInventoryExpectation] =
     &[ScenarioInventoryExpectation {
@@ -421,7 +492,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
@@ -450,7 +523,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
@@ -480,7 +555,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
@@ -510,7 +587,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
@@ -553,7 +632,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
@@ -606,7 +687,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -660,7 +743,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -694,7 +779,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: OREN_MARKET_WARNING_KNOWLEDGE,
             forbidden_npc_knowledge: UNRELAYED_FORBIDDEN_NPC_KNOWLEDGE,
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &["floor.open_relief"],
@@ -731,7 +818,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: &[],
             required_npc_knowledge: RELAYED_REQUIRED_NPC_KNOWLEDGE,
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &["floor.open_relief"],
             forbidden_legal_definitions: &[],
@@ -786,7 +875,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -838,7 +929,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -892,7 +985,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -955,7 +1050,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -1022,7 +1119,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: &[],
+            required_character_resources: &[],
             forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
@@ -1082,8 +1181,69 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_locations: AFTERMATH_NPC_LOCATIONS,
             required_npc_knowledge: &[],
             forbidden_npc_knowledge: &[],
+            required_npc_memories: &[],
             required_character_inventory: TIDE_KEY_CHARACTER_INVENTORY,
+            required_character_resources: &[],
             forbidden_npc_inventory: TIDE_KEY_YARA_INVENTORY_ABSENCE,
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: OUTCOME_DEFINITIONS,
+        },
+    },
+    ScenarioSpec {
+        id: "m1-paid-towline-relief",
+        claim_id: "split-tide.witness.paid-towline-relief",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
+        seed: 71,
+        steps: PAID_TOWLINE_RELIEF_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "lowsail.return",
+            final_action_definition: "return.move_inland",
+            final_observation_contains: "You help families open a higher market beyond the next surge.",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(11),
+            exclusive_after_action: "top.divert_relief",
+            required_world_flags: &[
+                "culvert_revealed",
+                "market_warned",
+                "relief_channel_open",
+                "sluice_outcome_chosen",
+                "flow_relief",
+                "ending_relief",
+            ],
+            forbidden_world_flags: &[
+                "tide_key_offered",
+                "flow_split",
+                "flow_locked_market",
+                "old_channel_open",
+                "sluice_failure",
+                "ending_accord",
+                "ending_council",
+                "ending_freedom",
+                "ending_disaster",
+            ],
+            required_location_flags: &[
+                ("red_sluice.floor", "culvert_entry"),
+                ("red_sluice.top", "relief_ready"),
+                ("lowsail.return", "market_moved"),
+            ],
+            required_deeds: &["rigged_towline", "opened_relief", "accepted_relocation"],
+            required_visited_locations: &[
+                "lowsail_market",
+                "lowsail.docks",
+                "lowsail.levee",
+                "red_sluice.floor",
+                "red_sluice.top",
+                "lowsail.return",
+            ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
+            required_npc_knowledge: PAID_TOWLINE_REQUIRED_NPC_KNOWLEDGE,
+            forbidden_npc_knowledge: &[],
+            required_npc_memories: PAID_TOWLINE_REQUIRED_NPC_MEMORIES,
+            required_character_inventory: PAID_TOWLINE_CHARACTER_INVENTORY,
+            required_character_resources: PAID_TOWLINE_CHARACTER_RESOURCES,
+            forbidden_npc_inventory: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1247,6 +1407,7 @@ pub(super) fn validate_session(
         expected.required_character_inventory,
         expected.forbidden_npc_inventory,
     )?;
+    validate_character_resources(state, expected.required_character_resources)?;
     validate_npc_locations(state, expected.required_npc_locations)?;
 
     let mut visited = BTreeSet::new();
@@ -1300,6 +1461,7 @@ pub(super) fn validate_session(
         expected.required_npc_knowledge,
         expected.forbidden_npc_knowledge,
     )?;
+    validate_npc_memories(state, expected.required_npc_memories)?;
     validate_legal_set(
         state,
         content,
@@ -1341,6 +1503,22 @@ fn validate_inventory(
             return Err(VerifyError::new(format!(
                 "scenario NPC {} still owns forbidden item {}",
                 expected.npc, expected.item
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_character_resources(
+    state: &forge_kernel::GameState,
+    required: &[ScenarioResourceExpectation],
+) -> Result<(), VerifyError> {
+    for expected in required {
+        let actual = state.character.resources.get(expected.resource).copied();
+        if actual != Some(expected.amount) {
+            return Err(VerifyError::new(format!(
+                "scenario character resources have the wrong amount for {}",
+                expected.resource
             )));
         }
     }
@@ -1453,6 +1631,32 @@ fn validate_npc_knowledge(
             return Err(VerifyError::new(format!(
                 "scenario established forbidden {} knowledge for {}",
                 expected.knowledge_id, expected.npc
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_npc_memories(
+    state: &forge_kernel::GameState,
+    required: &[ScenarioNpcMemoryExpectation],
+) -> Result<(), VerifyError> {
+    for expected in required {
+        let npc = state.world.npcs.get(expected.npc).ok_or_else(|| {
+            VerifyError::new(format!("scenario references unknown NPC {}", expected.npc))
+        })?;
+        let memory = npc.memories.get(expected.memory_id).ok_or_else(|| {
+            VerifyError::new(format!(
+                "scenario did not establish {} memory for {}",
+                expected.memory_id, expected.npc
+            ))
+        })?;
+        if memory.turn != expected.turn
+            || !knowledge_provenance_matches(&expected.provenance, &memory.provenance)
+        {
+            return Err(VerifyError::new(format!(
+                "scenario established {} memory for {} with the wrong turn or provenance",
+                expected.memory_id, expected.npc
             )));
         }
     }
@@ -1625,6 +1829,20 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
             if expected.item.trim().is_empty() || expected.count == 0 {
                 return Err(VerifyError::new(
                     "scenario character inventory assertions must name a positive item count",
+                ));
+            }
+        }
+        for expected in spec.expectations.required_character_resources {
+            if expected.resource.trim().is_empty() {
+                return Err(VerifyError::new(
+                    "scenario character resource assertions must name a resource",
+                ));
+            }
+        }
+        for expected in spec.expectations.required_npc_memories {
+            if expected.npc.trim().is_empty() || expected.memory_id.trim().is_empty() {
+                return Err(VerifyError::new(
+                    "scenario NPC memory assertions must name an NPC and memory",
                 ));
             }
         }
@@ -2019,5 +2237,102 @@ mod tests {
         missing_absence_expectations.forbidden_npc_inventory = EMPTY_NPC_INVENTORY_ABSENCE;
         missing_absence.expectations = missing_absence_expectations;
         assert_ne!(original_binding, binding(&missing_absence).unwrap());
+    }
+
+    #[test]
+    fn paid_towline_postconditions_bind_resources_and_memory() {
+        let content = crate::load_content().unwrap();
+        let spec = get("m1-paid-towline-relief").unwrap();
+        let session = run(spec, &content).unwrap();
+        validate_inventory(
+            session.state(),
+            spec.expectations.required_character_inventory,
+            spec.expectations.forbidden_npc_inventory,
+        )
+        .unwrap();
+        validate_character_resources(
+            session.state(),
+            spec.expectations.required_character_resources,
+        )
+        .unwrap();
+        validate_npc_memories(session.state(), spec.expectations.required_npc_memories).unwrap();
+
+        let mut wrong_coin = session.state().clone();
+        wrong_coin.character.resources.insert("coin".to_owned(), 3);
+        assert!(
+            validate_character_resources(
+                &wrong_coin,
+                spec.expectations.required_character_resources,
+            )
+            .is_err()
+        );
+
+        let mut missing_coin = session.state().clone();
+        missing_coin.character.resources.remove("coin");
+        assert!(
+            validate_character_resources(
+                &missing_coin,
+                spec.expectations.required_character_resources,
+            )
+            .is_err()
+        );
+
+        let mut wrong_tool_count = session.state().clone();
+        wrong_tool_count
+            .character
+            .inventory
+            .insert("wire".to_owned(), 0);
+        assert!(
+            validate_inventory(
+                &wrong_tool_count,
+                spec.expectations.required_character_inventory,
+                spec.expectations.forbidden_npc_inventory,
+            )
+            .is_err()
+        );
+
+        let mut wrong_memory = session.state().clone();
+        wrong_memory
+            .world
+            .npcs
+            .get_mut("oren_pell")
+            .unwrap()
+            .memories
+            .get_mut("oren_saw_towline")
+            .unwrap()
+            .provenance = forge_kernel::KnowledgeProvenance::Read {
+            source: "a rumor".to_owned(),
+        };
+        assert!(
+            validate_npc_memories(&wrong_memory, spec.expectations.required_npc_memories,).is_err()
+        );
+
+        let mut wrong_memory_time = session.state().clone();
+        wrong_memory_time
+            .world
+            .npcs
+            .get_mut("oren_pell")
+            .unwrap()
+            .memories
+            .get_mut("oren_saw_towline")
+            .unwrap()
+            .turn = 3;
+        assert!(
+            validate_npc_memories(&wrong_memory_time, spec.expectations.required_npc_memories,)
+                .is_err()
+        );
+
+        let original_binding = binding(spec).unwrap();
+        let mut changed_resources = *spec;
+        let mut changed_expectations = changed_resources.expectations;
+        changed_expectations.required_character_resources = &[];
+        changed_resources.expectations = changed_expectations;
+        assert_ne!(original_binding, binding(&changed_resources).unwrap());
+
+        let mut changed_memory = *spec;
+        let mut changed_expectations = changed_memory.expectations;
+        changed_expectations.required_npc_memories = &[];
+        changed_memory.expectations = changed_expectations;
+        assert_ne!(original_binding, binding(&changed_memory).unwrap());
     }
 }

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use forge_content::{compile, parse, parse_and_compile_production};
 use forge_kernel::{
     CanonicalAction, CharacterChoiceSelection, CharacterSelection, CharacterStart, CompiledContent,
-    ContentContract, EventKind, GameState, KnowledgeProvenanceKind, enumerate_legal_actions,
+    ContentContract, Event, EventKind, GameState, KnowledgeProvenanceKind, enumerate_legal_actions,
     legal_action_digest, step,
 };
 
@@ -129,7 +129,7 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 6);
     assert_eq!(content.npcs().count(), 5);
-    assert_eq!(content.actions().count(), 50);
+    assert_eq!(content.actions().count(), 51);
     assert_eq!(content.character_presets().count(), 2);
     let creation = content.character_creation().expect("custom creation");
     assert_eq!(creation.slots.len(), 6);
@@ -176,6 +176,7 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
     let combination_count = 1usize << creation.slots.len();
     let mut character_ids = BTreeSet::new();
     let mut action_sets = Vec::new();
+    let mut towline_eligible = 0;
 
     for mask in 0..combination_count {
         let selection = binary_selection(&content, mask);
@@ -190,6 +191,7 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
             CharacterStart::Custom { .. }
         ));
         assert!(character_ids.insert(state.character.id.clone()));
+        let expected_towline_eligibility = state.character.background == "lock-runner";
 
         let actions = enumerate_legal_actions(&state, &content).expect("custom actions");
         let meaningful_non_movement = actions
@@ -211,6 +213,19 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
         );
 
         let routed = travel_to(state, &content, "lowsail.docks");
+        let towline_is_legal = definitions(&routed, &content).contains("docks.rig_towline");
+        assert_eq!(
+            towline_is_legal, expected_towline_eligibility,
+            "towline eligibility must follow the lock-runner calling choice for mask {mask}"
+        );
+        if towline_is_legal {
+            towline_eligible += 1;
+            let gear = routed.character.inventory.clone();
+            let towline = apply(routed.clone(), &content, "docks.rig_towline");
+            assert_eq!(towline.character.resources["coin"], 2);
+            assert_eq!(towline.character.inventory, gear);
+            assert_eq!(towline.world.current_location, "lowsail.levee");
+        }
         let routed = apply(routed, &content, "docks.ask_oren");
         let routed = travel_to(routed, &content, "lowsail.levee");
         assert!(
@@ -231,6 +246,7 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
     }
 
     assert_eq!(character_ids.len(), combination_count);
+    assert_eq!(towline_eligible, 32);
     for slot_index in 0..creation.slots.len() {
         assert!(
             (0..combination_count)
@@ -525,7 +541,7 @@ fn lowsail_flag_changes_sluice_legality_and_knowledge_moves_by_report() {
     assert_eq!(
         warning_observation.result.as_deref(),
         Some(
-            "You sound the market warning. Oren orders every crew uphill; relay his warning at Lowsail Levee so Edrik can open relief."
+            "You sound the market warning. Oren sends loading crews uphill; relay his warning at Lowsail Levee so Edrik can open relief."
         )
     );
     assert!(warning_observation.text.ends_with(
@@ -734,6 +750,240 @@ fn tide_key_moves_from_yara_and_opens_a_persistent_calibration_route() {
             .text
             .contains("both shores still receive a share")
     );
+}
+
+#[test]
+fn rig_towline_is_a_paid_typed_route_with_preserved_gear_and_shorter_arrival() {
+    let content = content();
+    let docks = travel_to(new_game(&content, "rook"), &content, "lowsail.docks");
+    assert!(definitions(&docks, &content).contains("docks.rig_towline"));
+    let towline_view = content
+        .action_page(&docks, 0, usize::MAX)
+        .unwrap()
+        .actions
+        .into_iter()
+        .find(|action| action.definition_id == "docks.rig_towline")
+        .expect("Rook's docks page must expose the towline route");
+    assert_eq!(towline_view.label, "Rig Towline (3 coin)");
+    assert_eq!(towline_view.time_cost.minimum_ticks, 1);
+    assert_eq!(towline_view.time_cost.maximum_ticks, 1);
+    assert_eq!(
+        content.action_result(&docks, "docks.rig_towline").unwrap(),
+        "You rig your rope and wire; Oren's crew tows you to Lowsail Levee for three coins. They return your gear and point out Culvert Path into Red Sluice."
+    );
+
+    let gear = docks.character.inventory.clone();
+    let transition = step(
+        &docks,
+        &action_for(&docks, &content, "docks.rig_towline"),
+        &content,
+        &docks.entropy,
+    )
+    .unwrap();
+    assert_eq!(
+        content
+            .observe_after_transition(&transition)
+            .unwrap()
+            .result
+            .as_deref(),
+        Some(
+            "You rig your rope and wire; Oren's crew tows you to Lowsail Levee for three coins. They return your gear and point out Culvert Path into Red Sluice."
+        )
+    );
+    let resource_index = transition
+        .events()
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::ResourceAdjusted { resource, amount }
+                    if resource == "coin" && *amount == -3
+            )
+        })
+        .expect("towline must emit the typed coin charge");
+    let memory_index = transition
+        .events()
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::NpcMemoryAdded { npc, memory }
+                    if npc == "oren_pell" && memory == "oren_saw_towline"
+            )
+        })
+        .expect("towline must record Oren's witnessed memory");
+    let movement_index = transition
+        .events()
+        .iter()
+        .position(|event| {
+            matches!(
+                &event.kind,
+                EventKind::Moved { from, to }
+                    if from == "lowsail.docks" && to == "lowsail.levee"
+            )
+        })
+        .expect("towline must move the player to the levee");
+    assert!(resource_index < memory_index);
+    assert!(memory_index < movement_index);
+    assert_eq!(
+        transition
+            .events()
+            .iter()
+            .filter(|event| matches!(event.kind, EventKind::ResourceAdjusted { .. }))
+            .count(),
+        1
+    );
+    assert!(
+        !transition
+            .events()
+            .iter()
+            .any(|event| matches!(event.kind, EventKind::NpcMoved { .. }))
+    );
+
+    let rigged = transition.into_state();
+    assert_eq!(rigged.world.current_location, "lowsail.levee");
+    assert_eq!(rigged.world.time, docks.world.time + 1);
+    assert_eq!(rigged.world.npcs["oren_pell"].location, "lowsail.docks");
+    assert_eq!(rigged.character.resources["coin"], 2);
+    assert_eq!(rigged.character.inventory, gear);
+    assert!(rigged.world.flags.contains("culvert_revealed"));
+    assert!(rigged.character.deeds.contains("rigged_towline"));
+    let memory = &rigged.world.npcs["oren_pell"].memories["oren_saw_towline"];
+    assert_eq!(memory.turn, docks.world.time);
+    assert_eq!(
+        memory.subject,
+        "Oren watched the player rig a paid towline."
+    );
+    assert_eq!(
+        memory.provenance,
+        forge_kernel::KnowledgeProvenance::Witnessed
+    );
+    assert!(definitions(&rigged, &content).contains("levee.culvert_path"));
+    let first_revisit = travel_to(
+        travel_to(rigged.clone(), &content, "lowsail_market"),
+        &content,
+        "lowsail.docks",
+    );
+    assert!(!definitions(&first_revisit, &content).contains("docks.rig_towline"));
+
+    let mut free_route = apply(docks.clone(), &content, "docks.ask_oren");
+    free_route = travel_to(free_route, &content, "lowsail.levee");
+    assert_eq!(free_route.world.time, docks.world.time + 2);
+    assert_eq!(free_route.character.resources["coin"], 5);
+    assert_eq!(free_route.world.current_location, "lowsail.levee");
+}
+
+#[test]
+fn rig_towline_requires_stock_coin_and_oren_and_retires_after_route_progress() {
+    let content = content();
+    let rook_docks = travel_to(new_game(&content, "rook"), &content, "lowsail.docks");
+    let ilyan_docks = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
+    assert!(definitions(&rook_docks, &content).contains("docks.rig_towline"));
+    assert!(!ilyan_docks.character.inventory.contains_key("wire"));
+    assert!(!definitions(&ilyan_docks, &content).contains("docks.rig_towline"));
+
+    let mut missing_rope = rook_docks.clone();
+    missing_rope.character.inventory.remove("rope");
+    assert!(
+        !content
+            .action("docks.rig_towline")
+            .unwrap()
+            .condition
+            .evaluate(&missing_rope)
+    );
+
+    // Resource mutation is a structural admission fixture for this condition gate.
+    let mut poor = rook_docks.clone();
+    poor.character.resources.insert("coin".to_owned(), 2);
+    content
+        .validate_state(&poor)
+        .expect("resource progression remains valid in production state admission");
+    assert!(!definitions(&poor, &content).contains("docks.rig_towline"));
+
+    let mut exact_coin = rook_docks.clone();
+    exact_coin.character.resources.insert("coin".to_owned(), 3);
+    let exact_coin_transition = step(
+        &exact_coin,
+        &action_for(&exact_coin, &content, "docks.rig_towline"),
+        &content,
+        &exact_coin.entropy,
+    )
+    .unwrap();
+    assert_eq!(exact_coin_transition.state().character.resources["coin"], 0);
+
+    let mut forged_inventory = ilyan_docks.clone();
+    forged_inventory
+        .character
+        .inventory
+        .insert("wire".to_owned(), 1);
+    assert!(
+        content
+            .action("docks.rig_towline")
+            .unwrap()
+            .condition
+            .evaluate(&forged_inventory)
+    );
+    assert!(content.validate_state(&forged_inventory).is_err());
+    assert!(enumerate_legal_actions(&forged_inventory, &content).is_err());
+
+    // Typed relocation is a structural admission fixture for the presence gate.
+    let mut absent_oren = rook_docks.clone();
+    absent_oren
+        .world
+        .locations
+        .get_mut("lowsail.docks")
+        .unwrap()
+        .entities
+        .remove("oren_pell");
+    absent_oren
+        .world
+        .locations
+        .get_mut("lowsail_market")
+        .unwrap()
+        .entities
+        .insert("oren_pell".to_owned());
+    absent_oren
+        .world
+        .npcs
+        .get_mut("oren_pell")
+        .unwrap()
+        .location = "lowsail_market".to_owned();
+    absent_oren.event_log.push(Event {
+        turn: absent_oren.world.time,
+        kind: EventKind::NpcMoved {
+            npc: "oren_pell".to_owned(),
+            from: "lowsail.docks".to_owned(),
+            to: "lowsail_market".to_owned(),
+        },
+    });
+    content
+        .validate_state(&absent_oren)
+        .expect("typed Oren relocation must remain an admissible production state");
+    assert!(!definitions(&absent_oren, &content).contains("docks.rig_towline"));
+
+    let known_route = apply(rook_docks.clone(), &content, "docks.ask_oren");
+    assert!(!definitions(&known_route, &content).contains("docks.rig_towline"));
+
+    let mut outcome = apply(
+        new_game(&content, "rook"),
+        &content,
+        "checkpoint.use_stolen_permit",
+    );
+    outcome = travel_to(outcome, &content, "lowsail.levee");
+    outcome = apply(outcome, &content, "levee.stolen_path");
+    outcome = apply(outcome, &content, "floor.climb_hot_face");
+    assert!(!outcome.world.flags.contains("culvert_revealed"));
+    outcome = apply(outcome, &content, "top.overload");
+    for destination in [
+        "red_sluice.floor",
+        "lowsail.levee",
+        "lowsail_market",
+        "lowsail.docks",
+    ] {
+        outcome = travel_to(outcome, &content, destination);
+    }
+    assert!(outcome.world.flags.contains("sluice_outcome_chosen"));
+    assert!(!definitions(&outcome, &content).contains("docks.rig_towline"));
 }
 
 #[test]

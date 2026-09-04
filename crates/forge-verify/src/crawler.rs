@@ -909,7 +909,7 @@ mod tests {
         };
         let report = crawl_production(&content, budget).unwrap();
         assert!(report.is_complete());
-        assert_eq!(report.advertised_definitions.len(), 50);
+        assert_eq!(report.advertised_definitions.len(), 51);
         assert_eq!(report.reached_locations.len(), 6);
         assert!(report.successful_actions >= report.advertised_definitions.len());
         assert!(report.expanded_states <= 96);

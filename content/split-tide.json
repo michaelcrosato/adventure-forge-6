@@ -876,7 +876,7 @@
       "id": "docks.ring_warning",
       "label": "Ring Warning",
       "category": "Warn",
-      "result": "You sound the market warning. Oren orders every crew uphill; relay his warning at Lowsail Levee so Edrik can open relief.",
+      "result": "You sound the market warning. Oren sends loading crews uphill; relay his warning at Lowsail Levee so Edrik can open relief.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "all",
@@ -917,6 +917,35 @@
       "parameters": [],
       "meaningful": true,
       "movement": false
+    },
+    {
+      "id": "docks.rig_towline",
+      "label": "Rig Towline (3 coin)",
+      "category": "Route",
+      "result": "You rig your rope and wire; Oren's crew tows you to Lowsail Levee for three coins. They return your gear and point out Culvert Path into Red Sluice.",
+      "locations": ["lowsail.docks"],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "has_item", "item": "rope", "count": 1},
+          {"kind": "has_item", "item": "wire", "count": 1},
+          {"kind": "resource_at_least", "resource": "coin", "amount": 3},
+          {"kind": "npc_at_location", "npc": "oren_pell", "location": "lowsail.docks"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "culvert_revealed"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
+      },
+      "effects": [
+        {"kind": "adjust_resource", "resource": "coin", "amount": -3},
+        {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
+        {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "oren_pell"}, "memory_id": "oren_saw_towline", "subject": "Oren watched the player rig a paid towline.", "provenance": {"kind": "witnessed"}},
+        {"kind": "add_character_deed", "deed_id": "rigged_towline"},
+        {"kind": "move_character", "location": {"kind": "literal", "value": "lowsail.levee"}},
+        {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
     },
     {
       "id": "docks.follow_yara",

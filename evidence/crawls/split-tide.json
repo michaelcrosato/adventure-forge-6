@@ -1,6 +1,6 @@
 {
-  "verifier_id": "cbfce344a71cd4450b02ad48257a67901b7f9644cd6582a19c497d36c9e168eb",
-  "build_id": "490be1a7e1f854b2354bac36c896502e4d3ed7c471ba2bbf7f950d7c3710a443",
+  "verifier_id": "a1920c9016d99ede505488433df7f593f640965c2cc2bf5a96f777b36c37c3f0",
+  "build_id": "5ff88e494d91bfcccff4c0f8d28ecb4dcea44bf04feaa15cbece433ff70a04cb",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 4096,
@@ -8,10 +8,10 @@
     "max_action_executions": 65536,
     "catalog_page_size": 7
   },
-  "expanded_states": 55,
-  "discovered_frontiers": 280,
-  "successful_actions": 303,
-  "max_legal_actions": 8,
+  "expanded_states": 56,
+  "discovered_frontiers": 287,
+  "successful_actions": 312,
+  "max_legal_actions": 9,
   "reached_locations": [
     "lowsail.docks",
     "lowsail.levee",
@@ -33,6 +33,7 @@
     "docks.audit_ledger",
     "docks.follow_yara",
     "docks.press_yara",
+    "docks.rig_towline",
     "docks.ring_warning",
     "docks.search_crate",
     "docks.trade_warning",
@@ -85,6 +86,7 @@
     "docks.audit_ledger",
     "docks.follow_yara",
     "docks.press_yara",
+    "docks.rig_towline",
     "docks.ring_warning",
     "docks.search_crate",
     "docks.trade_warning",
@@ -124,5 +126,5 @@
     "wait_tide",
     "world.enter_aftermath"
   ],
-  "execution_receipt": "c3d41d0ea34f078c74fa419975b3459ce5c1556daef7bc35b4bfe693903b270b"
+  "execution_receipt": "d577a7fa3bf23a3bef4bb55e4e9fea7194249038b7be93ca0c898b08ce0d21d9"
 }

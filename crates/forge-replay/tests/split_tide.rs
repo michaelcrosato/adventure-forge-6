@@ -146,6 +146,53 @@ const ROOK_TIDE_KEY_SPLIT_PATH: [ActionSpec; 11] = [
     },
 ];
 
+const ROOK_PAID_TOWLINE_RELIEF_PATH: [ActionSpec; 11] = [
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.docks")),
+    },
+    ActionSpec {
+        definition_id: "docks.ring_warning",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "docks.rig_towline",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "levee.relay_warning",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "levee.culvert_path",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "floor.open_relief",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "red_sluice.top")),
+    },
+    ActionSpec {
+        definition_id: "top.check_wheels",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "top.divert_relief",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "world.enter_aftermath",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "return.move_inland",
+        parameter: None,
+    },
+];
+
 const ROOK_HOT_ROUTE_FERRY_PATH: [ActionSpec; 10] = [
     ActionSpec {
         definition_id: "travel_adjacent",
@@ -486,6 +533,229 @@ fn rook_tide_key_path_resumes_across_transfer_and_calibration_checkpoints() {
     assert_eq!(
         resumed_full.trace().final_receipt,
         uninterrupted.trace().final_receipt
+    );
+}
+
+#[test]
+fn rook_paid_towline_relief_path_resumes_across_purchase_and_return() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("rook", 71, &content).expect("session starts");
+    let mut after_purchase = None;
+    let mut before_aftermath = None;
+    let mut after_aftermath = None;
+
+    for (index, spec) in ROOK_PAID_TOWLINE_RELIEF_PATH.iter().enumerate() {
+        record(
+            &mut uninterrupted,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+        match index + 1 {
+            3 => after_purchase = Some(resume_player_save(&uninterrupted, &content)),
+            9 => before_aftermath = Some(resume_player_save(&uninterrupted, &content)),
+            10 => after_aftermath = Some(resume_player_save(&uninterrupted, &content)),
+            _ => {}
+        }
+    }
+
+    let purchase_step = &uninterrupted.trace().steps[2];
+    assert_eq!(purchase_step.action.definition_id, "docks.rig_towline");
+    assert_eq!(purchase_step.observation.location_id, "lowsail.levee");
+    assert_eq!(uninterrupted.state().world.time, 11);
+    assert_eq!(
+        uninterrupted.state().character.resources.get("coin"),
+        Some(&2)
+    );
+    assert_eq!(
+        uninterrupted.state().character.inventory.get("rope"),
+        Some(&1)
+    );
+    assert_eq!(
+        uninterrupted.state().character.inventory.get("wire"),
+        Some(&1)
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("culvert_revealed")
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .character
+            .deeds
+            .contains("rigged_towline")
+    );
+    let towline_memory = uninterrupted.state().world.npcs["oren_pell"]
+        .memories
+        .get("oren_saw_towline")
+        .expect("Oren retains the paid towline memory");
+    assert_eq!(
+        towline_memory.subject,
+        "Oren watched the player rig a paid towline."
+    );
+    assert_eq!(towline_memory.turn, 2);
+    assert_eq!(towline_memory.provenance, KnowledgeProvenance::Witnessed);
+    assert!(purchase_step.events.iter().any(|event| {
+        matches!(
+            &event.kind,
+            EventKind::ResourceAdjusted { resource, amount }
+                if resource == "coin" && *amount == -3
+        )
+    }));
+    assert!(purchase_step.events.iter().any(|event| {
+        matches!(
+            &event.kind,
+            EventKind::NpcMemoryAdded { npc, memory }
+                if npc == "oren_pell" && memory == "oren_saw_towline"
+        )
+    }));
+    assert!(purchase_step.events.iter().any(|event| {
+        matches!(
+            &event.kind,
+            EventKind::Moved { from, to }
+                if from == "lowsail.docks" && to == "lowsail.levee"
+        )
+    }));
+
+    let mut resumed_after_purchase = after_purchase.expect("purchase checkpoint");
+    assert_eq!(resumed_after_purchase.trace().steps.len(), 3);
+    assert_eq!(resumed_after_purchase.state().world.time, 3);
+    assert_eq!(
+        resumed_after_purchase.state().world.current_location,
+        "lowsail.levee"
+    );
+    assert_eq!(
+        resumed_after_purchase.state().world.npcs["oren_pell"].location,
+        "lowsail.docks"
+    );
+    assert!(
+        resumed_after_purchase.state().world.locations["lowsail.docks"]
+            .entities
+            .contains("oren_pell")
+    );
+    assert_eq!(
+        resumed_after_purchase
+            .state()
+            .character
+            .resources
+            .get("coin"),
+        Some(&2)
+    );
+    assert_eq!(
+        resumed_after_purchase
+            .state()
+            .character
+            .inventory
+            .get("rope"),
+        Some(&1)
+    );
+    assert_eq!(
+        resumed_after_purchase
+            .state()
+            .character
+            .inventory
+            .get("wire"),
+        Some(&1)
+    );
+    assert_not_legal(&resumed_after_purchase, &content, "docks.rig_towline");
+    record_specs(
+        &mut resumed_after_purchase,
+        &content,
+        &ROOK_PAID_TOWLINE_RELIEF_PATH[3..],
+    );
+
+    let mut resumed_before_aftermath = before_aftermath.expect("pre-aftermath checkpoint");
+    assert_eq!(resumed_before_aftermath.trace().steps.len(), 9);
+    assert_eq!(resumed_before_aftermath.state().world.time, 9);
+    assert_eq!(
+        resumed_before_aftermath.state().world.current_location,
+        "red_sluice.top"
+    );
+    assert!(
+        resumed_before_aftermath
+            .state()
+            .world
+            .flags
+            .contains("flow_relief")
+    );
+    record_specs(
+        &mut resumed_before_aftermath,
+        &content,
+        &ROOK_PAID_TOWLINE_RELIEF_PATH[9..],
+    );
+
+    let mut resumed_after_aftermath = after_aftermath.expect("aftermath checkpoint");
+    assert_eq!(resumed_after_aftermath.trace().steps.len(), 10);
+    assert_eq!(resumed_after_aftermath.state().world.time, 10);
+    assert_eq!(
+        resumed_after_aftermath.state().world.current_location,
+        "lowsail.return"
+    );
+    record_specs(
+        &mut resumed_after_aftermath,
+        &content,
+        &ROOK_PAID_TOWLINE_RELIEF_PATH[10..],
+    );
+
+    for resumed in [
+        &resumed_after_purchase,
+        &resumed_before_aftermath,
+        &resumed_after_aftermath,
+    ] {
+        assert_eq!(resumed.state(), uninterrupted.state());
+        assert_eq!(
+            resumed.trace().final_state_id,
+            uninterrupted.trace().final_state_id
+        );
+        assert_eq!(
+            resumed.trace().final_receipt,
+            uninterrupted.trace().final_receipt
+        );
+    }
+
+    assert_eq!(uninterrupted.trace().steps.len(), 11);
+    assert!(uninterrupted.state().world.flags.contains("ending_relief"));
+    assert_eq!(
+        uninterrupted.state().world.current_location,
+        "lowsail.return"
+    );
+    for (npc_id, location) in [
+        ("oren_pell", "lowsail.return"),
+        ("sava_rusk", "lowsail.return"),
+        ("mira_kett", "lowsail.return"),
+        ("yara_dene", "lowsail.docks"),
+        ("edrik_voss", "red_sluice.floor"),
+    ] {
+        let npc = &uninterrupted.state().world.npcs[npc_id];
+        assert_eq!(npc.location, location);
+        assert!(
+            uninterrupted.state().world.locations[location]
+                .entities
+                .contains(npc_id)
+        );
+    }
+    let first_return = &uninterrupted.trace().steps[9];
+    let npc_moves: Vec<_> = first_return
+        .events
+        .iter()
+        .filter_map(|event| match &event.kind {
+            EventKind::NpcMoved { npc, from, to } => {
+                Some((npc.as_str(), from.as_str(), to.as_str()))
+            }
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        npc_moves,
+        vec![
+            ("oren_pell", "lowsail.docks", "lowsail.return"),
+            ("sava_rusk", "lowsail_market", "lowsail.return"),
+            ("mira_kett", "red_sluice.top", "lowsail.return"),
+        ]
     );
 }
 
