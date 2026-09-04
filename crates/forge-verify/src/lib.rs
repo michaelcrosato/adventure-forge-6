@@ -23,6 +23,7 @@ pub use scale::{
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v2";
 pub const MAX_WITNESS_STEPS: usize = 4_096;
+pub const MAX_PLAYER_TRACE_BYTES: u64 = 16 * 1024 * 1024;
 
 include!(concat!(env!("OUT_DIR"), "/verifier_id.rs"));
 
@@ -79,6 +80,15 @@ pub struct EvidenceWitness {
     pub final_receipt: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlayerTraceVerification {
+    pub verifier_id: String,
+    pub build_id: String,
+    pub action_count: usize,
+    pub final_state_id: String,
+    pub final_receipt: String,
+}
+
 pub fn scenario_ids() -> impl ExactSizeIterator<Item = &'static str> {
     scenarios::all().iter().map(|scenario| scenario.id)
 }
@@ -110,6 +120,27 @@ pub fn generate_witness(scenario_id: &str) -> Result<EvidenceWitness, VerifyErro
 pub fn generate_crawl_report() -> Result<CrawlReport, VerifyError> {
     let content = load_content()?;
     crawl_production(&content, CrawlBudget::default())
+}
+
+pub fn check_player_trace(
+    player_trace: &PlayerTrace,
+) -> Result<PlayerTraceVerification, VerifyError> {
+    if player_trace.action_count() > MAX_WITNESS_STEPS {
+        return Err(VerifyError::new(
+            "player trace exceeds the 4096-step verification budget",
+        ));
+    }
+    let content = load_content()?;
+    let session = resume_player_trace(player_trace, &content).map_err(replay_error)?;
+    verify(session.trace(), &content).map_err(replay_error)?;
+    let trace = session.trace();
+    Ok(PlayerTraceVerification {
+        verifier_id: VERIFIER_ID.to_owned(),
+        build_id: trace.build_id.clone(),
+        action_count: trace.steps.len(),
+        final_state_id: trace.final_state_id.clone(),
+        final_receipt: trace.final_receipt.clone(),
+    })
 }
 
 pub fn check_witness(witness: &EvidenceWitness) -> Result<(), VerifyError> {
@@ -314,6 +345,28 @@ mod tests {
             rook.steps[0].legal_action_set_digest
         );
         assert_ne!(ilyan.steps[0].post_state_id, rook.steps[0].post_state_id);
+    }
+
+    #[test]
+    fn independent_player_trace_check_binds_verifier_and_final_commitments() {
+        let witness = generate_witness("m0-ilyan").unwrap();
+        let checked = check_player_trace(&witness.player_trace).unwrap();
+        assert_eq!(checked.verifier_id, VERIFIER_ID);
+        assert!(
+            witness
+                .player_trace
+                .to_json()
+                .unwrap()
+                .contains(&checked.build_id)
+        );
+        assert_eq!(checked.action_count, witness.steps.len());
+        assert_eq!(checked.final_state_id, witness.final_state_id);
+        assert_eq!(checked.final_receipt, witness.final_receipt);
+
+        let mut tampered_json = witness.player_trace.to_json().unwrap();
+        tampered_json = tampered_json.replacen(&witness.final_receipt, "00", 1);
+        let tampered = PlayerTrace::from_json(&tampered_json).unwrap();
+        assert!(check_player_trace(&tampered).is_err());
     }
 
     #[test]

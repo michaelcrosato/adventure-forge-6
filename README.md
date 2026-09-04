@@ -23,10 +23,15 @@ During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save P
 ```bash
 cargo run -p forge-cli -- replay rook.trace.json
 cargo run -p forge-cli -- resume rook.trace.json
+cargo run -p forge-verify -- check-player rook.trace.json
 ./verify
 ```
 
-`./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
+`forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
+
+On Linux, the same gate builds a stripped release-only player bundle and runs a locked CLI boundary rehearsal with Bubblewrap. The player process receives only its executable, required runtime libraries, and one writable save directory; the repository and all other host paths remain unmounted. The test clears its environment, isolates its network, enforces resource limits, exercises canary reads and writes, compares two deterministic sessions, and verifies the resulting save outside the sandbox. Its local report is written under `artifacts/local/locked-player-boundary/`.
+
+This scripted rehearsal is process-isolation evidence, not an actual blind-AI playtest, a model prompt-injection test, or proof against binary reverse engineering. Those claims remain separate milestone requirements.
 
 All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 character paths, all five Split Tide outcomes, and one representative path through each authored area:
 

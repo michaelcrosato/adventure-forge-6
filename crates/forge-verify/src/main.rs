@@ -1,6 +1,8 @@
+use forge_replay::PlayerTrace;
 use forge_verify::{
-    EvidenceWitness, SCALE_MAX_REPORT_BYTES, ScaleReport, check_scale_report, check_witness,
-    generate_crawl_report, generate_scale_report, generate_witness, scenario_ids,
+    EvidenceWitness, MAX_PLAYER_TRACE_BYTES, SCALE_MAX_REPORT_BYTES, ScaleReport,
+    check_player_trace, check_scale_report, check_witness, generate_crawl_report,
+    generate_scale_report, generate_witness, scenario_ids,
 };
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -50,6 +52,18 @@ fn run(args: Vec<String>) -> Result<String, String> {
                 witness.steps.len()
             ))
         }
+        [command, path] if command == "check-player" => {
+            let trace = read_player_trace(Path::new(path))?;
+            let checked = check_player_trace(&trace).map_err(|error| error.to_string())?;
+            Ok(format!(
+                "VERIFIED PLAYER TRACE\nVerifier: {}\nBuild: {}\nSteps: {}\nFinal state: {}\nFinal receipt: {}\n",
+                checked.verifier_id,
+                checked.build_id,
+                checked.action_count,
+                checked.final_state_id,
+                checked.final_receipt,
+            ))
+        }
         [command] if command == "scenarios" => Ok(format!(
             "{}\n",
             scenario_ids().collect::<Vec<_>>().join("\n")
@@ -69,6 +83,11 @@ fn read_scale_report(path: &Path) -> Result<ScaleReport, String> {
     ScaleReport::from_json(&json).map_err(|error| error.to_string())
 }
 
+fn read_player_trace(path: &Path) -> Result<PlayerTrace, String> {
+    let json = read_bounded_utf8(path, MAX_PLAYER_TRACE_BYTES, "player trace")?;
+    PlayerTrace::from_json(&json).map_err(|_| "player trace contains invalid JSON".to_owned())
+}
+
 fn read_bounded_utf8(path: &Path, max_bytes: u64, kind: &str) -> Result<String, String> {
     let file =
         File::open(path).map_err(|error| format!("could not open {}: {error}", path.display()))?;
@@ -85,6 +104,5 @@ fn read_bounded_utf8(path: &Path, max_bytes: u64, kind: &str) -> Result<String, 
 }
 
 fn usage() -> String {
-    "usage: forge-verify crawl | scale | check-scale PATH | emit SCENARIO | check PATH | scenarios"
-        .to_owned()
+    "usage: forge-verify crawl | scale | check-scale PATH | emit SCENARIO | check PATH | check-player PATH | scenarios".to_owned()
 }
