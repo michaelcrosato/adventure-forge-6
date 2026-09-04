@@ -16,6 +16,10 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+mod player_mcp;
+
+pub use player_mcp::{PlayerMcpConfig, run_player_mcp, run_player_mcp_socket};
+
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 const DEFAULT_PAGE_SIZE: usize = 8;
 const DEFAULT_SEED: u64 = 71;

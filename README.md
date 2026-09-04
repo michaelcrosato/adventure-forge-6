@@ -36,6 +36,17 @@ On Linux, the same gate builds a stripped release-only player bundle and runs a 
 
 This scripted rehearsal is process-isolation evidence, not an actual blind-AI playtest, a model prompt-injection test, or proof against binary reverse engineering. Those claims remain separate milestone requirements.
 
+The live model runner uses the saved Codex ChatGPT subscription login and has no API-key fallback:
+
+```bash
+./tools/live-blind-llm-playtest.sh --auth-check
+./tools/live-blind-llm-playtest.sh
+```
+
+An accepted run requires clean `main` equal to `origin/main`, compiles the latest release game and independent checker, and starts a fresh ephemeral Codex session outside the repository. The game runs in its own networkless Bubblewrap sandbox. Codex runs in a separate minimal filesystem with inference network access, an isolated copy of the saved login, and only the `observe`, `act`, and `finish` player tools. Both `OPENAI_API_KEY` and `CODEX_API_KEY` are removed from status checks and the live process. Missing or non-ChatGPT saved authentication fails closed.
+
+The globally installed Vercel plugin remains available to the manager but is disabled and absent from the blind player's isolated Codex home. Successful local reports are written under `artifacts/local/live-blind-llm/`. They preserve the model-authored findings, public transcript, player-safe trace, Codex events, prompt-context audit, tool allowlist, hashes, timing, token usage, and independent replay result. Codex currently injects generic host skill and developer context even with callable development features disabled, so these reports claim source-isolated model play—not a strict proof that every model-visible token came from the game interface.
+
 All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, all five Split Tide outcomes, and one representative path through each authored area:
 
 ```bash

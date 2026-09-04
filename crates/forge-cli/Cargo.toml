@@ -9,7 +9,12 @@ publish.workspace = true
 name = "forge"
 path = "src/main.rs"
 
+[[bin]]
+name = "forge-player-mcp"
+path = "src/bin/forge-player-mcp.rs"
+
 [dependencies]
 forge-content = { path = "../forge-content" }
 forge-kernel = { path = "../forge-kernel" }
 forge-replay = { path = "../forge-replay" }
+serde_json.workspace = true
