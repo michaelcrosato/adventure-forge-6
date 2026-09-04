@@ -891,13 +891,18 @@ fn public_action_label(action: &ActionView) -> String {
         }
         (minimum, maximum) => format!("{minimum}–{maximum} tide steps"),
     };
-    if parameters.is_empty() {
+    let label = if parameters.is_empty() {
         format!("[{} · {time_cost}] {}", action.category, action.label)
     } else {
         format!(
             "[{} · {time_cost}] {} — {parameters}",
             action.category, action.label
         )
+    };
+    if let Some(consequence) = &action.consequence_preview {
+        format!("{label} — {consequence}")
+    } else {
+        label
     }
 }
 
@@ -1336,6 +1341,39 @@ mod tests {
         assert!(!output.contains("event_log"));
         assert!(!output.contains("scheduled_events"));
         assert!(!output.contains("entropy"));
+    }
+
+    #[test]
+    fn public_action_labels_preview_committing_consequences() {
+        let outcome = ActionView {
+            action_id: "bound-action".to_owned(),
+            definition_id: "top.hold_market".to_owned(),
+            label: "Hold Market".to_owned(),
+            category: "Outcome".to_owned(),
+            time_cost: forge_kernel::ActionTimeCost {
+                minimum_ticks: 1,
+                maximum_ticks: 1,
+            },
+            consequence_preview: Some(
+                "The market stays dry while the upland works lose water.".to_owned(),
+            ),
+            parameter_display_values: Default::default(),
+            parameters: Default::default(),
+        };
+        assert_eq!(
+            public_action_label(&outcome),
+            "[Outcome · 1 tide step] Hold Market — The market stays dry while the upland works lose water."
+        );
+
+        let mut ordinary = outcome;
+        ordinary.definition_id = "top.rescue_worker".to_owned();
+        ordinary.label = "Rescue Worker".to_owned();
+        ordinary.category = "Rescue".to_owned();
+        ordinary.consequence_preview = None;
+        assert_eq!(
+            public_action_label(&ordinary),
+            "[Rescue · 1 tide step] Rescue Worker"
+        );
     }
 
     #[test]

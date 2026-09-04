@@ -574,6 +574,34 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
     let available_outcomes = definitions(&state, &content);
     assert!(available_outcomes.contains("top.split_flow"));
     assert!(available_outcomes.contains("top.hold_market"));
+    let outcome_page = content.action_page(&state, 0, usize::MAX).unwrap();
+    let split_view = outcome_page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "top.split_flow")
+        .unwrap();
+    assert_eq!(
+        split_view.consequence_preview.as_deref(),
+        Some("The gates share water between both shores.")
+    );
+    let hold_view = outcome_page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "top.hold_market")
+        .unwrap();
+    assert_eq!(
+        hold_view.consequence_preview.as_deref(),
+        Some("The market stays dry while the upland works lose water.")
+    );
+    assert!(
+        outcome_page
+            .actions
+            .iter()
+            .find(|action| action.definition_id == "top.rescue_worker")
+            .unwrap()
+            .consequence_preview
+            .is_none()
+    );
     state = apply(state, &content, "top.split_flow");
 
     assert!(state.world.flags.contains("sluice_outcome_chosen"));
@@ -595,8 +623,8 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
             .flags
             .contains("market_stable")
     );
-    assert!(definitions(&state, &content).contains("top.return_lowsail"));
-    state = apply(state, &content, "top.return_lowsail");
+    assert!(definitions(&state, &content).contains("world.enter_aftermath"));
+    state = apply(state, &content, "world.enter_aftermath");
     assert_eq!(
         content.location_description(&state).unwrap(),
         "The market stands above calm water while both shores still receive a share."
@@ -614,9 +642,89 @@ fn sluice_outcome_persists_to_the_lowsail_return_and_result_text() {
             .starts_with("Calm water leaves both shores")
     );
     assert!(definitions(&state, &content).contains("return.share_water"));
+    let ending_page = content.action_page(&state, 0, usize::MAX).unwrap();
+    let accord_view = ending_page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "return.share_water")
+        .unwrap();
+    assert_eq!(accord_view.label, "Seal Water Accord");
+    assert_eq!(
+        accord_view.consequence_preview.as_deref(),
+        Some("You seal an accord that keeps both shores supplied.")
+    );
     state = apply(state, &content, "return.share_water");
     assert!(state.world.flags.contains("ending_accord"));
     assert!(state.character.deeds.contains("returned_for_accord"));
+}
+
+#[test]
+fn resolved_phase_closes_old_actions_and_hold_aftermath_stays_truthful() {
+    let content = content();
+    let mut state = apply(
+        new_game(&content, "ilyan"),
+        &content,
+        "checkpoint.show_charter",
+    );
+    state = travel_to(state, &content, "lowsail.levee");
+    state = apply(state, &content, "levee.authority_path");
+    state = travel_to(state, &content, "red_sluice.top");
+    state = apply(state, &content, "top.hold_market");
+
+    let assert_resolved_catalog = |state: &GameState| {
+        let legal = definitions(state, &content);
+        assert!(legal.contains("world.enter_aftermath"));
+        assert!(
+            content
+                .location_description(state)
+                .unwrap()
+                .contains("Enter Lowsail Aftermath"),
+            "resolved scene still gives expired directions at {}",
+            state.world.current_location
+        );
+        for definition in legal {
+            assert!(
+                matches!(
+                    definition.as_str(),
+                    "travel_adjacent" | "wait_tide" | "world.enter_aftermath"
+                ),
+                "pre-surge action remained legal after resolution: {definition}"
+            );
+        }
+    };
+
+    assert_resolved_catalog(&state);
+    state = travel_to(state, &content, "red_sluice.floor");
+    assert_resolved_catalog(&state);
+    state = travel_to(state, &content, "lowsail.levee");
+    assert_resolved_catalog(&state);
+    state = travel_to(state, &content, "lowsail_market");
+    assert_resolved_catalog(&state);
+    state = travel_to(state, &content, "lowsail.docks");
+    assert_resolved_catalog(&state);
+    assert!(!definitions(&state, &content).contains("docks.ring_warning"));
+
+    state = apply(state, &content, "world.enter_aftermath");
+    assert_eq!(state.world.current_location, "lowsail.return");
+    assert_eq!(
+        content.location_description(&state).unwrap(),
+        "Lowsail stays dry while the upland works crack above the lowered water."
+    );
+    assert_eq!(
+        content.action_result(&state, "return.read_tide").unwrap(),
+        "Low water keeps Lowsail dry while the upland works lose their supply."
+    );
+    let page = content.action_page(&state, 0, usize::MAX).unwrap();
+    let council_view = page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "return.count_dry_stalls")
+        .unwrap();
+    assert_eq!(council_view.label, "Enforce Council Claim");
+    assert_eq!(
+        council_view.consequence_preview.as_deref(),
+        Some("You enforce council control while the upland works absorb the loss.")
+    );
 }
 
 #[test]
@@ -685,7 +793,7 @@ fn every_sluice_outcome_excludes_the_other_four() {
         (disaster, "top.overload"),
     ] {
         assert!(definitions(&state, &content).contains(selected));
-        assert!(!definitions(&state, &content).contains("top.return_lowsail"));
+        assert!(!definitions(&state, &content).contains("world.enter_aftermath"));
         assert!(
             enumerate_legal_actions(&state, &content)
                 .unwrap()
@@ -698,7 +806,7 @@ fn every_sluice_outcome_excludes_the_other_four() {
         let resolved = apply(state, &content, selected);
         assert!(resolved.world.flags.contains("sluice_outcome_chosen"));
         let legal_after = definitions(&resolved, &content);
-        assert!(legal_after.contains("top.return_lowsail"));
+        assert!(legal_after.contains("world.enter_aftermath"));
         assert!(
             SLUICE_OUTCOMES
                 .iter()
@@ -881,7 +989,7 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
             .contains("market_flooded")
     );
     let after_deadline = definitions(&missed, &content);
-    assert!(after_deadline.contains("top.return_lowsail"));
+    assert!(after_deadline.contains("world.enter_aftermath"));
     assert!(!after_deadline.contains("top.check_wheels"));
     assert!(!after_deadline.contains("top.signal_market"));
     assert!(
@@ -893,7 +1001,7 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
         content
             .location_description(&missed)
             .unwrap()
-            .contains("return route is open")
+            .contains("Enter Lowsail Aftermath")
     );
 
     let missed_floor = travel_to(missed, &content, "red_sluice.floor");
@@ -917,8 +1025,48 @@ fn unresolved_surge_fires_at_sixteen_and_a_prior_outcome_prevents_it() {
         content
             .location_description(&missed_floor)
             .unwrap()
-            .contains("return through Red Sluice Top")
+            .contains("Enter Lowsail Aftermath")
     );
+    let mut missed_roads = missed_floor.clone();
+    for destination in ["lowsail.levee", "lowsail_market", "lowsail.docks"] {
+        missed_roads = travel_to(missed_roads, &content, destination);
+        let description = content.location_description(&missed_roads).unwrap();
+        assert!(description.contains("Floodwater"));
+        assert!(description.contains("Enter Lowsail Aftermath"));
+        assert!(
+            content
+                .observe(&missed_roads)
+                .unwrap()
+                .upcoming_events
+                .is_empty()
+        );
+        let catalog = definitions(&missed_roads, &content);
+        assert!(catalog.contains("world.enter_aftermath"));
+        assert!(catalog.iter().all(|definition| matches!(
+            definition.as_str(),
+            "travel_adjacent" | "wait_tide" | "world.enter_aftermath"
+        )));
+    }
+    let missed_return = apply(missed_floor, &content, "world.enter_aftermath");
+    assert_eq!(missed_return.world.current_location, "lowsail.return");
+    assert_eq!(
+        content.location_description(&missed_return).unwrap(),
+        "Water fills the lower stalls while the market pays for the broken gates."
+    );
+    let ending_page = content.action_page(&missed_return, 0, usize::MAX).unwrap();
+    let flood_view = ending_page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "return.face_flood")
+        .unwrap();
+    assert_eq!(flood_view.label, "Answer for Flood");
+    assert_eq!(
+        flood_view.consequence_preview.as_deref(),
+        Some("You face the flooded market and answer for the broken gates.")
+    );
+    let ended = apply(missed_return, &content, "return.face_flood");
+    assert!(ended.world.flags.contains("ending_disaster"));
+    assert!(ended.character.deeds.contains("faced_flood"));
 
     let mut protected = new_game(&content, "ilyan");
     protected = apply(protected, &content, "checkpoint.show_charter");

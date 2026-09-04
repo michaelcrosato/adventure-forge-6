@@ -147,6 +147,8 @@ const DEADLINE_MISSED_STEPS: &[ScenarioStep] = &[
     action!("wait_tide"),
     action!("wait_tide"),
     action!("wait_tide"),
+    action!("world.enter_aftermath"),
+    action!("return.face_flood"),
 ];
 
 const SPLIT_FLOW_STEPS: &[ScenarioStep] = &[
@@ -157,7 +159,7 @@ const SPLIT_FLOW_STEPS: &[ScenarioStep] = &[
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.check_wheels"),
     action!("top.split_flow"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.share_water"),
 ];
 
@@ -167,7 +169,7 @@ const HOLD_MARKET_STEPS: &[ScenarioStep] = &[
     action!("levee.authority_path"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.hold_market"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.count_dry_stalls"),
 ];
 
@@ -180,7 +182,7 @@ const RELIEF_CHANNEL_STEPS: &[ScenarioStep] = &[
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.divert_relief"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.move_inland"),
 ];
 
@@ -190,7 +192,7 @@ const BREAK_TOLL_STEPS: &[ScenarioStep] = &[
     action!("levee.culvert_path"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.break_toll"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.open_ferry"),
 ];
 
@@ -201,7 +203,7 @@ const OVERLOAD_STEPS: &[ScenarioStep] = &[
     action!("floor.force_wheel"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.overload"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.face_flood"),
 ];
 
@@ -215,7 +217,7 @@ const LOWSAIL_AREA_STEPS: &[ScenarioStep] = &[
     action!("floor.open_relief"),
     action!("travel_adjacent", "destination" => "red_sluice.top"),
     action!("top.divert_relief"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.move_inland"),
 ];
 
@@ -233,7 +235,7 @@ const RED_SLUICE_AREA_STEPS: &[ScenarioStep] = &[
     action!("top.rescue_worker"),
     action!("top.check_wheels"),
     action!("top.split_flow"),
-    action!("top.return_lowsail"),
+    action!("world.enter_aftermath"),
     action!("return.share_water"),
 ];
 
@@ -333,11 +335,16 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: DEADLINE_MISSED_STEPS,
         expectations: ScenarioExpectations {
-            final_location: "lowsail_market",
-            final_action_definition: "wait_tide",
-            final_observation_contains: "The surge hits before you redirect it. Lowsail floods.",
+            final_location: "lowsail.return",
+            final_action_definition: "return.face_flood",
+            final_observation_contains: "You face the flooded market and answer for the broken gates.",
             exclusive_after_action: "",
-            required_world_flags: &["sluice_outcome_chosen", "surge_missed", "sluice_failure"],
+            required_world_flags: &[
+                "sluice_outcome_chosen",
+                "surge_missed",
+                "sluice_failure",
+                "ending_disaster",
+            ],
             forbidden_world_flags: &[
                 "flow_split",
                 "flow_locked_market",
@@ -349,8 +356,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
             ],
             required_location_flags: &[("lowsail.return", "market_flooded")],
-            required_deeds: &[],
-            required_visited_locations: &["lowsail_market"],
+            required_deeds: &["faced_flood"],
+            required_visited_locations: &["lowsail_market", "lowsail.return"],
             forbidden_legal_definitions: &[],
         },
     },
@@ -410,7 +417,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         expectations: ScenarioExpectations {
             final_location: "lowsail.return",
             final_action_definition: "return.count_dry_stalls",
-            final_observation_contains: "The market stays open, but the dry works lose ground.",
+            final_observation_contains: "You enforce council control while the upland works absorb the loss.",
             exclusive_after_action: "top.hold_market",
             required_world_flags: &[
                 "council_route",
@@ -456,7 +463,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         expectations: ScenarioExpectations {
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
-            final_observation_contains: "The market moves inland before the next surge.",
+            final_observation_contains: "You help families open a higher market beyond the next surge.",
             exclusive_after_action: "top.divert_relief",
             required_world_flags: &[
                 "market_warned",
@@ -503,7 +510,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         expectations: ScenarioExpectations {
             final_location: "lowsail.return",
             final_action_definition: "return.open_ferry",
-            final_observation_contains: "The free ferry route links both shores.",
+            final_observation_contains: "You abolish the toll and launch a free ferry between both shores.",
             exclusive_after_action: "top.break_toll",
             required_world_flags: &[
                 "culvert_revealed",
@@ -547,7 +554,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         expectations: ScenarioExpectations {
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
-            final_observation_contains: "The lower market floods and the broken gates remain.",
+            final_observation_contains: "You face the flooded market and answer for the broken gates.",
             exclusive_after_action: "top.overload",
             required_world_flags: &[
                 "stolen_route",
@@ -593,7 +600,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         expectations: ScenarioExpectations {
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
-            final_observation_contains: "The market moves inland before the next surge.",
+            final_observation_contains: "You help families open a higher market beyond the next surge.",
             exclusive_after_action: "top.divert_relief",
             required_world_flags: &[
                 "culvert_revealed",

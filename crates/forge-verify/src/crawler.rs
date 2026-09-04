@@ -23,7 +23,7 @@ pub struct CrawlBudget {
 impl Default for CrawlBudget {
     fn default() -> Self {
         Self {
-            max_depth: 12,
+            max_depth: 13,
             max_expanded_states: 4_096,
             max_discovered_frontiers: 65_536,
             max_action_executions: 65_536,
@@ -88,6 +88,7 @@ struct ActionShape {
 }
 
 type FrontierScore = (
+    usize,
     usize,
     usize,
     Reverse<usize>,
@@ -354,7 +355,13 @@ fn frontier_score(
     content: &CompiledContent,
 ) -> Result<FrontierScore, VerifyError> {
     let location = &frontier.state.world.current_location;
+    // Prefer a ready uncovered definition when a movement that is legal in
+    // this state can reach its location. Static graph distance still guides
+    // longer routes, but cannot let a currently gated shortcut monopolize the
+    // frontier queue.
+    let immediate_targets = immediate_movement_targets(&frontier.state, content)?;
     let mut uncovered_here = 0usize;
+    let mut ready_one_move = 0usize;
     let mut ready_uncovered = 0usize;
     let mut nearest_ready_target = usize::MAX;
     let mut total_progress = 0usize;
@@ -382,12 +389,19 @@ fn frontier_score(
             nearest_ready_target = nearest_ready_target.min(target_distance);
             if target_distance == 0 {
                 uncovered_here += 1;
+            } else if definition
+                .locations
+                .iter()
+                .any(|target| immediate_targets.contains(target))
+            {
+                ready_one_move += 1;
             }
         }
     }
 
     Ok((
         uncovered_here,
+        ready_one_move,
         ready_uncovered,
         Reverse(nearest_ready_target),
         total_progress,
@@ -397,6 +411,34 @@ fn frontier_score(
         !report.reached_locations.contains(location),
         Reverse(frontier.ordinal),
     ))
+}
+
+fn immediate_movement_targets(
+    state: &GameState,
+    content: &CompiledContent,
+) -> Result<BTreeSet<String>, VerifyError> {
+    let location = content
+        .location(&state.world.current_location)
+        .ok_or_else(|| VerifyError::new("crawler encountered an unknown location"))?;
+    let mut targets = BTreeSet::new();
+    for (_, action) in content.actions() {
+        if !action.movement
+            || (!action.locations.is_empty()
+                && !action
+                    .locations
+                    .iter()
+                    .any(|candidate| candidate == &location.id))
+            || !action.condition.evaluate(state)
+        {
+            continue;
+        }
+        visit_movement_targets(action, location, &mut |destination| {
+            if content.has_location(destination) {
+                targets.insert(destination.to_owned());
+            }
+        });
+    }
+    Ok(targets)
 }
 
 fn condition_progress(condition: &Condition, state: &GameState) -> (usize, usize) {
@@ -601,6 +643,8 @@ fn verify_catalog(
                 VerifyError::new("crawler catalog referenced an unknown definition")
             })?;
             let (minimum_ticks, maximum_ticks) = independent_action_time_cost(definition)?;
+            let consequence_preview = matches!(definition.category.as_str(), "Outcome" | "Ending")
+                .then_some(definition.result.as_str());
             if view.action_id != expected.action_id
                 || view.definition_id != expected.definition_id
                 || view.parameters != expected.parameters
@@ -608,6 +652,7 @@ fn verify_catalog(
                 || view.category != definition.category
                 || view.time_cost.minimum_ticks != minimum_ticks
                 || view.time_cost.maximum_ticks != maximum_ticks
+                || view.consequence_preview.as_deref() != consequence_preview
             {
                 return Err(VerifyError::new(
                     "crawler catalog view does not match kernel enumeration",

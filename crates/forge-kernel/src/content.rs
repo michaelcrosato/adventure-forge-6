@@ -176,6 +176,9 @@ pub struct ActionView {
     pub label: String,
     pub category: String,
     pub time_cost: ActionTimeCost,
+    /// Present only for decisions whose authored result is a consequence the
+    /// player should see before committing (currently outcomes and endings).
+    pub consequence_preview: Option<String>,
     /// Player-facing names for canonical parameter values. The canonical
     /// values remain in `parameters` and continue to define action identity.
     pub parameter_display_values: BTreeMap<String, String>,
@@ -1299,6 +1302,8 @@ impl CompiledContent {
                 category: definition.category.clone(),
                 time_cost: action_time_cost(&definition.effects)
                     .expect("validated action time cost must fit in world time"),
+                consequence_preview: matches!(definition.category.as_str(), "Outcome" | "Ending")
+                    .then(|| definition.result.clone()),
                 parameter_display_values,
                 parameters: action.parameters.clone(),
             });

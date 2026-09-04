@@ -64,12 +64,12 @@ fn real_split_tide_path_round_trips_and_replays() {
     );
     record(&mut session, &content, "top.check_wheels", None);
     record(&mut session, &content, "top.split_flow", None);
-    record(&mut session, &content, "top.return_lowsail", None);
+    record(&mut session, &content, "world.enter_aftermath", None);
 
     assert!(session.state().world.flags.contains("flow_split"));
     assert_eq!(
         session.trace().steps.last().unwrap().observation.text,
-        "You return to Lowsail and see what the changed water has done. The market stands above calm water while both shores still receive a share."
+        "You enter Lowsail's aftermath and face what the changed water has done. The market stands above calm water while both shores still receive a share."
     );
 
     let encoded = session.trace().to_json().expect("trace serializes");

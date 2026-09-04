@@ -254,6 +254,18 @@
       "description": "A red warning orders you to redirect the next surge at Red Sluice. Sava guards Lowsail's dry checkpoint.",
       "description_variants": [
         {
+          "id": "surge_missed",
+          "priority": 110,
+          "condition": {"kind": "world_flag", "flag": "surge_missed"},
+          "text": "Floodwater reaches the checkpoint; choose Enter Lowsail Aftermath to face the damage."
+        },
+        {
+          "id": "surge_resolved",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+          "text": "The Sluice decision is settled; choose Enter Lowsail Aftermath to see what changed."
+        },
+        {
           "id": "charter_path_open",
           "priority": 60,
           "condition": {"kind": "world_flag", "flag": "council_route"},
@@ -319,6 +331,18 @@
       "description": "Boats knock against the docks. Oren watches a courier skiff beside a locked tide chest.",
       "description_variants": [
         {
+          "id": "surge_missed",
+          "priority": 110,
+          "condition": {"kind": "world_flag", "flag": "surge_missed"},
+          "text": "Floodwater fills the docks; choose Enter Lowsail Aftermath to face the damage."
+        },
+        {
+          "id": "surge_resolved",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+          "text": "The Sluice decision has changed these docks; choose Enter Lowsail Aftermath to see the result."
+        },
+        {
           "id": "warning_rung",
           "priority": 15,
           "condition": {"kind": "world_flag", "flag": "market_warned"},
@@ -339,6 +363,18 @@
       "name": "Lowsail Levee",
       "description": "The levee road runs east to Red Sluice. Workers brace the wet embankment.",
       "description_variants": [
+        {
+          "id": "surge_missed",
+          "priority": 110,
+          "condition": {"kind": "world_flag", "flag": "surge_missed"},
+          "text": "Floodwater runs below the levee; choose Enter Lowsail Aftermath to face the damage."
+        },
+        {
+          "id": "surge_resolved",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+          "text": "The Sluice decision is settled beyond the levee; choose Enter Lowsail Aftermath to see what changed."
+        },
         {
           "id": "report_sent",
           "priority": 15,
@@ -362,9 +398,15 @@
       "description_variants": [
         {
           "id": "surge_missed",
-          "priority": 100,
+          "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "The missed surge has passed the lower gate; return through Red Sluice Top to face Lowsail's flood."
+          "text": "The missed surge has passed the lower gate; choose Enter Lowsail Aftermath to face the flood."
+        },
+        {
+          "id": "surge_resolved",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+          "text": "Your Sluice decision is settled; choose Enter Lowsail Aftermath to see the result."
         },
         {
           "id": "market_warning",
@@ -401,9 +443,15 @@
       "description_variants": [
         {
           "id": "surge_missed",
-          "priority": 100,
+          "priority": 110,
           "condition": {"kind": "world_flag", "flag": "surge_missed"},
-          "text": "The missed surge has flooded Lowsail; the return route is open."
+          "text": "The missed surge has flooded Lowsail; choose Enter Lowsail Aftermath to face the damage."
+        },
+        {
+          "id": "surge_resolved",
+          "priority": 100,
+          "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+          "text": "This surge is settled; choose Enter Lowsail Aftermath to see the result."
         },
         {
           "id": "relief_ready",
@@ -429,8 +477,20 @@
         {
           "id": "stable_market",
           "priority": 20,
-          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
+              {"kind": "world_flag", "flag": "flow_split"}
+            ]
+          },
           "text": "The market stands above calm water while both shores still receive a share."
+        },
+        {
+          "id": "upland_dry",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+          "text": "Lowsail stays dry while the upland works crack above the lowered water."
         },
         {
           "id": "moved_market",
@@ -554,8 +614,11 @@
       "result": "Go to the Red Sluice and redirect the next surge before it floods Lowsail.",
       "locations": ["lowsail_market"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "warning_seen"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "warning_seen"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail_market"}, "flag": "warning_seen", "value": true},
@@ -580,8 +643,11 @@
       ],
       "locations": ["lowsail_market"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "met_player_checkpoint"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "met_player_checkpoint"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "adjust_npc_relationship", "npc": {"kind": "literal", "value": "sava_rusk"}, "amount": 1},
@@ -631,7 +697,8 @@
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
           {"kind": "has_tag", "tag": "tide-ear"},
           {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "order_audited"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "order_audited"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -659,7 +726,8 @@
           {"kind": "has_tag", "tag": "order"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "council-ink"}},
           {"kind": "facet_at_least", "axis": "aptitude.presence", "value": 5},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "council_route"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "council_route"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -687,7 +755,8 @@
           {"kind": "has_tag", "tag": "freedom"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
           {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -714,7 +783,8 @@
           {"kind": "character_has_deed", "deed_id": "saved_worker"},
           {"kind": "has_tag", "tag": "order"},
           {"kind": "facet_at_least", "axis": "affiliation.council", "value": 2},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "worker_credit"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "worker_credit"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -739,7 +809,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "lock-runner"}},
           {"kind": "has_tag", "tag": "wanted"},
           {"kind": "facet_at_least", "axis": "aptitude.might", "value": 6},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "checkpoint_alert"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "checkpoint_alert"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -764,7 +835,8 @@
           {"kind": "character_has_deed", "deed_id": "stole_permit"},
           {"kind": "facet_equals", "axis": "origin", "value": {"kind": "text", "value": "red-sluice"}},
           {"kind": "facet_at_least", "axis": "reputation.notoriety", "value": 2},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "stolen_route"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "stolen_route"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -785,8 +857,11 @@
       "result": "You find rope marks near the locked tide chest.",
       "locations": ["lowsail.docks"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "crate_searched"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "crate_searched"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.docks"}, "flag": "crate_searched", "value": true},
@@ -803,8 +878,11 @@
       "result": "You sound the market warning. Oren orders every crew toward high water.",
       "locations": ["lowsail.docks"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "world_flag", "flag": "market_warned"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "market_warned"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "market_warned", "value": true},
@@ -822,8 +900,11 @@
       "result": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll.",
       "locations": ["lowsail.docks"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_revealed_culvert"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "npc_remembers", "npc": "oren_pell", "memory_id": "oren_revealed_culvert"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "culvert_revealed", "value": true},
@@ -851,7 +932,8 @@
               {"kind": "has_tag", "tag": "night-eyes"}
             ]
           },
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "courier_followed"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "courier_followed"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -877,7 +959,8 @@
           {"kind": "facet_equals", "axis": "background", "value": {"kind": "text", "value": "ledger-clerk"}},
           {"kind": "has_tag", "tag": "tide-ear"},
           {"kind": "facet_at_least", "axis": "aptitude.insight", "value": 6},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "ledger_read"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.docks", "flag": "ledger_read"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -906,7 +989,8 @@
           {"kind": "has_tag", "tag": "freedom"},
           {"kind": "facet_equals", "axis": "appearance.marking", "value": {"kind": "text", "value": "kiln-scar"}},
           {"kind": "facet_at_least", "axis": "aptitude.finesse", "value": 6},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "tide_key_offered"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "tide_key_offered"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -931,7 +1015,8 @@
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
           {"kind": "has_tag", "tag": "freedom"},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ferry_aid"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "ferry_aid"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -953,8 +1038,11 @@
       "result": "Fresh marks show water struck the levee.",
       "locations": ["lowsail.levee"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "location_flag", "location": "lowsail.levee", "flag": "damage_seen"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "lowsail.levee", "flag": "damage_seen"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "lowsail.levee"}, "flag": "damage_seen", "value": true},
@@ -971,8 +1059,11 @@
       "result": "The worker reaches safety and Mira hears about it.",
       "locations": ["lowsail.levee"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "world_flag", "flag": "worker_helped"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "worker_helped"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "worker_helped", "value": true},
@@ -995,7 +1086,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "forged_order_found"},
-          {"kind": "not", "condition": {"kind": "world_flag", "flag": "report_sent"}}
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "report_sent"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1019,7 +1111,8 @@
         "kind": "all",
         "conditions": [
           {"kind": "world_flag", "flag": "market_warned"},
-          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "warning_received"}}
+          {"kind": "not", "condition": {"kind": "location_flag", "location": "red_sluice.floor", "flag": "warning_received"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1039,10 +1132,16 @@
       "result": "The charter opens the guarded Sluice path.",
       "locations": ["lowsail.levee"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "council_route"},
-          {"kind": "location_flag", "location": "lowsail_market", "flag": "market_permit"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "council_route"},
+              {"kind": "location_flag", "location": "lowsail_market", "flag": "market_permit"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1063,10 +1162,16 @@
       "result": "The hidden culvert opens below the Sluice.",
       "locations": ["lowsail.levee"],
       "condition": {
-        "kind": "any",
+        "kind": "all",
         "conditions": [
-          {"kind": "world_flag", "flag": "culvert_revealed"},
-          {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"}
+          {
+            "kind": "any",
+            "conditions": [
+              {"kind": "world_flag", "flag": "culvert_revealed"},
+              {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"}
+            ]
+          },
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
         ]
       },
       "effects": [
@@ -1086,7 +1191,13 @@
       "category": "Deception",
       "result": "The stolen permit gets you past the Red Sluice guard.",
       "locations": ["lowsail.levee"],
-      "condition": {"kind": "world_flag", "flag": "stolen_route"},
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {"kind": "world_flag", "flag": "stolen_route"},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
+      },
       "effects": [
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "authorized_entry", "value": false},
         {"kind": "set_location_flag", "location": {"kind": "literal", "value": "red_sluice.floor"}, "flag": "culvert_entry", "value": false},
@@ -1360,8 +1471,11 @@
       "result": "Mira's worker reaches the platform.",
       "locations": ["red_sluice.top"],
       "condition": {
-        "kind": "not",
-        "condition": {"kind": "world_flag", "flag": "worker_rescued"}
+        "kind": "all",
+        "conditions": [
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "worker_rescued"}},
+          {"kind": "not", "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"}}
+        ]
       },
       "effects": [
         {"kind": "set_world_flag", "flag": "worker_rescued", "value": true},
@@ -1558,11 +1672,11 @@
       "movement": false
     },
     {
-      "id": "top.return_lowsail",
-      "label": "Return to Lowsail",
+      "id": "world.enter_aftermath",
+      "label": "Enter Lowsail Aftermath",
       "category": "Travel",
-      "result": "You return to Lowsail and see what the changed water has done.",
-      "locations": ["red_sluice.top"],
+      "result": "You enter Lowsail's aftermath and face what the changed water has done.",
+      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top"],
       "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
       "effects": [
         {"kind": "move_character", "location": {"kind": "literal", "value": "lowsail.return"}},
@@ -1582,8 +1696,20 @@
         {
           "id": "stable",
           "priority": 20,
-          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {"kind": "location_flag", "location": "lowsail.return", "flag": "market_stable"},
+              {"kind": "world_flag", "flag": "flow_split"}
+            ]
+          },
           "text": "Calm water leaves both shores with a fair share."
+        },
+        {
+          "id": "upland_dry",
+          "priority": 20,
+          "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "upland_dry"},
+          "text": "Low water keeps Lowsail dry while the upland works lose their supply."
         },
         {
           "id": "moved",
@@ -1638,9 +1764,9 @@
     },
     {
       "id": "return.share_water",
-      "label": "Share Water",
+      "label": "Seal Water Accord",
       "category": "Ending",
-      "result": "The market and upland works keep a fair share.",
+      "result": "You seal an accord that keeps both shores supplied.",
       "result_variants": [
         {
           "id": "new_market_charter",
@@ -1670,9 +1796,9 @@
     },
     {
       "id": "return.count_dry_stalls",
-      "label": "Count Dry Stalls",
+      "label": "Enforce Council Claim",
       "category": "Ending",
-      "result": "The market stays open, but the dry works lose ground.",
+      "result": "You enforce council control while the upland works absorb the loss.",
       "locations": ["lowsail.return"],
       "condition": {
         "kind": "all",
@@ -1693,9 +1819,9 @@
     },
     {
       "id": "return.move_inland",
-      "label": "Move Inland",
+      "label": "Open Highland Market",
       "category": "Ending",
-      "result": "The market moves inland before the next surge.",
+      "result": "You help families open a higher market beyond the next surge.",
       "locations": ["lowsail.return"],
       "condition": {
         "kind": "all",
@@ -1716,9 +1842,9 @@
     },
     {
       "id": "return.open_ferry",
-      "label": "Open Ferry",
+      "label": "Abolish Ferry Toll",
       "category": "Ending",
-      "result": "The free ferry route links both shores.",
+      "result": "You abolish the toll and launch a free ferry between both shores.",
       "locations": ["lowsail.return"],
       "condition": {
         "kind": "all",
@@ -1739,9 +1865,9 @@
     },
     {
       "id": "return.face_flood",
-      "label": "Face Flood",
+      "label": "Answer for Flood",
       "category": "Ending",
-      "result": "The lower market floods and the broken gates remain.",
+      "result": "You face the flooded market and answer for the broken gates.",
       "locations": ["lowsail.return"],
       "condition": {
         "kind": "all",
