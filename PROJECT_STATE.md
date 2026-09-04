@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 7
+Manager cycle: 8
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -14,6 +14,7 @@ Active milestone: 1 — Complete Split Tide slice
 - The Split Tide production pack contains 6 connected locations, 5 named inhabitants, 2 complete starting presets, and 47 programmed action definitions.
 - Replay receipts bind authored preset genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
 - Players can start as Ilyan or Rook, page or search every current legal action, save atomically, resume, and render a verified replay.
+- Player input is bounded to 4 KiB per line and 1,024 lines per session; public CLI failures omit host paths, operating-system details, verifier internals, and final-state identifiers.
 - Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from canonical action identities.
 - Nine checked scenario witnesses cover the two Milestone 0 character paths, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
 - Every scenario is bound to a reviewed ID, preset, seed, exact full-parameter recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
@@ -37,7 +38,7 @@ Active milestone: 1 — Complete Split Tide slice
 | Deterministic authority | Partial | Fresh processes independently emit nine byte-identical scenarios, the bounded production crawl, and the checked 500-location capacity report | Nondeterminism mutants and broader property exploration |
 | Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
 | Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and nine checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
-| Blind play | Partial | CLI output tests expose only observations and public commitments; persisted player traces omit verifier state and events | Locked environment, process boundary, and canary probes |
+| Blind play | Partial | CLI output tests expose only observations and opaque receipts; persisted player traces omit verifier state and events; bounded input and sanitized failures reduce boundary leaks | Locked environment, process boundary, and canary probes |
 | Manager operation | Partial | Charter, plan, accepted delegated implementation, rejected first candidate, and task-splitting process change | Full verified-finding improvement cycle |
 
 ## Active queue
@@ -74,6 +75,9 @@ Active milestone: 1 — Complete Split Tide slice
 | 7 | Scale architecture | `gpt-5.6-luna` / max | Design the smallest truthful 500-location fixture | Capacity proof with explicit non-breadth boundary | Accepted; terminal reciprocal ring selected |
 | 7 | Scale benchmark/implementation | `gpt-5.6-luna` / max | Measure and implement an isolated scale report module | 500 canonical hops, paging, state admission, deterministic evidence | Accepted after manager added immutable budgets and stronger ID/topology/catalog checks |
 | 7 | Scale threat model | `gpt-5.6-luna` / max | Audit claim scope, reachability, resource limits, and evidence forgery | Severity-ranked P0/P1 findings | Accepted after binding claim scope, exact digests, regeneration, and error tests |
+| 8 | Blind-boundary architecture | `gpt-5.6-luna` / max | Define the smallest honest locked-player proof and its claim boundary | Mount, process, canary, and evidence contract | Accepted; scripted sandbox proof separated from an actual blind-AI session |
+| 8 | Sandbox capability review | `gpt-5.6-luna` / max | Probe available Linux isolation and CI portability without changing the tree | Tested launcher profile and fail-closed recommendation | Accepted; Bubblewrap works locally and Docker remains only a pinned fallback |
+| 8 | Blind-boundary threat model | `gpt-5.6-luna` / max | Audit leakage, escape, prompt, provenance, and false-claim risks | Severity-ranked P0/P1 findings | Accepted; CLI input and diagnostic leaks hardened before the sandbox harness |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -137,6 +141,10 @@ The verifier owns one registry for the exact reviewed scenario-ID set, preset an
 
 The scale verifier owns a fixed 500-location terminal reciprocal ring and one adjacent-travel definition. Its checked report binds the fixture source, compiled build, verifier, exact location sets, topology, every page of every per-hop catalog, 500 canonical transitions, and immutable graph-frontier, catalog-work, and serialization budgets. Host timing is deliberately not an acceptance input; the checked ceilings are deterministic across machines. The artifact identifies itself as generated substrate and explicitly disclaims authored breadth, NPC or mechanic depth, area quality, and Skyrim parity.
 
+### D-015: Public diagnostics are a deliberately narrow contract
+
+The player process accepts at most 4 KiB per input line and 1,024 lines per session. It reports stable error classes without reflecting host paths, operating-system messages, replay mismatch paths, kernel details, or rejected trace text. Save confirmations omit paths, and replay display omits the final-state identifier while retaining the opaque final receipt. Trusted tooling keeps the detailed diagnostics required to investigate failures outside the player boundary.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -150,7 +158,7 @@ The scale verifier owns a fixed 500-location terminal reciprocal ring and one ad
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 9 CLI tests, 16 evidence-verifier unit tests, and 3 clean-process integration tests: 76 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, the exact save-size boundary, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, and byte-identical checked witness, crawl, and scale evidence from separate processes. The nine scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, or comparative area depth. The project does not yet cover blind isolation, the full text policy, final game scale, or comparative area depth.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 12 CLI tests, 16 evidence-verifier unit tests, and 3 clean-process integration tests: 79 total. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, exact save-size and player-input boundaries, sanitized public failures, session line limits, resume parity, complete current-catalog CLI paging/search, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, and byte-identical checked witness, crawl, and scale evidence from separate processes. The nine scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, or comparative area depth. The project does not yet cover process isolation, an actual blind-agent session, the full text policy, final game scale, or comparative area depth.
 
 ## Next reassessment trigger
 
