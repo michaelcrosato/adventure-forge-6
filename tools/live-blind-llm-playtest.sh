@@ -508,7 +508,7 @@ run_main() {
             --ignore-rules \
             --skip-git-repo-check \
             --ephemeral \
-            --sandbox read-only \
+            --dangerously-bypass-approvals-and-sandbox \
             -C /work \
             --model "$model" \
             -c "model_reasoning_effort=\"$reasoning_effort\"" \
@@ -709,6 +709,7 @@ run_main() {
                 default_plugins_absent: true,
                 vercel_plugin_available_to_player: false,
                 code_mode_host_enabled: true,
+                internal_approvals_bypassed_inside_outer_sandbox: true,
                 filesystem_outer_sandbox: true,
                 configured_tools: ["forge_player.observe", "forge_player.act", "forge_player.finish"],
                 observed_event_item_types: ($model_item_types | split(",") | map(select(length > 0)))
