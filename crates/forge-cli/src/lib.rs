@@ -5,7 +5,9 @@
 //! the replay session.
 
 use forge_content::parse_and_compile_production;
-use forge_kernel::{ActionView, CompiledContent, Observation};
+use forge_kernel::{
+    ActionView, CharacterChoiceSelection, CharacterSelection, CompiledContent, Observation,
+};
 use forge_replay::{PlayerTrace, ReplayError, Session, Trace, resume_player_trace, verify};
 use std::ffi::OsString;
 use std::fmt::{Display, Formatter};
@@ -28,6 +30,10 @@ enum Command {
     Characters,
     Play {
         character: Option<String>,
+        seed: u64,
+        page_size: usize,
+    },
+    Create {
         seed: u64,
         page_size: usize,
     },
@@ -102,6 +108,27 @@ pub fn run_cli<R: BufRead, W: Write>(
                 output,
             )
         }
+        Command::Create { seed, page_size } => {
+            let Some((selection, input_lines_used)) =
+                prompt_for_custom_character(&content, seed, input, output)?
+            else {
+                return Ok(());
+            };
+            let session = Session::new_custom_game(&selection, seed, &content)
+                .map_err(public_session_error)?;
+            let observation = content
+                .observe(session.state())
+                .map_err(|_| CliError::new("could not render the starting scene"))?;
+            play_loop(
+                session,
+                &content,
+                observation,
+                page_size,
+                input_lines_used,
+                input,
+                output,
+            )
+        }
         Command::Resume { path, page_size } => {
             let player_trace = read_trace(&path)?;
             let session =
@@ -151,11 +178,35 @@ fn parse_command(args: &[String]) -> Result<Command, CliError> {
             Ok(Command::Characters)
         }
         "play" => parse_play(&args[1..]),
+        "create" => parse_create(&args[1..]),
         "resume" => parse_resume(&args[1..]),
         "replay" => parse_replay(&args[1..]),
         "demo" => parse_demo(&args[1..]),
         _ => Err(CliError::new("unknown command; run `forge help`")),
     }
+}
+
+fn parse_create(args: &[String]) -> Result<Command, CliError> {
+    let mut seed = DEFAULT_SEED;
+    let mut page_size = DEFAULT_PAGE_SIZE;
+    let mut seed_seen = false;
+    let mut page_size_seen = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--seed" => {
+                reject_duplicate(&mut seed_seen, "create", "--seed")?;
+                seed = parse_u64(option_value(args, &mut index, "--seed")?, "seed")?;
+            }
+            "--page-size" => {
+                reject_duplicate(&mut page_size_seen, "create", "--page-size")?;
+                page_size = parse_page_size(option_value(args, &mut index, "--page-size")?)?;
+            }
+            other => return Err(unknown_option("create", other)),
+        }
+        index += 1;
+    }
+    Ok(Command::Create { seed, page_size })
 }
 
 fn parse_play(args: &[String]) -> Result<Command, CliError> {
@@ -325,6 +376,7 @@ fn write_help<W: Write>(output: &mut W) -> Result<(), CliError> {
                 "forge play [--character ID] [--seed N] [--page-size N]"
             )
         })
+        .and_then(|_| writeln!(output, "forge create [--seed N] [--page-size N]"))
         .and_then(|_| writeln!(output, "forge resume TRACE [--page-size N]"))
         .and_then(|_| writeln!(output, "forge replay TRACE"))
         .and_then(|_| {
@@ -373,6 +425,238 @@ fn prompt_for_character<R: BufRead, W: Write>(
         return Err(CliError::new("no character was selected"));
     }
     Ok(selected.to_owned())
+}
+
+fn prompt_for_custom_character<R: BufRead, W: Write>(
+    content: &CompiledContent,
+    seed: u64,
+    input: &mut R,
+    output: &mut W,
+) -> Result<Option<(CharacterSelection, usize)>, CliError> {
+    let creation = content
+        .character_creation()
+        .ok_or_else(|| CliError::new("custom character creation is unavailable"))?;
+    writeln!(output, "Character creation — The Split Tide").map_err(io_error)?;
+    writeln!(
+        output,
+        "Choose authored options by number or id. Type review, back, help, or cancel."
+    )
+    .map_err(io_error)?;
+
+    let mut input_lines_used = 0usize;
+    let Some(mut name) = prompt_creation_name(input, output, &mut input_lines_used)? else {
+        writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+        return Ok(None);
+    };
+    let mut selected = vec![None; creation.slots.len()];
+    let mut slot_index = 0usize;
+
+    loop {
+        while slot_index < creation.slots.len() {
+            let slot = &creation.slots[slot_index];
+            writeln!(output, "\n{}:", slot.display_name).map_err(io_error)?;
+            for (index, choice) in slot.choices.iter().enumerate() {
+                writeln!(
+                    output,
+                    "  {}. {} ({}) — {}",
+                    index + 1,
+                    choice.display_name,
+                    choice.id,
+                    choice.summary
+                )
+                .map_err(io_error)?;
+            }
+            write!(output, "> ").map_err(io_error)?;
+            output.flush().map_err(io_error)?;
+            let Some(line) = read_counted_creation_line(input, &mut input_lines_used)? else {
+                writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+                return Ok(None);
+            };
+            let command = line.trim();
+            match command {
+                "cancel" | "quit" | "q" => {
+                    writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+                    return Ok(None);
+                }
+                "help" | "h" | "?" => {
+                    writeln!(
+                        output,
+                        "NUMBER or ID selects; review lists choices; back revises; cancel exits."
+                    )
+                    .map_err(io_error)?;
+                    continue;
+                }
+                "review" => {
+                    write_creation_review(content, &name, &selected, output)?;
+                    continue;
+                }
+                "back" => {
+                    if slot_index == 0 {
+                        let Some(replacement) =
+                            prompt_creation_name(input, output, &mut input_lines_used)?
+                        else {
+                            writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+                            return Ok(None);
+                        };
+                        name = replacement;
+                    } else {
+                        slot_index -= 1;
+                        selected[slot_index] = None;
+                    }
+                    continue;
+                }
+                _ => {}
+            }
+
+            let choice = command
+                .parse::<usize>()
+                .ok()
+                .and_then(|number| number.checked_sub(1))
+                .and_then(|index| slot.choices.get(index))
+                .or_else(|| slot.choices.iter().find(|choice| choice.id == command));
+            let Some(choice) = choice else {
+                writeln!(output, "Choose a displayed number or option id.").map_err(io_error)?;
+                continue;
+            };
+            selected[slot_index] = Some(choice.id.clone());
+            slot_index += 1;
+        }
+
+        let selection = CharacterSelection {
+            name: name.clone(),
+            choices: creation
+                .slots
+                .iter()
+                .zip(&selected)
+                .map(|(slot, choice)| CharacterChoiceSelection {
+                    slot_id: slot.id.clone(),
+                    choice_id: choice
+                        .clone()
+                        .expect("completed creation must select every slot"),
+                })
+                .collect(),
+        };
+        let selection = content
+            .canonical_character_selection(&selection)
+            .map_err(|_| CliError::new("the character selection was rejected"))?;
+        write_creation_review(content, &selection.name, &selected, output)?;
+        writeln!(output, "confirm | preview | back | cancel | help").map_err(io_error)?;
+        loop {
+            write!(output, "> ").map_err(io_error)?;
+            output.flush().map_err(io_error)?;
+            let Some(line) = read_counted_creation_line(input, &mut input_lines_used)? else {
+                writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+                return Ok(None);
+            };
+            match line.trim() {
+                "confirm" => return Ok(Some((selection, input_lines_used))),
+                "preview" => {
+                    let state = content
+                        .new_custom_game(&selection, seed)
+                        .map_err(|_| CliError::new("the character preview was rejected"))?;
+                    let observation = content
+                        .observe(&state)
+                        .map_err(|_| CliError::new("could not render the character preview"))?;
+                    writeln!(output, "Preview — {}", observation.title).map_err(io_error)?;
+                    writeln!(output, "{}", observation.text).map_err(io_error)?;
+                    writeln!(output, "{} legal action(s).", observation.action_count)
+                        .map_err(io_error)?;
+                }
+                "back" => {
+                    slot_index = creation.slots.len().saturating_sub(1);
+                    selected[slot_index] = None;
+                    break;
+                }
+                "cancel" | "quit" | "q" => {
+                    writeln!(output, "Character creation cancelled.").map_err(io_error)?;
+                    return Ok(None);
+                }
+                "help" | "h" | "?" => {
+                    writeln!(
+                        output,
+                        "confirm starts; preview shows the public opening; back revises; cancel exits."
+                    )
+                    .map_err(io_error)?;
+                }
+                _ => writeln!(output, "Choose confirm, preview, back, help, or cancel.")
+                    .map_err(io_error)?,
+            }
+        }
+    }
+}
+
+fn prompt_creation_name<R: BufRead, W: Write>(
+    input: &mut R,
+    output: &mut W,
+    input_lines_used: &mut usize,
+) -> Result<Option<String>, CliError> {
+    loop {
+        write!(output, "\nName (1–4 words)> ").map_err(io_error)?;
+        output.flush().map_err(io_error)?;
+        let Some(line) = read_counted_creation_line(input, input_lines_used)? else {
+            return Ok(None);
+        };
+        let command = line.trim();
+        if matches!(command, "cancel" | "quit" | "q") {
+            return Ok(None);
+        }
+        let canonical = command.split_whitespace().collect::<Vec<_>>().join(" ");
+        if !canonical.is_empty()
+            && canonical.len() <= 48
+            && canonical.split_whitespace().count() <= 4
+            && canonical.chars().all(|character| {
+                character.is_alphanumeric() || matches!(character, ' ' | '-' | '\'')
+            })
+        {
+            return Ok(Some(canonical));
+        }
+        writeln!(
+            output,
+            "Use 1–4 words (48 bytes maximum) with letters, numbers, spaces, apostrophes, or hyphens."
+        )
+        .map_err(io_error)?;
+    }
+}
+
+fn read_counted_creation_line<R: BufRead>(
+    input: &mut R,
+    input_lines_used: &mut usize,
+) -> Result<Option<String>, CliError> {
+    let mut line = String::new();
+    if !read_player_line(input, &mut line)? {
+        return Ok(None);
+    }
+    *input_lines_used = input_lines_used
+        .checked_add(1)
+        .ok_or_else(|| CliError::new("session input limit reached"))?;
+    if *input_lines_used > MAX_SESSION_INPUT_LINES {
+        return Err(CliError::new("session input limit reached"));
+    }
+    Ok(Some(line))
+}
+
+fn write_creation_review<W: Write>(
+    content: &CompiledContent,
+    name: &str,
+    selected: &[Option<String>],
+    output: &mut W,
+) -> Result<(), CliError> {
+    let creation = content
+        .character_creation()
+        .ok_or_else(|| CliError::new("custom character creation is unavailable"))?;
+    writeln!(output, "\nReview — {name}").map_err(io_error)?;
+    for (slot, selected_id) in creation.slots.iter().zip(selected) {
+        let Some(selected_id) = selected_id else {
+            continue;
+        };
+        let choice = slot
+            .choices
+            .iter()
+            .find(|choice| choice.id == *selected_id)
+            .ok_or_else(|| CliError::new("the character selection was rejected"))?;
+        writeln!(output, "  {}: {}", slot.display_name, choice.display_name).map_err(io_error)?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy)]
@@ -861,6 +1145,13 @@ mod tests {
         );
         assert!(parse_command(&strings(&["play", "--page-size", "0"])).is_err());
         assert_eq!(
+            parse_command(&strings(&["create", "--page-size", "5", "--seed", "12"])).unwrap(),
+            Command::Create {
+                seed: 12,
+                page_size: 5,
+            }
+        );
+        assert_eq!(
             parse_command(&strings(&["play", "--character", "--seed"]))
                 .unwrap_err()
                 .to_string(),
@@ -872,6 +1163,8 @@ mod tests {
             vec!["play", "--character", "ilyan", "--character", "rook"],
             vec!["play", "--seed", "1", "--seed", "2"],
             vec!["play", "--page-size", "1", "--page-size", "2"],
+            vec!["create", "--seed", "1", "--seed", "2"],
+            vec!["create", "--page-size", "1", "--page-size", "2"],
             vec![
                 "resume",
                 "save.json",
@@ -896,6 +1189,97 @@ mod tests {
         assert!(output.contains("Rook Ash"));
         assert!(output.contains("ilyan"));
         assert!(output.contains("rook"));
+    }
+
+    #[test]
+    fn create_walks_authored_axes_previews_and_starts_play() {
+        let output = invoke(
+            &["create", "--seed", "71", "--page-size", "4"],
+            concat!(
+                "Mara Venn\n",
+                "fenborn\n",
+                "lowsail\n",
+                "ledger-clerk\n",
+                "order\n",
+                "indebted\n",
+                "saved-worker\n",
+                "preview\n",
+                "confirm\n",
+                "quit\n"
+            ),
+        )
+        .unwrap();
+        assert!(output.contains("Character creation — The Split Tide"));
+        assert!(output.contains("Review — Mara Venn"));
+        assert!(output.contains("Guiding Value: Order"));
+        assert!(output.contains("Preview — Lowsail Checkpoint"));
+        assert!(output.contains("Sava lifts the chain for a clerk"));
+        assert!(output.contains("Session ended."));
+        for hidden in ["event_log", "scheduled_events", "entropy", "knowledge"] {
+            assert!(!output.contains(hidden), "creator leaked {hidden}");
+        }
+    }
+
+    #[test]
+    fn custom_save_replay_and_resume_bind_only_the_public_recipe() {
+        let path = temp_trace();
+        let path_text = path.to_string_lossy().into_owned();
+        let input = format!(
+            concat!(
+                "Mara Venn\n",
+                "fenborn\n",
+                "lowsail\n",
+                "ledger-clerk\n",
+                "order\n",
+                "indebted\n",
+                "saved-worker\n",
+                "confirm\n",
+                "find Audit Order\n",
+                "1\n",
+                "save {}\n",
+                "quit\n"
+            ),
+            path_text
+        );
+        let output = invoke(&["create", "--seed", "71"], &input).unwrap();
+        assert!(output.contains("Saved 1 step(s)."));
+
+        let saved = std::fs::read_to_string(&path).unwrap();
+        assert!(saved.contains("\"kind\":\"character_creation\""));
+        assert!(saved.contains("\"name\":\"Mara Venn\""));
+        for hidden in [
+            "initial_state",
+            "observation",
+            "events",
+            "entropy",
+            "knowledge",
+            "aptitudes",
+        ] {
+            assert!(!saved.contains(hidden), "custom save leaked {hidden}");
+        }
+
+        let replay = invoke(&["replay", &path_text], "").unwrap();
+        assert!(replay.contains("VERIFIED REPLAY"));
+        assert!(replay.contains("Step 1"));
+        let resumed = invoke(&["resume", &path_text], "quit\n").unwrap();
+        assert!(resumed.contains("Verified 1 recorded step(s)"));
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn creation_cancel_and_invalid_choices_never_start_a_session() {
+        let cancelled = invoke(&["create"], "cancel\n").unwrap();
+        assert!(cancelled.contains("Character creation cancelled."));
+        assert!(!cancelled.contains("legal action(s)"));
+
+        let output = invoke(
+            &["create"],
+            concat!("Mara Venn\n", "not-authored\n", "fenborn\n", "cancel\n"),
+        )
+        .unwrap();
+        assert!(output.contains("Choose a displayed number or option id."));
+        assert!(output.contains("Character creation cancelled."));
+        assert!(!output.contains("legal action(s)"));
     }
 
     #[test]

@@ -1,4 +1,7 @@
-use forge_kernel::{CompiledContent, enumerate_legal_actions, sha256_json};
+use forge_kernel::{
+    CharacterChoiceSelection, CharacterSelection, CompiledContent, enumerate_legal_actions,
+    sha256_json,
+};
 use forge_replay::{Session, TraceStart};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
@@ -11,6 +14,8 @@ const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
     "m0-ilyan",
     "m0-rook",
+    "m1-custom-cross-current",
+    "m1-custom-unlikely-ally",
     "m1-outcome-split-flow",
     "m1-outcome-hold-market",
     "m1-outcome-relief-channel",
@@ -49,10 +54,22 @@ pub(super) struct ScenarioExpectations {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+enum ScenarioStartSpec {
+    Preset {
+        character_preset_id: &'static str,
+    },
+    Custom {
+        name: &'static str,
+        choices: &'static [(&'static str, &'static str)],
+    },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(super) struct ScenarioSpec {
     pub id: &'static str,
     claim_id: &'static str,
-    character_preset_id: &'static str,
+    start: ScenarioStartSpec,
     seed: u64,
     pub steps: &'static [ScenarioStep],
     expectations: ScenarioExpectations,
@@ -80,6 +97,35 @@ const M0_ILYAN_STEPS: &[ScenarioStep] = &[
 
 const M0_ROOK_STEPS: &[ScenarioStep] = &[
     action!("checkpoint.blend_workers"),
+    action!("travel_adjacent", "destination" => "lowsail.levee"),
+];
+
+const CUSTOM_CROSS_CURRENT_CHOICES: &[(&str, &str)] = &[
+    ("lineage", "fenborn"),
+    ("origin", "red-sluice"),
+    ("calling", "ledger-clerk"),
+    ("value", "order"),
+    ("burden", "wanted"),
+    ("history", "stole-permit"),
+];
+
+const CUSTOM_CROSS_CURRENT_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.audit_order"),
+    action!("checkpoint.use_stolen_permit"),
+    action!("travel_adjacent", "destination" => "lowsail.levee"),
+];
+
+const CUSTOM_UNLIKELY_ALLY_CHOICES: &[(&str, &str)] = &[
+    ("lineage", "kilnborn"),
+    ("origin", "lowsail"),
+    ("calling", "lock-runner"),
+    ("value", "order"),
+    ("burden", "indebted"),
+    ("history", "saved-worker"),
+];
+
+const CUSTOM_UNLIKELY_ALLY_STEPS: &[ScenarioStep] = &[
+    action!("checkpoint.recall_worker"),
     action!("travel_adjacent", "destination" => "lowsail.levee"),
 ];
 
@@ -170,7 +216,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m0-ilyan",
         claim_id: "milestone-0.character-path.ilyan",
-        character_preset_id: "ilyan",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
         seed: 71,
         steps: M0_ILYAN_STEPS,
         expectations: ScenarioExpectations {
@@ -189,7 +237,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m0-rook",
         claim_id: "milestone-0.character-path.rook",
-        character_preset_id: "rook",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
         seed: 71,
         steps: M0_ROOK_STEPS,
         expectations: ScenarioExpectations {
@@ -206,9 +256,55 @@ const SCENARIOS: &[ScenarioSpec] = &[
         },
     },
     ScenarioSpec {
+        id: "m1-custom-cross-current",
+        claim_id: "milestone-1.character-creation.cross-current",
+        start: ScenarioStartSpec::Custom {
+            name: "Mara Venn",
+            choices: CUSTOM_CROSS_CURRENT_CHOICES,
+        },
+        seed: 71,
+        steps: CUSTOM_CROSS_CURRENT_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "lowsail.levee",
+            final_action_definition: "travel_adjacent",
+            final_observation_contains: "",
+            exclusive_after_action: "",
+            required_world_flags: &["forged_order_found", "stolen_route"],
+            forbidden_world_flags: &[],
+            required_location_flags: &[("lowsail_market", "order_audited")],
+            required_deeds: &["stole_permit", "read_forged_order"],
+            required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            forbidden_legal_definitions: &[],
+        },
+    },
+    ScenarioSpec {
+        id: "m1-custom-unlikely-ally",
+        claim_id: "milestone-1.character-creation.unlikely-ally",
+        start: ScenarioStartSpec::Custom {
+            name: "Tarin Holt",
+            choices: CUSTOM_UNLIKELY_ALLY_CHOICES,
+        },
+        seed: 71,
+        steps: CUSTOM_UNLIKELY_ALLY_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "lowsail.levee",
+            final_action_definition: "travel_adjacent",
+            final_observation_contains: "",
+            exclusive_after_action: "",
+            required_world_flags: &["worker_credit"],
+            forbidden_world_flags: &[],
+            required_location_flags: &[],
+            required_deeds: &["saved_worker"],
+            required_visited_locations: &["lowsail_market", "lowsail.levee"],
+            forbidden_legal_definitions: &[],
+        },
+    },
+    ScenarioSpec {
         id: "m1-outcome-split-flow",
         claim_id: "split-tide.outcome.split-flow",
-        character_preset_id: "ilyan",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
         seed: 71,
         steps: SPLIT_FLOW_STEPS,
         expectations: ScenarioExpectations {
@@ -250,7 +346,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-outcome-hold-market",
         claim_id: "split-tide.outcome.hold-market",
-        character_preset_id: "ilyan",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
         seed: 71,
         steps: HOLD_MARKET_STEPS,
         expectations: ScenarioExpectations {
@@ -293,7 +391,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-outcome-relief-channel",
         claim_id: "split-tide.outcome.relief-channel",
-        character_preset_id: "ilyan",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
         seed: 71,
         steps: RELIEF_CHANNEL_STEPS,
         expectations: ScenarioExpectations {
@@ -337,7 +437,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-outcome-break-toll",
         claim_id: "split-tide.outcome.break-toll",
-        character_preset_id: "rook",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
         seed: 71,
         steps: BREAK_TOLL_STEPS,
         expectations: ScenarioExpectations {
@@ -375,7 +477,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-outcome-overload-disaster",
         claim_id: "split-tide.outcome.overload-disaster",
-        character_preset_id: "rook",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
         seed: 71,
         steps: OVERLOAD_STEPS,
         expectations: ScenarioExpectations {
@@ -417,7 +521,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-area-lowsail-market",
         claim_id: "split-tide.area.lowsail-market",
-        character_preset_id: "rook",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
         seed: 71,
         steps: LOWSAIL_AREA_STEPS,
         expectations: ScenarioExpectations {
@@ -470,7 +576,9 @@ const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m1-area-red-sluice",
         claim_id: "split-tide.area.red-sluice",
-        character_preset_id: "ilyan",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
         seed: 71,
         steps: RED_SLUICE_AREA_STEPS,
         expectations: ScenarioExpectations {
@@ -534,7 +642,7 @@ struct BoundScenario<'a> {
 #[derive(Serialize)]
 struct BoundRecipe<'a> {
     format: &'static str,
-    character_preset_id: &'a str,
+    start: &'a ScenarioStartSpec,
     seed: u64,
     steps: &'a [BoundRecipeStep<'a>],
 }
@@ -569,8 +677,24 @@ pub(super) fn run<'content>(
     spec: &ScenarioSpec,
     content: &'content CompiledContent,
 ) -> Result<Session<'content>, VerifyError> {
-    let mut session =
-        Session::new_game(spec.character_preset_id, spec.seed, content).map_err(replay_error)?;
+    let mut session = match spec.start {
+        ScenarioStartSpec::Preset {
+            character_preset_id,
+        } => Session::new_game(character_preset_id, spec.seed, content).map_err(replay_error)?,
+        ScenarioStartSpec::Custom { name, choices } => {
+            let selection = CharacterSelection {
+                name: name.to_owned(),
+                choices: choices
+                    .iter()
+                    .map(|(slot_id, choice_id)| CharacterChoiceSelection {
+                        slot_id: (*slot_id).to_owned(),
+                        choice_id: (*choice_id).to_owned(),
+                    })
+                    .collect(),
+            };
+            Session::new_custom_game(&selection, spec.seed, content).map_err(replay_error)?
+        }
+    };
     for step in spec.steps {
         record_step(&mut session, content, step)?;
         if step.definition_id == spec.expectations.exclusive_after_action {
@@ -612,7 +736,7 @@ pub(super) fn validate_session(
     session: &Session<'_>,
     content: &CompiledContent,
 ) -> Result<(), VerifyError> {
-    validate_recipe(spec, session)?;
+    validate_recipe(spec, session, content)?;
     let state = session.state();
     let expected = &spec.expectations;
     if state.world.current_location != expected.final_location {
@@ -715,17 +839,46 @@ fn validate_forbidden_actions(
     Ok(())
 }
 
-fn validate_recipe(spec: &ScenarioSpec, session: &Session<'_>) -> Result<(), VerifyError> {
-    match &session.trace().start {
-        TraceStart::CharacterPreset {
-            character_preset_id,
-            seed,
-        } if character_preset_id == spec.character_preset_id && *seed == spec.seed => {}
-        _ => {
-            return Err(VerifyError::new(
-                "scenario start does not match its bound recipe",
-            ));
+fn validate_recipe(
+    spec: &ScenarioSpec,
+    session: &Session<'_>,
+    content: &CompiledContent,
+) -> Result<(), VerifyError> {
+    let start_matches = match (spec.start, &session.trace().start) {
+        (
+            ScenarioStartSpec::Preset {
+                character_preset_id: expected_id,
+            },
+            TraceStart::CharacterPreset {
+                character_preset_id,
+                seed,
+            },
+        ) => character_preset_id == expected_id && *seed == spec.seed,
+        (
+            ScenarioStartSpec::Custom { name, choices },
+            TraceStart::CharacterCreation { selection, seed },
+        ) => {
+            let authored = CharacterSelection {
+                name: name.to_owned(),
+                choices: choices
+                    .iter()
+                    .map(|(slot_id, choice_id)| CharacterChoiceSelection {
+                        slot_id: (*slot_id).to_owned(),
+                        choice_id: (*choice_id).to_owned(),
+                    })
+                    .collect(),
+            };
+            content
+                .canonical_character_selection(&authored)
+                .is_ok_and(|canonical| canonical == *selection)
+                && *seed == spec.seed
         }
+        _ => false,
+    };
+    if !start_matches {
+        return Err(VerifyError::new(
+            "scenario start does not match its bound recipe",
+        ));
     }
     if session.trace().steps.len() != spec.steps.len() {
         return Err(VerifyError::new(
@@ -791,6 +944,21 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                 "scenario claim identifiers must be nonempty and unique",
             ));
         }
+        if let ScenarioStartSpec::Custom { name, choices } = spec.start {
+            if name.trim().is_empty() || choices.is_empty() || choices.len() > 16 {
+                return Err(VerifyError::new(
+                    "custom scenario start has invalid public recipe bounds",
+                ));
+            }
+            let mut slots = BTreeSet::new();
+            for (slot_id, choice_id) in choices {
+                if slot_id.is_empty() || choice_id.is_empty() || !slots.insert(slot_id) {
+                    return Err(VerifyError::new(
+                        "custom scenario recipe has an empty or duplicate selection",
+                    ));
+                }
+            }
+        }
         if spec.steps.is_empty() || spec.steps.len() > crate::MAX_WITNESS_STEPS {
             return Err(VerifyError::new(
                 "scenario recipe must have between 1 and 4096 steps",
@@ -832,7 +1000,7 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
         }
         let recipe = sha256_json(&BoundRecipe {
             format: RECIPE_BINDING_FORMAT,
-            character_preset_id: spec.character_preset_id,
+            start: &spec.start,
             seed: spec.seed,
             steps: &normalized_steps,
         })
@@ -914,7 +1082,7 @@ mod tests {
         reordered.steps = RECIPE_BA;
         let ordered_hash = sha256_json(&BoundRecipe {
             format: RECIPE_BINDING_FORMAT,
-            character_preset_id: ordered.character_preset_id,
+            start: &ordered.start,
             seed: ordered.seed,
             steps: &[BoundRecipeStep {
                 definition_id: RECIPE_AB[0].definition_id,
@@ -924,7 +1092,7 @@ mod tests {
         .unwrap();
         let reordered_hash = sha256_json(&BoundRecipe {
             format: RECIPE_BINDING_FORMAT,
-            character_preset_id: reordered.character_preset_id,
+            start: &reordered.start,
             seed: reordered.seed,
             steps: &[BoundRecipeStep {
                 definition_id: RECIPE_BA[0].definition_id,

@@ -1,5 +1,5 @@
 {
-  "schema_version": "forge-schema-v2",
+  "schema_version": "forge-schema-v3",
   "rules_version": "forge-rules-v1",
   "world_id": "veyra-basin",
   "contract": "production",
@@ -76,6 +76,177 @@
       }
     }
   ],
+  "character_creation": {
+    "base": {
+      "inventory": {"rope": 1}
+    },
+    "slots": [
+      {
+        "id": "lineage",
+        "order": 10,
+        "display_name": "Lineage",
+        "choices": [
+          {
+            "id": "fenborn",
+            "display_name": "Fenborn",
+            "summary": "Hear false currents and carry the basin's old tide sense.",
+            "patch": {
+              "lineage": "fenborn",
+              "traits": ["tide-ear"],
+              "appearance": {"marking": "council-ink"},
+              "knowledge": ["tide_cycle"],
+              "discoveries": ["split_tide"],
+              "facets": {"birth_tide": {"kind": "number", "value": 1}}
+            }
+          },
+          {
+            "id": "kilnborn",
+            "display_name": "Kilnborn",
+            "summary": "Read furnace heat and endure the Red Sluice's burning stone.",
+            "patch": {
+              "lineage": "kilnborn",
+              "traits": ["heat-sense"],
+              "appearance": {"marking": "kiln-scar"},
+              "knowledge": ["culvert_route"],
+              "discoveries": ["hot-face"],
+              "facets": {"birth_tide": {"kind": "number", "value": 4}}
+            }
+          }
+        ]
+      },
+      {
+        "id": "origin",
+        "order": 20,
+        "display_name": "Origin",
+        "choices": [
+          {
+            "id": "lowsail",
+            "display_name": "Lowsail",
+            "summary": "Known around the market and connected to the flood council.",
+            "patch": {
+              "origin": "lowsail",
+              "affiliations": {"council": 3}
+            }
+          },
+          {
+            "id": "red-sluice",
+            "display_name": "Red Sluice",
+            "summary": "Raised among gate crews who remember practical solidarity.",
+            "patch": {
+              "origin": "red-sluice",
+              "affiliations": {"workers": 2}
+            }
+          }
+        ]
+      },
+      {
+        "id": "calling",
+        "order": 30,
+        "display_name": "Calling",
+        "choices": [
+          {
+            "id": "ledger-clerk",
+            "display_name": "Ledger Clerk",
+            "summary": "A practiced auditor with sharp insight and a measured voice.",
+            "patch": {
+              "background": "ledger-clerk",
+              "aptitudes": {"might": 3, "finesse": 4, "insight": 8, "presence": 7},
+              "skills": ["audit", "read-current"],
+              "appearance": {"attire": "blue-coat"},
+              "resources": {"coin": 10, "stamina": 3}
+            }
+          },
+          {
+            "id": "lock-runner",
+            "display_name": "Lock Runner",
+            "summary": "A fast climber and lockpicker built for dangerous routes.",
+            "patch": {
+              "background": "lock-runner",
+              "aptitudes": {"might": 8, "finesse": 8, "insight": 2, "presence": 3},
+              "skills": ["climb", "pick"],
+              "appearance": {"attire": "dust-cloak"},
+              "inventory": {"wire": 1},
+              "resources": {"coin": 5, "stamina": 4}
+            }
+          }
+        ]
+      },
+      {
+        "id": "value",
+        "order": 40,
+        "display_name": "Guiding Value",
+        "choices": [
+          {
+            "id": "order",
+            "display_name": "Order",
+            "summary": "Institutions can still protect people when held to account.",
+            "patch": {
+              "values": ["order"],
+              "reputation": {"lawful": 3},
+              "facets": {"temper": {"kind": "text", "value": "patient"}}
+            }
+          },
+          {
+            "id": "freedom",
+            "display_name": "Freedom",
+            "summary": "No authority deserves obedience merely because it claims control.",
+            "patch": {
+              "values": ["freedom"],
+              "facets": {"temper": {"kind": "text", "value": "restless"}}
+            }
+          }
+        ]
+      },
+      {
+        "id": "burden",
+        "order": 50,
+        "display_name": "Burden",
+        "choices": [
+          {
+            "id": "indebted",
+            "display_name": "Indebted",
+            "summary": "A dangerous obligation makes every generous choice more costly.",
+            "patch": {"flaws": ["indebted"]}
+          },
+          {
+            "id": "wanted",
+            "display_name": "Wanted",
+            "summary": "Council notices circulate wherever guards still honor old warrants.",
+            "patch": {
+              "flaws": ["wanted"],
+              "reputation": {"notoriety": 3}
+            }
+          }
+        ]
+      },
+      {
+        "id": "history",
+        "order": 60,
+        "display_name": "Defining History",
+        "choices": [
+          {
+            "id": "saved-worker",
+            "display_name": "Saved a Worker",
+            "summary": "You pulled a trapped worker free and promised to warn Lowsail.",
+            "patch": {
+              "knowledge": ["forged_order_hint"],
+              "deeds": ["saved_worker"],
+              "promises": ["warn_market"]
+            }
+          },
+          {
+            "id": "stole-permit",
+            "display_name": "Stole a Permit",
+            "summary": "You exposed a gate fault by taking the permit that concealed it.",
+            "patch": {
+              "knowledge": ["gate_fault"],
+              "deeds": ["stole_permit"]
+            }
+          }
+        ]
+      }
+    ]
+  },
   "locations": [
     {
       "id": "lowsail_market",

@@ -7,30 +7,34 @@
 //! serialized witness of that execution.
 
 use forge_kernel::{
-    CanonicalAction, CompiledContent, ContentContract, EntropyDraw, EntropyState, Event, GameState,
-    HashError, KernelError, Observation, enumerate_legal_actions, legal_action_digest, sha256_json,
-    step,
+    CanonicalAction, CharacterSelection, CharacterStart, CompiledContent, ContentContract,
+    EntropyDraw, EntropyState, Event, GameState, HashError, KernelError, Observation,
+    enumerate_legal_actions, legal_action_digest, sha256_json, step, validate_unique_json_keys,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 
 /// Version the serialized trace format and receipt domain.
-pub const TRACE_FORMAT_VERSION: &str = "forge-replay-v1";
+pub const TRACE_FORMAT_VERSION: &str = "forge-replay-v2";
 
 /// Version for the player-safe, portable replay record. Unlike [`Trace`], this
 /// format deliberately omits authoritative state, events, entropy, and
 /// observations. A trusted process reconstructs those claims from the start
 /// specification and the chosen canonical action identities.
-pub const PLAYER_TRACE_FORMAT_VERSION: &str = "forge-player-trace-v1";
+pub const PLAYER_TRACE_FORMAT_VERSION: &str = "forge-player-trace-v2";
 
 /// Declares how the trace's genesis state was obtained. Production evidence
-/// must name an authored preset and seed so a verifier can reconstruct that
-/// state instead of trusting a caller-supplied character sheet.
+/// must name an authored preset or canonical custom recipe and seed so a
+/// verifier can reconstruct that state without a caller-supplied sheet.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub enum TraceStart {
     CharacterPreset {
         character_preset_id: String,
+        seed: u64,
+    },
+    CharacterCreation {
+        selection: CharacterSelection,
         seed: u64,
     },
     FixtureState,
@@ -195,8 +199,7 @@ pub struct Trace {
 pub struct PlayerTrace {
     format_version: String,
     build_id: String,
-    character_preset_id: String,
-    seed: u64,
+    start: TraceStart,
     action_ids: Vec<String>,
     final_state_id: String,
     final_receipt: String,
@@ -211,6 +214,7 @@ impl PlayerTrace {
     /// Decode without accepting the record. [`resume_player_trace`] must
     /// reconstruct it against the exact compiled content before use.
     pub fn from_json(input: &str) -> Result<Self, ReplayError> {
+        validate_unique_json_keys(input).map_err(|error| ReplayError::Json(error.to_string()))?;
         serde_json::from_str(input).map_err(ReplayError::from)
     }
 
@@ -256,6 +260,7 @@ impl Trace {
     /// Decode a trace without accepting it as valid.  `verify` or `resume`
     /// must still be called with the exact compiled content.
     pub fn from_json(input: &str) -> Result<Self, ReplayError> {
+        validate_unique_json_keys(input).map_err(|error| ReplayError::Json(error.to_string()))?;
         serde_json::from_str(input).map_err(ReplayError::from)
     }
 }
@@ -297,6 +302,19 @@ impl<'content> Session<'content> {
         Self::new(state, content)
     }
 
+    /// Start a production-ready session from a canonicalizable public
+    /// selection. The kernel owns all derived character fields.
+    pub fn new_custom_game(
+        selection: &CharacterSelection,
+        seed: u64,
+        content: &'content CompiledContent,
+    ) -> Result<Self, ReplayError> {
+        let state = content
+            .new_custom_game(selection, seed)
+            .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
+        Self::new(state, content)
+    }
+
     pub fn state(&self) -> &GameState {
         &self.state
     }
@@ -311,14 +329,13 @@ impl<'content> Session<'content> {
 
     /// Produce a portable save without exposing hidden state or events.
     pub fn player_trace(&self) -> Result<PlayerTrace, ReplayError> {
-        let TraceStart::CharacterPreset {
-            character_preset_id,
-            seed,
-        } = &self.trace.start
-        else {
-            return Err(ReplayError::InvalidTrace(
-                "only authored character starts can become player traces".to_owned(),
-            ));
+        match &self.trace.start {
+            TraceStart::CharacterPreset { .. } | TraceStart::CharacterCreation { .. } => {}
+            TraceStart::FixtureState => {
+                return Err(ReplayError::InvalidTrace(
+                    "only authored character starts can become player traces".to_owned(),
+                ));
+            }
         };
         let mut action_ids = Vec::new();
         action_ids
@@ -333,8 +350,7 @@ impl<'content> Session<'content> {
         Ok(PlayerTrace {
             format_version: PLAYER_TRACE_FORMAT_VERSION.to_owned(),
             build_id: self.trace.build_id.clone(),
-            character_preset_id: character_preset_id.clone(),
-            seed: *seed,
+            start: self.trace.start.clone(),
             action_ids,
             final_state_id: self.trace.final_state_id.clone(),
             final_receipt: self.trace.final_receipt.clone(),
@@ -590,11 +606,21 @@ pub fn resume_player_trace<'content>(
         content.build_id(),
         player_trace.build_id.as_str(),
     )?;
-    let mut session = Session::new_game(
-        &player_trace.character_preset_id,
-        player_trace.seed,
-        content,
-    )?;
+    let mut session = match &player_trace.start {
+        TraceStart::CharacterPreset {
+            character_preset_id,
+            seed,
+        } => Session::new_game(character_preset_id, *seed, content)?,
+        TraceStart::CharacterCreation { selection, seed } => {
+            Session::new_custom_game(selection, *seed, content)?
+        }
+        TraceStart::FixtureState => {
+            return Err(ReplayError::InvalidTrace(
+                "player trace cannot use an arbitrary fixture genesis".to_owned(),
+            ));
+        }
+    };
+    check_equal("start", &session.trace.start, &player_trace.start)?;
     for (position, action_id) in player_trace.action_ids.iter().enumerate() {
         let action = enumerate_legal_actions(session.state(), content)?
             .into_iter()
@@ -620,23 +646,35 @@ pub fn resume_player_trace<'content>(
 }
 
 fn identify_start(state: &GameState, content: &CompiledContent) -> Result<TraceStart, ReplayError> {
-    for (preset_id, _) in content.character_presets() {
-        let expected = content
-            .new_game(preset_id, state.entropy.seed)
-            .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
-        if &expected == state {
-            return Ok(TraceStart::CharacterPreset {
-                character_preset_id: preset_id.clone(),
+    match &state.character_start {
+        CharacterStart::Preset {
+            character_preset_id,
+        } => {
+            let expected = content
+                .new_game(character_preset_id, state.entropy.seed)
+                .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
+            check_equal("initial_state", &expected, state)?;
+            Ok(TraceStart::CharacterPreset {
+                character_preset_id: character_preset_id.clone(),
                 seed: state.entropy.seed,
-            });
+            })
         }
-    }
-    if content.contract() == ContentContract::Production {
-        Err(ReplayError::InvalidTrace(
-            "production session must begin from an authored character preset".to_owned(),
-        ))
-    } else {
-        Ok(TraceStart::FixtureState)
+        CharacterStart::Custom { selection } => {
+            let expected = content
+                .new_custom_game(selection, state.entropy.seed)
+                .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
+            check_equal("initial_state", &expected, state)?;
+            Ok(TraceStart::CharacterCreation {
+                selection: selection.clone(),
+                seed: state.entropy.seed,
+            })
+        }
+        CharacterStart::Fixture if content.contract() == ContentContract::Fixture => {
+            Ok(TraceStart::FixtureState)
+        }
+        CharacterStart::Fixture => Err(ReplayError::InvalidTrace(
+            "production session must begin from an authored character start".to_owned(),
+        )),
     }
 }
 
@@ -648,6 +686,16 @@ fn validate_start(trace: &Trace, content: &CompiledContent) -> Result<(), Replay
         } => {
             let expected = content
                 .new_game(character_preset_id, *seed)
+                .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
+            check_equal("initial_state", &expected, &trace.initial_state)
+        }
+        TraceStart::CharacterCreation { selection, seed } => {
+            let canonical = content
+                .canonical_character_selection(selection)
+                .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
+            check_equal("start.selection", &canonical, selection)?;
+            let expected = content
+                .new_custom_game(selection, *seed)
                 .map_err(|error| ReplayError::InvalidTrace(error.to_string()))?;
             check_equal("initial_state", &expected, &trace.initial_state)
         }
@@ -761,19 +809,21 @@ fn check_equal<T: PartialEq + Debug + ?Sized>(
 mod tests {
     use super::*;
     use forge_kernel::{
-        ActionDefinition, CharacterPreset, Condition, ContentDraft, Effect, EntropyError,
-        LocationDefinition, ParameterSpec, WorldState,
+        ActionDefinition, CharacterCreationChoice, CharacterCreationDefinition,
+        CharacterCreationSlot, CharacterPatch, CharacterPreset, Condition, ContentDraft, Effect,
+        EntropyError, LocationDefinition, ParameterSpec, WorldState,
     };
     use std::collections::{BTreeMap, BTreeSet};
 
     fn content_draft() -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v2".to_owned(),
+            schema_version: "forge-schema-v3".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),
@@ -913,6 +963,65 @@ mod tests {
                 character: rook,
             },
         ];
+        draft.character_creation = Some(CharacterCreationDefinition {
+            base: CharacterPatch::default(),
+            slots: vec![
+                CharacterCreationSlot {
+                    id: "lineage".to_owned(),
+                    order: 10,
+                    display_name: "Lineage".to_owned(),
+                    choices: vec![
+                        CharacterCreationChoice {
+                            id: "fenborn".to_owned(),
+                            display_name: "Fenborn".to_owned(),
+                            summary: "A tide-aware lineage.".to_owned(),
+                            patch: CharacterPatch {
+                                lineage: Some("fenborn".to_owned()),
+                                traits: BTreeSet::from(["tide-ear".to_owned()]),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                        CharacterCreationChoice {
+                            id: "kilnborn".to_owned(),
+                            display_name: "Kilnborn".to_owned(),
+                            summary: "A heat-aware lineage.".to_owned(),
+                            patch: CharacterPatch {
+                                lineage: Some("kilnborn".to_owned()),
+                                traits: BTreeSet::from(["heat-sense".to_owned()]),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                    ],
+                },
+                CharacterCreationSlot {
+                    id: "path".to_owned(),
+                    order: 20,
+                    display_name: "Path".to_owned(),
+                    choices: vec![
+                        CharacterCreationChoice {
+                            id: "clerk".to_owned(),
+                            display_name: "Clerk".to_owned(),
+                            summary: "A clerk from Lowsail.".to_owned(),
+                            patch: CharacterPatch {
+                                origin: Some("start".to_owned()),
+                                background: Some("clerk".to_owned()),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                        CharacterCreationChoice {
+                            id: "runner".to_owned(),
+                            display_name: "Runner".to_owned(),
+                            summary: "A runner from the locks.".to_owned(),
+                            patch: CharacterPatch {
+                                origin: Some("locks".to_owned()),
+                                background: Some("runner".to_owned()),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                    ],
+                },
+            ],
+        });
         CompiledContent::try_compile(draft).expect("production test content is valid")
     }
 
@@ -944,6 +1053,22 @@ mod tests {
         let second = action_for(session.state(), content, "wait");
         session.record(&second).expect("wait records");
         session
+    }
+
+    fn custom_selection() -> CharacterSelection {
+        CharacterSelection {
+            name: "Mara Venn".to_owned(),
+            choices: vec![
+                forge_kernel::CharacterChoiceSelection {
+                    slot_id: "path".to_owned(),
+                    choice_id: "clerk".to_owned(),
+                },
+                forge_kernel::CharacterChoiceSelection {
+                    slot_id: "lineage".to_owned(),
+                    choice_id: "fenborn".to_owned(),
+                },
+            ],
+        }
     }
 
     #[test]
@@ -1034,11 +1159,10 @@ mod tests {
             [
                 "action_ids",
                 "build_id",
-                "character_preset_id",
                 "final_receipt",
                 "final_state_id",
                 "format_version",
-                "seed",
+                "start",
             ]
         );
 
@@ -1046,6 +1170,77 @@ mod tests {
         let reconstructed = resume_player_trace(&decoded, &content).unwrap();
         assert_eq!(reconstructed.trace(), &expected);
         assert_eq!(reconstructed.state(), &verify(&expected, &content).unwrap());
+    }
+
+    #[test]
+    fn custom_player_trace_round_trips_and_binds_the_canonical_recipe() {
+        let content = production_content();
+        let mut session = Session::new_custom_game(&custom_selection(), 71, &content).unwrap();
+        let action = action_for(session.state(), &content, "wait");
+        session.record(&action).unwrap();
+        let expected = session.trace().clone();
+        assert!(matches!(
+            expected.start,
+            TraceStart::CharacterCreation { .. }
+        ));
+
+        let player_trace = session.player_trace().unwrap();
+        let json = player_trace.to_json().unwrap();
+        for hidden in [
+            "initial_state",
+            "observation",
+            "events",
+            "entropy",
+            "knowledge",
+            "aptitudes",
+        ] {
+            assert!(!json.contains(hidden), "custom save leaked {hidden}");
+        }
+        let reconstructed =
+            resume_player_trace(&PlayerTrace::from_json(&json).unwrap(), &content).unwrap();
+        assert_eq!(reconstructed.trace(), &expected);
+
+        let mut changed = player_trace.clone();
+        let TraceStart::CharacterCreation { selection, .. } = &mut changed.start else {
+            panic!("expected custom start")
+        };
+        selection.choices[0].choice_id = "missing".to_owned();
+        assert!(resume_player_trace(&changed, &content).is_err());
+
+        let mut changed = player_trace.clone();
+        let TraceStart::CharacterCreation { selection, .. } = &mut changed.start else {
+            panic!("expected custom start")
+        };
+        selection.choices.reverse();
+        assert!(resume_player_trace(&changed, &content).is_err());
+
+        let mut changed = player_trace.clone();
+        let TraceStart::CharacterCreation { seed, .. } = &mut changed.start else {
+            panic!("expected custom start")
+        };
+        *seed += 1;
+        assert!(resume_player_trace(&changed, &content).is_err());
+    }
+
+    #[test]
+    fn replay_decoders_reject_duplicate_json_keys_before_deserialization() {
+        let content = production_content();
+        let session = Session::new_game("ilyan", 71, &content).unwrap();
+        let json = session.player_trace().unwrap().to_json().unwrap();
+        let duplicate = json.replacen(
+            "\"format_version\":",
+            "\"format_version\":\"shadow\",\"format_version\":",
+            1,
+        );
+        assert!(PlayerTrace::from_json(&duplicate).is_err());
+
+        let detailed = session.trace().to_json().unwrap();
+        let duplicate = detailed.replacen(
+            "\"format_version\":",
+            "\"format_version\":\"shadow\",\"format_version\":",
+            1,
+        );
+        assert!(Trace::from_json(&duplicate).is_err());
     }
 
     #[test]
@@ -1221,12 +1416,13 @@ mod tests {
         let content = content();
         let trace = two_step_trace(&content);
         let other_draft = ContentDraft {
-            schema_version: "forge-schema-v2".to_owned(),
+            schema_version: "forge-schema-v3".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),
@@ -1299,7 +1495,7 @@ mod tests {
         assert!(Session::new(forged_state.clone(), &content).is_err());
 
         // Even a self-consistent replacement genesis and receipt cannot pass:
-        // production verification reconstructs the named authored preset.
+        // production verification reconstructs the named authored start.
         let mut forged = trace.clone();
         forged.initial_state = forged_state;
         forged.initial_state_id = forged.initial_state.state_id();

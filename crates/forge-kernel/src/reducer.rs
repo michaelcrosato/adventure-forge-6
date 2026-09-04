@@ -816,12 +816,13 @@ mod tests {
 
     fn content(actions: Vec<ActionDefinition>) -> CompiledContent {
         CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v2".to_owned(),
+            schema_version: "forge-schema-v3".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
@@ -1194,12 +1195,13 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v2".to_owned(),
+            schema_version: "forge-schema-v3".to_owned(),
             rules_version: "forge-rules-v1".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations,
             npcs: vec![NpcDefinition {
                 id: "sava".to_owned(),

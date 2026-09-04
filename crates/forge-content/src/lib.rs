@@ -5,9 +5,10 @@
 //! from bypassing the kernel's trust boundary.
 
 pub use forge_kernel::{
-    ActionDefinition, ActionPage, ActionView, CharacterPreset, Condition, ContentContract,
-    ContentDraft, Effect, LocationDefinition, NpcDefinition, Observation, ParameterDomain,
-    ParameterSpec, StringRef, TextVariant,
+    ActionDefinition, ActionPage, ActionView, CharacterCreationChoice, CharacterCreationDefinition,
+    CharacterCreationSlot, CharacterPatch, CharacterPreset, CharacterSelection, Condition,
+    ContentContract, ContentDraft, Effect, LocationDefinition, NpcDefinition, Observation,
+    ParameterDomain, ParameterSpec, StringRef, TextVariant,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -47,6 +48,8 @@ fn validation_error(error: ContentValidationError) -> ContentError {
 }
 
 pub fn parse(input: &str) -> Result<ContentSource, ContentError> {
+    forge_kernel::validate_unique_json_keys(input)
+        .map_err(|error| parse_error(format!("invalid content source: {error}")))?;
     serde_json::from_str(input)
         .map_err(|error| parse_error(format!("invalid content source: {error}")))
 }
@@ -88,6 +91,7 @@ mod tests {
             contract: ContentContract::Fixture,
             start_location: String::new(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations: Vec::new(),
             npcs: Vec::new(),
             actions: Vec::new(),
@@ -97,5 +101,25 @@ mod tests {
             error.issues,
             vec!["production compilation requires contract=production"]
         );
+    }
+
+    #[test]
+    fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
+        let duplicate_top_level = r#"{
+            "schema_version":"forge-schema-v3",
+            "schema_version":"shadow"
+        }"#;
+        assert!(parse(duplicate_top_level).is_err());
+
+        let duplicate_nested_map = r#"{
+            "schema_version":"forge-schema-v3",
+            "rules_version":"forge-rules-v1",
+            "world_id":"world",
+            "character_creation":{
+                "base":{"resources":{"coin":1,"coin":2}},
+                "slots":[]
+            }
+        }"#;
+        assert!(parse(duplicate_nested_map).is_err());
     }
 }

@@ -1,0 +1,118 @@
+{
+  "format_version": "forge-evidence-witness-v3",
+  "verifier_id": "04a457dadb5989261785fc221b0e8d8e5f493f254f7b76cee1c2ab173a5ea42c",
+  "scenario_id": "m1-custom-unlikely-ally",
+  "scenario_binding": "7537995303c25903b79db6c00cf5eadca24157221ae19b57347d990d2141da64",
+  "player_trace": {
+    "format_version": "forge-player-trace-v2",
+    "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+    "start": {
+      "kind": "character_creation",
+      "selection": {
+        "name": "Tarin Holt",
+        "choices": [
+          {
+            "slot_id": "lineage",
+            "choice_id": "kilnborn"
+          },
+          {
+            "slot_id": "origin",
+            "choice_id": "lowsail"
+          },
+          {
+            "slot_id": "calling",
+            "choice_id": "lock-runner"
+          },
+          {
+            "slot_id": "value",
+            "choice_id": "order"
+          },
+          {
+            "slot_id": "burden",
+            "choice_id": "indebted"
+          },
+          {
+            "slot_id": "history",
+            "choice_id": "saved-worker"
+          }
+        ]
+      },
+      "seed": 71
+    },
+    "action_ids": [
+      "b9dc9eb7dba4ecb25ed13bc4b206d9cf45d4a52bb0d28274520987ba0c809e8d",
+      "2244ff3d397961d6768c8bbdc7732d4210876a744c30d4924782707048802dd2"
+    ],
+    "final_state_id": "b3fcc1ff6f730be60d5a23a9c3b80dca5185ae928692e29f373e4f5b4705fc10",
+    "final_receipt": "9971fc727230a7453f48680f3da3592ac722e322e3e05c00532b719eafd738e7"
+  },
+  "initial_state_id": "878e87b55268ee15e3659b020f9a4b0283498e01e02920e136e9a27e811bb2f1",
+  "initial_observation": {
+    "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+    "state_id": "878e87b55268ee15e3659b020f9a4b0283498e01e02920e136e9a27e811bb2f1",
+    "location_id": "lowsail_market",
+    "title": "Lowsail Checkpoint",
+    "text": "A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
+    "result": null,
+    "action_set_digest": "8d7f36ed080b23adb30f1398616ae9b68133b207b6bd677a7187dd1c92b618e8",
+    "action_count": 6
+  },
+  "initial_observation_hash": "3db5740f9d46d56031240dea15b5d9b1d9fe143b87fcb50ff9c77c79071614a5",
+  "initial_receipt": "040bfd6721b206719c3dc9b8e1db5f130e7b3980f656c2bbf1bf1c2f70b08b5f",
+  "steps": [
+    {
+      "step_index": 0,
+      "action_id": "b9dc9eb7dba4ecb25ed13bc4b206d9cf45d4a52bb0d28274520987ba0c809e8d",
+      "action_definition_id": "checkpoint.recall_worker",
+      "action_parameters": {},
+      "legal_action_set_digest": "8d7f36ed080b23adb30f1398616ae9b68133b207b6bd677a7187dd1c92b618e8",
+      "pre_state_id": "878e87b55268ee15e3659b020f9a4b0283498e01e02920e136e9a27e811bb2f1",
+      "events_hash": "f7ba7d5b4128b9bd2d8d03c22ff9554d827f519ee410a53b524ee95896c68b7a",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "800380c255baec70d2a97869e2e52b4cda03effd66ff2abab2bbf6a2ad355526",
+      "observation": {
+        "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+        "state_id": "800380c255baec70d2a97869e2e52b4cda03effd66ff2abab2bbf6a2ad355526",
+        "location_id": "lowsail_market",
+        "title": "Lowsail Checkpoint",
+        "text": "Sava recalls the worker you saved. A red flag hangs over the checkpoint. Sava guards the only dry path to Lowsail Market.",
+        "result": "Sava recalls the worker you saved.",
+        "action_set_digest": "89a66d4d9713d98331ad8519cb7b1bb0250fcded0cca63b8a2f7aeec90ef03f1",
+        "action_count": 6
+      },
+      "observation_hash": "ec8a09776d3d059ee9f5e486b00a7186b0eaa440237caef7cc51a3f1db2ee214",
+      "receipt": "4b5cb114170c5a423bffd17e43d03251db7c17d8db02ebfc9f68006c8375d506"
+    },
+    {
+      "step_index": 1,
+      "action_id": "2244ff3d397961d6768c8bbdc7732d4210876a744c30d4924782707048802dd2",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "lowsail.levee"
+      },
+      "legal_action_set_digest": "89a66d4d9713d98331ad8519cb7b1bb0250fcded0cca63b8a2f7aeec90ef03f1",
+      "pre_state_id": "800380c255baec70d2a97869e2e52b4cda03effd66ff2abab2bbf6a2ad355526",
+      "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "b3fcc1ff6f730be60d5a23a9c3b80dca5185ae928692e29f373e4f5b4705fc10",
+      "observation": {
+        "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+        "state_id": "b3fcc1ff6f730be60d5a23a9c3b80dca5185ae928692e29f373e4f5b4705fc10",
+        "location_id": "lowsail.levee",
+        "title": "Lowsail Levee",
+        "text": "You move along the connected path. The levee road runs east to the Sluice. Flood marks show fresh damage.",
+        "result": "You move along the connected path.",
+        "action_set_digest": "5bb501d258619a3544942d8e2c28a68d6579e01d76f2b91fdd21269579cc62e9",
+        "action_count": 5
+      },
+      "observation_hash": "2dbe9bbe003c24d474d16b924cf0e9296c121eff7852cae081b3f3084019ffb9",
+      "receipt": "9971fc727230a7453f48680f3da3592ac722e322e3e05c00532b719eafd738e7"
+    }
+  ],
+  "final_state_id": "b3fcc1ff6f730be60d5a23a9c3b80dca5185ae928692e29f373e4f5b4705fc10",
+  "final_receipt": "9971fc727230a7453f48680f3da3592ac722e322e3e05c00532b719eafd738e7"
+}

@@ -10,6 +10,36 @@ pub type CharacterId = String;
 pub type NpcId = String;
 pub type ActionId = String;
 
+/// One public, authored choice in a custom character selection.
+///
+/// A vector is used instead of a map so duplicate slot selections survive
+/// deserialization and can be rejected explicitly by the kernel.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterChoiceSelection {
+    pub slot_id: String,
+    pub choice_id: String,
+}
+
+/// Player-supplied public inputs for an authored custom character.
+/// Materialized character fields are never accepted from the player.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterSelection {
+    pub name: String,
+    pub choices: Vec<CharacterChoiceSelection>,
+}
+
+/// Immutable provenance for the character at the root of a state.
+/// Production states must be reconstructable from one of the authored forms.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum CharacterStart {
+    Fixture,
+    Preset { character_preset_id: String },
+    Custom { selection: CharacterSelection },
+}
+
 /// Extensible values for character facets.  Built-in axes are represented by
 /// named fields on `Character`; this map lets content add new axes without
 /// changing the kernel's state shape.
@@ -55,9 +85,6 @@ pub struct Character {
 impl Character {
     /// Resolve both built-in and extensible axes for data-driven conditions.
     pub fn facet_value(&self, axis: &str) -> Option<FacetValue> {
-        if let Some(value) = self.facets.get(axis) {
-            return Some(value.clone());
-        }
         match axis {
             "lineage" => Some(FacetValue::Text(self.lineage.clone())),
             "origin" => Some(FacetValue::Text(self.origin.clone())),
@@ -75,7 +102,7 @@ impl Character {
                 } else if let Some(name) = axis.strip_prefix("appearance.") {
                     self.appearance.get(name).cloned().map(FacetValue::Text)
                 } else {
-                    None
+                    self.facets.get(axis).cloned()
                 }
             }
         }
@@ -96,6 +123,34 @@ impl Character {
                 .values()
                 .any(|value| matches!(value, FacetValue::Tags(tags) if tags.contains(tag)))
     }
+}
+
+/// Facet keys that would collide with authoritative typed character axes.
+pub(crate) fn is_reserved_character_facet_axis(axis: &str) -> bool {
+    matches!(
+        axis,
+        "lineage"
+            | "origin"
+            | "background"
+            | "aptitudes"
+            | "skills"
+            | "values"
+            | "traits"
+            | "flaws"
+            | "appearance"
+            | "affiliations"
+            | "reputation"
+            | "knowledge"
+            | "inventory"
+            | "resources"
+            | "injuries"
+            | "deeds"
+            | "promises"
+            | "discoveries"
+            | "facets"
+    ) || ["aptitude.", "affiliation.", "reputation.", "appearance."]
+        .iter()
+        .any(|prefix| axis.starts_with(prefix))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -225,6 +280,7 @@ pub struct GameState {
     pub build_id: BuildId,
     pub world: WorldState,
     pub character: Character,
+    pub character_start: CharacterStart,
     pub entropy: EntropyState,
     pub event_log: Vec<Event>,
 }
@@ -240,6 +296,7 @@ impl GameState {
             build_id: build_id.into(),
             world,
             character,
+            character_start: CharacterStart::Fixture,
             entropy,
             event_log: Vec::new(),
         }

@@ -1,9 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use forge_content::{compile, parse, parse_and_compile_production};
 use forge_kernel::{
-    CanonicalAction, CompiledContent, ContentContract, GameState, KnowledgeProvenanceKind,
-    enumerate_legal_actions, legal_action_digest, step,
+    CanonicalAction, CharacterChoiceSelection, CharacterSelection, CharacterStart, CompiledContent,
+    ContentContract, GameState, KnowledgeProvenanceKind, enumerate_legal_actions,
+    legal_action_digest, step,
 };
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
@@ -25,6 +26,44 @@ fn definitions(state: &GameState, content: &CompiledContent) -> BTreeSet<String>
         .into_iter()
         .map(|action| action.definition_id)
         .collect()
+}
+
+fn creation_selection(
+    content: &CompiledContent,
+    name: &str,
+    selected: &BTreeMap<&str, &str>,
+) -> CharacterSelection {
+    let creation = content.character_creation().expect("creation definition");
+    CharacterSelection {
+        name: name.to_owned(),
+        choices: creation
+            .slots
+            .iter()
+            .map(|slot| CharacterChoiceSelection {
+                slot_id: slot.id.clone(),
+                choice_id: selected
+                    .get(slot.id.as_str())
+                    .unwrap_or_else(|| panic!("missing test choice for {}", slot.id))
+                    .to_string(),
+            })
+            .collect(),
+    }
+}
+
+fn binary_selection(content: &CompiledContent, mask: usize) -> CharacterSelection {
+    let creation = content.character_creation().expect("creation definition");
+    CharacterSelection {
+        name: "Mara Venn".to_owned(),
+        choices: creation
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(index, slot)| CharacterChoiceSelection {
+                slot_id: slot.id.clone(),
+                choice_id: slot.choices[(mask >> index) & 1].id.clone(),
+            })
+            .collect(),
+    }
 }
 
 fn action_for(
@@ -85,6 +124,9 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.npcs().count(), 5);
     assert_eq!(content.actions().count(), 47);
     assert_eq!(content.character_presets().count(), 2);
+    let creation = content.character_creation().expect("custom creation");
+    assert_eq!(creation.slots.len(), 6);
+    assert!(creation.slots.iter().all(|slot| slot.choices.len() == 2));
 
     let ilyan = content.character_preset("ilyan").expect("Ilyan preset");
     assert_eq!(ilyan.display_name, "Ilyan Vale");
@@ -117,6 +159,137 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(rook.character.inventory["wire"], 1);
     assert_eq!(rook.character.resources["coin"], 5);
     assert!(rook.character.deeds.contains("stole_permit"));
+}
+
+#[test]
+fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
+    let content = content();
+    let creation = content.character_creation().expect("creation definition");
+    assert_eq!(creation.slots.len(), 6);
+    let combination_count = 1usize << creation.slots.len();
+    let mut character_ids = BTreeSet::new();
+    let mut action_sets = Vec::new();
+
+    for mask in 0..combination_count {
+        let selection = binary_selection(&content, mask);
+        let state = content
+            .new_custom_game(&selection, 71)
+            .unwrap_or_else(|error| panic!("custom build {mask} failed: {error}"));
+        content
+            .validate_state(&state)
+            .expect("custom state validates");
+        assert!(matches!(
+            state.character_start,
+            CharacterStart::Custom { .. }
+        ));
+        assert!(character_ids.insert(state.character.id.clone()));
+
+        let actions = enumerate_legal_actions(&state, &content).expect("custom actions");
+        let meaningful_non_movement = actions
+            .iter()
+            .filter(|action| {
+                let definition = content.action(&action.definition_id).expect("definition");
+                definition.meaningful && !definition.movement
+            })
+            .count();
+        assert!(
+            meaningful_non_movement >= 2,
+            "custom build {mask} has only {meaningful_non_movement} meaningful actions"
+        );
+        action_sets.push(
+            actions
+                .into_iter()
+                .map(|action| action.definition_id)
+                .collect::<BTreeSet<_>>(),
+        );
+    }
+
+    assert_eq!(character_ids.len(), combination_count);
+    for slot_index in 0..creation.slots.len() {
+        assert!(
+            (0..combination_count)
+                .filter(|mask| mask & (1 << slot_index) == 0)
+                .any(|mask| action_sets[mask] != action_sets[mask | (1 << slot_index)]),
+            "slot {} never changes the legal action definitions",
+            creation.slots[slot_index].id
+        );
+    }
+}
+
+#[test]
+fn custom_extremes_reproduce_preset_mechanics_without_copying_preset_identity() {
+    let content = content();
+    let ilyan_selection = creation_selection(
+        &content,
+        "Mara Venn",
+        &BTreeMap::from([
+            ("lineage", "fenborn"),
+            ("origin", "lowsail"),
+            ("calling", "ledger-clerk"),
+            ("value", "order"),
+            ("burden", "indebted"),
+            ("history", "saved-worker"),
+        ]),
+    );
+    let rook_selection = creation_selection(
+        &content,
+        "Mara Venn",
+        &BTreeMap::from([
+            ("lineage", "kilnborn"),
+            ("origin", "red-sluice"),
+            ("calling", "lock-runner"),
+            ("value", "freedom"),
+            ("burden", "wanted"),
+            ("history", "stole-permit"),
+        ]),
+    );
+    for (selection, preset_id) in [(ilyan_selection, "ilyan"), (rook_selection, "rook")] {
+        let mut custom = content
+            .custom_character(&selection)
+            .expect("custom character");
+        assert!(custom.id.starts_with("custom-"));
+        custom.id = preset_id.to_owned();
+        assert_eq!(
+            custom,
+            content.character_preset(preset_id).unwrap().character,
+            "{preset_id} mechanical fields drifted from its creator extreme"
+        );
+    }
+}
+
+#[test]
+fn custom_selection_is_canonical_and_forgery_resistant() {
+    let content = content();
+    let canonical = binary_selection(&content, 19);
+    let mut reordered = canonical.clone();
+    reordered.name = "  Mara   Venn ".to_owned();
+    reordered.choices.reverse();
+    assert_eq!(
+        content.new_custom_game(&canonical, 71).unwrap(),
+        content.new_custom_game(&reordered, 71).unwrap()
+    );
+
+    let state = content.new_custom_game(&canonical, 71).unwrap();
+    let mut forged = state.clone();
+    let CharacterStart::Custom { selection } = &mut forged.character_start else {
+        panic!("expected custom provenance")
+    };
+    selection.choices[0].choice_id = "not-authored".to_owned();
+    assert!(content.validate_state(&forged).is_err());
+
+    let mut forged = state.clone();
+    forged.character.lineage = "forged".to_owned();
+    assert!(content.validate_state(&forged).is_err());
+
+    let mut duplicate = canonical.clone();
+    duplicate.choices[1] = duplicate.choices[0].clone();
+    assert!(content.new_custom_game(&duplicate, 71).is_err());
+    let mut unknown = canonical.clone();
+    unknown.choices[0].choice_id = "not-authored".to_owned();
+    assert!(content.new_custom_game(&unknown, 71).is_err());
+    let mut unsafe_name = canonical;
+    unsafe_name.name = "Mara\u{1b}[31m".to_owned();
+    assert!(content.new_custom_game(&unsafe_name, 71).is_err());
 }
 
 #[test]

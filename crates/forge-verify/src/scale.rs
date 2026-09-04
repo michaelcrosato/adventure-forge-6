@@ -157,6 +157,9 @@ impl ScaleReport {
                 "scale report exceeds the {SCALE_MAX_REPORT_BYTES}-byte input ceiling"
             )));
         }
+        forge_kernel::validate_unique_json_keys(input).map_err(|error| {
+            crate::VerifyError::new(format!("invalid scale report JSON: {error}"))
+        })?;
         serde_json::from_str(input)
             .map_err(|error| crate::VerifyError::new(format!("invalid scale report JSON: {error}")))
     }
@@ -1034,7 +1037,7 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
         });
     }
     Ok(ContentDraft {
-        schema_version: "forge-schema-v2".to_owned(),
+        schema_version: "forge-schema-v3".to_owned(),
         rules_version: "forge-rules-v1".to_owned(),
         world_id: SCALE_WORLD_ID.to_owned(),
         contract: ContentContract::Fixture,
@@ -1045,6 +1048,7 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
             summary: "A synthetic capacity traveler.".to_owned(),
             character: scale_character(),
         }],
+        character_creation: None,
         locations,
         npcs: Vec::new(),
         actions: vec![ActionDefinition {

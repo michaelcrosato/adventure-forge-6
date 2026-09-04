@@ -14,18 +14,22 @@ mod reducer;
 
 pub use build_manifest::BuildManifest;
 pub use content::{
-    ActionDefinition, ActionPage, ActionView, CharacterPreset, CompiledContent, Condition,
+    ActionDefinition, ActionPage, ActionView, CharacterCreationChoice, CharacterCreationDefinition,
+    CharacterCreationSlot, CharacterPatch, CharacterPreset, CompiledContent, Condition,
     ContentContract, ContentDraft, ContentValidationError, Effect, LocationDefinition,
     NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,
 };
-pub use hash::{HashError, canonical_json_bytes, sha256_hex_bytes, sha256_json};
+pub use hash::{
+    HashError, canonical_json_bytes, sha256_hex_bytes, sha256_json, validate_unique_json_keys,
+};
 pub use model::{
-    ActionId, BuildId, Character, CharacterId, Event, EventKind, FacetValue, GameState, Knowledge,
-    KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, LocationRuntime, Memory, NpcId,
-    NpcState, ScheduledEvent, WorldId, WorldState,
+    ActionId, BuildId, Character, CharacterChoiceSelection, CharacterId, CharacterSelection,
+    CharacterStart, Event, EventKind, FacetValue, GameState, Knowledge, KnowledgeProvenance,
+    KnowledgeProvenanceKind, LocationId, LocationRuntime, Memory, NpcId, NpcState, ScheduledEvent,
+    WorldId, WorldState,
 };
 pub use reducer::{
     CanonicalAction, KernelError, Transition, enumerate_legal_actions, legal_action_digest, step,

@@ -1,7 +1,7 @@
 # Project State
 
 Updated: 2026-09-03  
-Manager cycle: 9
+Manager cycle: 10
 Release state: playable CLI slice; no public release
 Active milestone: 1 — Complete Split Tide slice
 
@@ -11,14 +11,15 @@ Active milestone: 1 — Complete Split Tide slice
 - `origin` is the public HTTPS repository `https://github.com/michaelcrosato/adventure-forge-6`.
 - The four founding documents are preserved in commit `594183b`, consolidated into `PLAN.md`, and removed from the live tree.
 - The authoritative kernel, production content compiler, replay layer, and player CLI pass the local mechanical gate.
-- The Split Tide production pack contains 6 connected locations, 5 named inhabitants, 2 complete starting presets, and 47 programmed action definitions.
-- Replay receipts bind authored preset genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
-- Players can start as Ilyan or Rook, page or search every current legal action, save atomically, resume, and render a verified replay.
+- The Split Tide production pack contains 6 connected locations, 5 named inhabitants, 2 complete starting presets, 6 two-way creation axes, 64 valid custom combinations, and 47 programmed action definitions.
+- Replay receipts bind authored preset or canonical custom genesis, canonical actions, legal-set identities, entropy, events, states, and player-visible observations.
+- Players can start as Ilyan or Rook or create a named custom character, review or preview authored choices, page or search every current legal action, save atomically, resume, and render a verified replay.
 - Player input is bounded to 4 KiB per line and 1,024 lines per session; public CLI failures omit host paths, operating-system details, verifier internals, and final-state identifiers.
 - A fail-closed Linux Bubblewrap rehearsal runs the stripped release player as UID/GID 65534 with no capabilities, no repository or host tools, no network, a read-only root, and only one writable save directory; it applies and probes process, memory, descriptor, output, wall-clock, and input limits, then checks the exact save with a separately built verifier.
-- Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from canonical action identities.
-- Nine checked scenario witnesses cover the two Milestone 0 character paths, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
-- Every scenario is bound to a reviewed ID, preset, seed, exact full-parameter recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
+- Player save files omit hidden state, events, entropy, and observations; the trusted replay layer reconstructs those claims from a preset or canonical public creation recipe plus canonical action identities.
+- Eleven checked scenario witnesses cover the two Milestone 0 preset paths, two mechanically mixed custom characters, all five exclusive Sluice outcomes through their matching return consequences, and representative paths through both authored areas.
+- Every scenario is bound to a reviewed ID, canonical authored start, seed, exact full-parameter action recipe, and hidden semantic postconditions; relabeling and alternate valid path substitution fail verification.
+- Content, player-trace, detailed-trace, evidence-witness, and scale-report JSON decoders reject duplicate object keys before typed maps can collapse them.
 - A checked, clean-process crawl expands 44 states from both presets, reaches all 6 locations, executes 283 advertised canonical actions, and covers all 47 authored definitions within explicit depth, state, frontier, and action budgets.
 - The crawl carries an opaque ordered execution receipt over starts, expansions, complete action catalogs, events, entropy, and transitions; an independent ascending action-ID oracle rejects self-consistent catalog permutations.
 - A separate checked capacity fixture compiles exactly 500 terminal synthetic locations, proves the same location-ID set through source, compiled content, runtime admission, independent graph traversal, and 500 canonical travel transitions, and stays within reviewed graph-frontier, catalog-work, and serialization ceilings.
@@ -30,7 +31,7 @@ Active milestone: 1 — Complete Split Tide slice
 
 | Area | State | Direct evidence | Next proof |
 | --- | --- | --- | --- |
-| Deep character customization | Partial | Production `new_game` presets for Ilyan/Rook expose different same-scene action sets and contextual reactions | Creation UI, broader reactions, risks, prices, and outcomes |
+| Deep character customization | Partial | Kernel-owned creation derives 64 combinations from 6 authored axes; every combination validates and has at least 2 meaningful opening actions; each axis changes a legal set in an enumerated context; two hybrid recipes have checked fresh-process witnesses | Broader reactions, risks, prices, relationships, and outcomes across longer play |
 | Concise language | Partial | Compiler enforces category, label, sentence, result, variant, and routine-observation budgets | Dialogue, readability, active-voice, and reading tests |
 | One persistent world | Partial | One connected state graph; Lowsail warning changes Sluice legality; Sluice changes Lowsail return; consequential outcomes are mutually exclusive | Long-session and broader cross-region continuity |
 | Skyrim breadth | Not built | A checked 500-location synthetic fixture proves engine/compiler capacity only; generated nodes count as no authored breadth | Authored expansion waves and blind comparative evidence |
@@ -38,17 +39,17 @@ Active milestone: 1 — Complete Split Tide slice
 | Action-first play | Partial | Result-first observations and scripted CLI transcripts put numbered legal actions directly after concise results | Blind session and action/read measurements |
 | No fixed action cap | Partial | Kernel pages cover 256 executable stress actions; CLI `next`, `prev`, `all`, and full-catalog search tests preserve the current catalog; the scale fixture consumes its complete paged travel catalog | Independent large-catalog process witness |
 | Deterministic authority | Partial | Fresh processes reproduce the witnesses, crawl, and scale report; a neutral-controlled source-copy gate kills ambient kernel order, page order, frontier order, and process-ID receipt mutants | Broader property exploration plus hash, manifest, entropy, and persistence mutants |
-| Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v2 ABI, entropy, and content | Independent recomputation and mutation corpus |
-| Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, receipt tamper rejection, genesis reconstruction, exact resumed parity, and nine checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
+| Build identity and validation | Partial | Trusted manifest binds kernel/compiler/replay sources, lockfile, pinned toolchain, config, schema v3 ABI, entropy, and content; ambiguous duplicate-key JSON is rejected | Independent recomputation and mutation corpus |
+| Replay and persistence | Partial | Atomic bounded player-safe saves, CLI replay/resume, full-trace round-trip, recipe and receipt tamper rejection, preset/custom genesis reconstruction, exact resumed parity, and eleven checked clean-process scenarios | Broader corruption corpus and long-session witnesses |
 | Blind play | Partial | A fail-closed release-only Bubblewrap rehearsal clears the environment, confines writes, isolates network access, rejects source/symlink probes, scans hidden fields, reproduces two sessions byte-for-byte, and verifies the save afterward | Run an actual blind-capable player/model inside the proven boundary with an embedded observation canary |
 | Manager operation | Partial | Charter, plan, accepted delegated implementation, rejected first candidate, and task-splitting process change | Full verified-finding improvement cycle |
 
 ## Active queue
 
 1. Run the first actual blind-capable player session through the proven locked boundary, with an embedded observation canary.
-2. Add a creation flow beyond the two authored proof presets.
-3. Add broader text-policy and long-session checks before expanding authored regions.
-4. Extend the mutation corpus to hash canonicalization, manifest sensitivity, entropy, stale-action bypass, remote memory, prose checks, and hidden-state leakage.
+2. Add broader text-policy and long-session checks before expanding authored regions.
+3. Extend the mutation corpus to hash canonicalization, manifest sensitivity, entropy, stale-action bypass, remote memory, prose checks, and hidden-state leakage.
+4. Deepen creator-dependent reactions, risks, prices, relationships, and outcomes from blind and long-session findings.
 5. Define the first authored expansion wave only after blind Split Tide findings are replayed.
 
 ## Delegation ledger
@@ -84,6 +85,9 @@ Active milestone: 1 — Complete Split Tide slice
 | 9 | Nondeterminism architecture | `gpt-5.6-luna` / max | Design representative ordering, entropy, hash, and manifest mutants | Exact seams, expected killers, and false-kill controls | Accepted; ordered crawl receipt and source-copy strategy integrated, broader corpus queued |
 | 9 | Nondeterminism threat model | `gpt-5.6-luna` / max | Find permutations and process drift the existing evidence could miss | Severity-ranked gaps and independent-oracle criteria | Accepted; order-insensitive crawl projection closed before mutation claims |
 | 9 | Mutation harness review | `gpt-5.6-luna` / max | Compare safe, fast mutation strategies for the existing CI bar | Maintainable commands with no production mutant hooks | Accepted; disposable source patch, shared target cache, locked builds, and focused process test selected |
+| 10 | Character-creation architecture | `gpt-5.6-luna` / max | Design authoritative modular creation without accepting client-built character sheets | Typed recipe, merge rules, provenance, replay migration, and acceptance tests | Accepted; finite authored patches, canonical selections, and state provenance integrated |
+| 10 | Creator CLI benchmark | `gpt-5.6-luna` / max | Design a concise terminal flow that preserves kernel authority | Command grammar, review/preview/back/cancel behavior, save shape, and focused tests | Accepted; `forge create` and public-recipe persistence integrated |
+| 10 | Creation threat model | `gpt-5.6-luna` / max | Audit state admission, duplicate keys, tampering, replay, and evidence gaps | P0/P1 blockers plus minimum evidence | Accepted after closing arbitrary-genesis, duplicate-key, canonical-recipe, tamper, and custom-witness gaps |
 
 The first three benchmark tasks produced relevant results with little manager correction. Timing and cost were not exposed by the collaboration interface, so no numeric speed or cost comparison is claimed.
 
@@ -121,11 +125,11 @@ The first hardening task became too broad and was interrupted during a file rewr
 
 ### D-008: Production starts and observations are replay claims
 
-Production compilation is required by a trusted caller rather than selected only by the content document. A production trace reconstructs its named preset and seed, and every initial and post-action player observation is independently recomputed during replay. Raw structurally valid states remain useful kernel inputs, but they are not accepted as evidence without a verified trace lineage.
+Production compilation is required by a trusted caller rather than selected only by the content document. A production trace reconstructs its named preset or canonical authored creation recipe and seed, and every initial and post-action player observation is independently recomputed during replay. Raw structurally valid states remain useful kernel inputs, but they are not accepted as evidence without a verified trace lineage.
 
 ### D-009: Player saves are replay recipes, not internal witnesses
 
-The detailed verifier trace contains authoritative state, events, entropy, and observations, so it stays behind the trusted player boundary. The portable player trace stores only its format and build, authored preset and seed, opaque selected action identities, and final state and receipt commitments. Resume and replay rebuild every step from the complete kernel-enumerated legal set. CLI saves use a bounded same-directory temporary file, durable file flush, atomic rename, and directory sync so a failed write does not first truncate a valid save.
+The detailed verifier trace contains authoritative state, events, entropy, and observations, so it stays behind the trusted player boundary. The portable player trace stores only its format and build, an authored preset or public canonical creation recipe and seed, opaque selected action identities, and final state and receipt commitments. Resume and replay rebuild genesis and every step through compiled content and the complete kernel-enumerated legal set. CLI saves use a bounded same-directory temporary file, durable file flush, atomic rename, and directory sync so a failed write does not first truncate a valid save.
 
 ### D-010: Evidence binds the game build and the verifier separately
 
@@ -141,7 +145,7 @@ All five authored Sluice outcomes share one authoritative `sluice_outcome_chosen
 
 ### D-013: Scenario names bind reviewed recipes and semantic claims
 
-The verifier owns one registry for the exact reviewed scenario-ID set, preset and seed, exact ordered actions with canonical complete parameter maps, and hidden postconditions. Each public witness carries an opaque digest of that specification in addition to game and verifier identities. Generation and checking require the exact recipe, validate persistent world, location, character, visit, observation, and exclusivity expectations, and reject missing, substituted, or duplicate IDs, claims, or recipes. Registry-driven process tests require exactly one checked file per scenario.
+The verifier owns one registry for the exact reviewed scenario-ID set, canonical preset or custom start and seed, exact ordered actions with canonical complete parameter maps, and hidden postconditions. Each public witness carries an opaque digest of that specification in addition to game and verifier identities. Generation and checking require the exact recipe, validate persistent world, location, character, visit, observation, and exclusivity expectations, and reject missing, substituted, or duplicate IDs, claims, or recipes. Registry-driven process tests require exactly one checked file per scenario.
 
 ### D-014: Synthetic scale is capacity evidence, never shipped breadth
 
@@ -165,6 +169,12 @@ The mechanical bar copies current workspace inputs into a temporary directory, a
 
 Four selectors then introduce undeclared ambient dependence into kernel action order, paged catalog order, first-frontier scheduling, and a process-specific crawl receipt. The checked process test must fail for an expected crawl-contract reason in every case. The production crawler independently requires strictly ascending canonical action IDs, checks every page against that vector, and chains ordered starts, expansions, catalogs, events, entropy, and transitions into its checked execution receipt. Aggregate coverage equality alone is no longer sufficient evidence of deterministic exploration.
 
+### D-018: Character creation is an authored recipe, not a writable sheet
+
+Production content defines a bounded set of ordered slots and typed character patches. The player supplies a short safe name plus exactly one public choice ID per slot; the kernel canonicalizes the vector, rejects missing, unknown, duplicate, conflicting, cosmetic-only, or out-of-bounds definitions, and derives the complete character. It never accepts client-supplied aptitudes, tags, inventory, history, reputation, or facets.
+
+Every state carries character-start provenance that no authored effect can mutate. Production state admission reconstructs the named preset or custom recipe against the exact build and compares all non-progressed character fields. Custom IDs hash the build and canonical selection. Detailed and player-safe replay formats bind the same canonical recipe and seed, while portable saves omit the derived character and hidden world. Source ordering is normalized, semantic patch changes alter the build ID, reserved typed axes cannot be shadowed by extensible facets, and all JSON transport boundaries reject duplicate object keys before typed deserialization.
+
 ## Risks requiring early tests
 
 - Canonical hashing may omit an authoritative input or depend on serialization details.
@@ -178,7 +188,7 @@ Four selectors then introduce undeclared ambient dependence into kernel action o
 
 ## Current verification snapshot
 
-`./verify` passes formatting, warnings-as-errors, all workspace tests, four source-copy nondeterminism mutants after a passing neutral control, the locked-player process rehearsal, and whitespace checks. The snapshot contains 28 kernel tests, 1 content-boundary test, 7 real-content integration tests, 10 replay unit tests, 2 real Split Tide replay tests, 12 CLI tests, 17 evidence-verifier unit tests, and 3 clean-process integration tests: 80 Rust tests plus 19 isolated player-boundary process invocations and 4 deliberately killed mutants. It covers deterministic recording, detailed and player-safe JSON reconstruction, hidden-field omission across all scenarios and the scale report, field and player-record tamper rejection, malformed-state rejection, preset-genesis reconstruction, observation binding, atomic replacement and failed-install preservation, exact save-size and player-input boundaries, sanitized public failures, session line limits, resume parity, independent player-trace checking, complete current-catalog CLI paging/search, independent canonical catalog ordering, ordered crawl execution receipts, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, byte-identical checked witness, crawl, and scale evidence from separate processes, and the locked boundary probes described in D-016. The boundary harness emits a player-safe local transcript, trace, independent trusted check, bundle hash manifest, and limitation-bearing report under `artifacts/local/locked-player-boundary/`. The nine checked scenario files cover both character proofs, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, comparative area depth, or an actual blind-player session. The project does not yet cover a blind-capable model process, an embedded observation canary, the full mutation corpus, the full text policy, final game scale, or comparative area depth.
+`./verify` passes formatting, warnings-as-errors, all workspace tests, four source-copy nondeterminism mutants after a passing neutral control, the locked-player process rehearsal, and whitespace checks. The snapshot contains 31 kernel tests, 2 content-boundary tests, 10 real-content integration tests, 12 replay unit tests, 2 real Split Tide replay tests, 15 CLI tests, 17 evidence-verifier unit tests, and 3 clean-process integration tests: 92 Rust tests plus 19 isolated player-boundary process invocations and 4 deliberately killed mutants. It covers all 64 creator combinations, per-axis legal-action differences, preset-extreme equivalence, typed patch conflicts and bounds, custom provenance forgery rejection, canonical selection ordering, duplicate-key JSON rejection, custom save/replay/resume parity and tampering, deterministic recording, hidden-field omission across all scenarios and the scale report, malformed-state rejection, preset/custom genesis reconstruction, observation binding, atomic replacement and failed-install preservation, exact save-size and player-input boundaries, sanitized public failures, session line limits, independent player-trace checking, complete current-catalog CLI paging/search, independent canonical catalog ordering, ordered crawl execution receipts, all five exclusive outcome selections, independent crawler resource budgets, exact scenario parameters and reviewed scenario-set enforcement, duplicate registry rejection, relabel and alternate-path rejection, byte-identical checked witness, crawl, and scale evidence from separate processes, and the locked boundary probes described in D-016. The boundary harness emits a player-safe local transcript, trace, independent trusted check, bundle hash manifest, and limitation-bearing report under `artifacts/local/locked-player-boundary/`. The eleven checked scenario files cover both preset proofs, two mechanically mixed custom characters, all five outcome-to-return paths, and representative paths through both authored areas. The production crawl reaches every current location and definition while executing every canonical action advertised by its 44 expanded states. The separate capacity fixture validates exactly 500 synthetic locations, all 500 complete per-state paged catalogs, and 500 canonical hops under fixed deterministic resource ceilings. Fresh processes reproduce and recheck `evidence/scale/synthetic-ring-500.json` byte for byte. Neither bounded report claims exhaustive production state-space coverage, authored world breadth, comparative area depth, or an actual blind-player session. The project does not yet cover a blind-capable model process, an embedded observation canary, the full mutation corpus, the full text policy, final game scale, or comparative area depth.
 
 ## Next reassessment trigger
 

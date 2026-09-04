@@ -6,19 +6,20 @@ The first playable arc is **The Split Tide**. A forged water order and a stolen 
 
 ## Current state
 
-Milestone 0 evidence passes, and the project is building out Milestone 1 from a playable CLI slice. It is not yet a public release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
+Milestone 0 evidence passes, and the project is building out Milestone 1 from a playable CLI slice with authoritative character creation. It is not yet a public release and makes no claim of final world scale. See `PROJECT_STATE.md` for current evidence and `PLAN.md` for the complete product and delivery strategy.
 
 ## Play and verify
 
-List the two current characters, start a game, or run a short deterministic demo:
+Create a character, select either proof preset, or run a short deterministic demo:
 
 ```bash
 cargo run -p forge-cli -- characters
+cargo run -p forge-cli -- create
 cargo run -p forge-cli -- play --character ilyan
 cargo run -p forge-cli -- demo --character rook --output rook.trace.json
 ```
 
-During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
+The creator offers six authored two-way axes—lineage, origin, calling, value, burden, and history—for 64 validated combinations. The CLI submits only the chosen public IDs; the kernel derives the complete character and binds its canonical recipe into state and replay provenance. During play, use a displayed number, `next`, `prev`, `all`, `find TEXT`, `save PATH`, `help`, or `quit`. A save contains public start inputs, chosen opaque action identities, and final commitments—not hidden world state. Replay and resume reconstruct every step through the authoritative kernel:
 
 ```bash
 cargo run -p forge-cli -- replay rook.trace.json
@@ -35,19 +36,20 @@ On Linux, the same gate builds a stripped release-only player bundle and runs a 
 
 This scripted rehearsal is process-isolation evidence, not an actual blind-AI playtest, a model prompt-injection test, or proof against binary reverse engineering. Those claims remain separate milestone requirements.
 
-All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 character paths, all five Split Tide outcomes, and one representative path through each authored area:
+All checked witnesses are independently regenerated and replayed in fresh processes by the same gate. They remain human-readable while exposing only public observations and opaque commitments. The registry contains two Milestone 0 preset paths, two hybrid creator paths, all five Split Tide outcomes, and one representative path through each authored area:
 
 ```bash
 cargo run -p forge-verify -- scenarios
 cargo run -p forge-verify -- crawl
 cargo run -p forge-verify -- scale
 cargo run -p forge-verify -- check evidence/witnesses/m0-ilyan.json
+cargo run -p forge-verify -- check evidence/witnesses/m1-custom-cross-current.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-outcome-split-flow.json
 cargo run -p forge-verify -- check evidence/witnesses/m1-area-red-sluice.json
 cargo run -p forge-verify -- check-scale evidence/scale/synthetic-ring-500.json
 ```
 
-Each scenario has an opaque binding over its ID, preset, seed, complete parameter maps, ordered recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. Area witnesses are representative contract evidence, not a claim of final world depth.
+Each scenario has an opaque binding over its ID, canonical authored start, seed, complete parameter maps, ordered action recipe, and semantic expectations. The trusted checker rejects relabeling and alternate valid paths, then verifies required persistent consequences without serializing hidden state. JSON inputs are preflighted for duplicate object keys before typed decoding. Area witnesses are representative contract evidence, not a claim of final world depth.
 
 The checked crawl starts from both authored characters. Within explicit depth, state, frontier, and action budgets, it reconstructs every paged catalog it visits, executes and observes every advertised canonical action, reaches all six current locations, and covers all 47 current definitions. The gate reproduces `evidence/crawls/split-tide.json` byte for byte in separate processes; this is bounded coverage, not a claim that every possible world state was exhausted.
 

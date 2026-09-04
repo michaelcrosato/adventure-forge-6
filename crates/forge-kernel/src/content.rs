@@ -1,13 +1,17 @@
 use crate::build_manifest::BuildManifest;
 use crate::hash::sha256_json;
 use crate::model::{
-    Character, FacetValue, GameState, KnowledgeProvenance, KnowledgeProvenanceKind, LocationId,
-    NpcId, NpcState,
+    Character, CharacterChoiceSelection, CharacterSelection, CharacterStart, FacetValue, GameState,
+    KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, NpcId, NpcState,
+    is_reserved_character_facet_axis,
 };
 use crate::{EntropyState, LocationRuntime};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::fmt::{Display, Formatter};
+
+const MAX_CREATION_SLOTS: usize = 16;
+const MAX_CREATION_CHOICES_PER_SLOT: usize = 64;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -70,6 +74,60 @@ pub struct CharacterPreset {
     pub character: Character,
 }
 
+/// A closed, typed contribution made by an authored creation choice.
+/// Fields are merged by the kernel; clients never submit this structure.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct CharacterPatch {
+    pub lineage: Option<String>,
+    pub origin: Option<String>,
+    pub background: Option<String>,
+    pub aptitudes: BTreeMap<String, i64>,
+    pub skills: BTreeSet<String>,
+    pub values: BTreeSet<String>,
+    pub traits: BTreeSet<String>,
+    pub flaws: BTreeSet<String>,
+    pub appearance: BTreeMap<String, String>,
+    pub affiliations: BTreeMap<String, i64>,
+    pub reputation: BTreeMap<String, i64>,
+    pub knowledge: BTreeSet<String>,
+    pub inventory: BTreeMap<String, u32>,
+    pub resources: BTreeMap<String, i64>,
+    pub injuries: BTreeSet<String>,
+    pub deeds: BTreeSet<String>,
+    pub promises: BTreeSet<String>,
+    pub discoveries: BTreeSet<String>,
+    pub facets: BTreeMap<String, FacetValue>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterCreationChoice {
+    pub id: String,
+    pub display_name: String,
+    pub summary: String,
+    pub patch: CharacterPatch,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterCreationSlot {
+    pub id: String,
+    pub order: u16,
+    pub display_name: String,
+    pub choices: Vec<CharacterCreationChoice>,
+}
+
+/// Finite authored axes from which the kernel can materialize custom starts.
+/// The Cartesian product is not precompiled or trusted as client data.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct CharacterCreationDefinition {
+    #[serde(default)]
+    pub base: CharacterPatch,
+    pub slots: Vec<CharacterCreationSlot>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Observation {
@@ -120,6 +178,8 @@ pub struct ContentDraft {
     pub start_location: LocationId,
     #[serde(default)]
     pub character_presets: Vec<CharacterPreset>,
+    #[serde(default)]
+    pub character_creation: Option<CharacterCreationDefinition>,
     #[serde(default)]
     pub locations: Vec<LocationDefinition>,
     #[serde(default)]
@@ -521,6 +581,7 @@ struct ContentIdentity<'a> {
     world_id: &'a str,
     start_location: &'a LocationId,
     character_presets: &'a BTreeMap<String, CharacterPreset>,
+    character_creation: &'a Option<CharacterCreationDefinition>,
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
     actions: &'a BTreeMap<String, ActionDefinition>,
@@ -535,6 +596,7 @@ pub struct CompiledContent {
     world_id: String,
     start_location: LocationId,
     character_presets: BTreeMap<String, CharacterPreset>,
+    character_creation: Option<CharacterCreationDefinition>,
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
     actions: BTreeMap<String, ActionDefinition>,
@@ -561,6 +623,17 @@ impl CompiledContent {
             .into_iter()
             .map(|preset| (preset.id.clone(), preset))
             .collect::<BTreeMap<_, _>>();
+        let character_creation = draft.character_creation.map(|mut definition| {
+            definition.slots.sort_by(|left, right| {
+                left.order
+                    .cmp(&right.order)
+                    .then_with(|| left.id.cmp(&right.id))
+            });
+            for slot in &mut definition.slots {
+                slot.choices.sort_by(|left, right| left.id.cmp(&right.id));
+            }
+            definition
+        });
         let locations = draft
             .locations
             .into_iter()
@@ -605,6 +678,7 @@ impl CompiledContent {
             world_id: &world_id,
             start_location: &start_location,
             character_presets: &character_presets,
+            character_creation: &character_creation,
             locations: &locations,
             npcs: &npcs,
             actions: &actions,
@@ -616,6 +690,7 @@ impl CompiledContent {
             world_id,
             start_location,
             character_presets,
+            character_creation,
             locations,
             npcs,
             actions,
@@ -659,6 +734,10 @@ impl CompiledContent {
         self.character_presets.iter()
     }
 
+    pub fn character_creation(&self) -> Option<&CharacterCreationDefinition> {
+        self.character_creation.as_ref()
+    }
+
     pub fn location(&self, id: &str) -> Option<&LocationDefinition> {
         self.locations.get(id)
     }
@@ -698,6 +777,7 @@ impl CompiledContent {
             world_id: &self.world_id,
             start_location: &self.start_location,
             character_presets: &self.character_presets,
+            character_creation: &self.character_creation,
             locations: &self.locations,
             npcs: &self.npcs,
             actions: &self.actions,
@@ -726,6 +806,155 @@ impl CompiledContent {
                 "unknown character preset {character_id}"
             )));
         };
+        self.new_game_with_character(
+            preset.character.clone(),
+            CharacterStart::Preset {
+                character_preset_id: character_id.to_owned(),
+            },
+            seed,
+        )
+    }
+
+    /// Normalize and validate a player selection against the compiled slots.
+    /// Input ordering is presentation-only; the returned order is canonical.
+    pub fn canonical_character_selection(
+        &self,
+        selection: &CharacterSelection,
+    ) -> Result<CharacterSelection, ContentValidationError> {
+        let definition = self.character_creation.as_ref().ok_or_else(|| {
+            single_validation_error("compiled content does not offer custom character creation")
+        })?;
+        let name = canonical_character_name(&selection.name)?;
+        if selection.choices.len() != definition.slots.len() {
+            return Err(single_validation_error(format!(
+                "character selection has {} choices; expected {}",
+                selection.choices.len(),
+                definition.slots.len()
+            )));
+        }
+        let mut supplied = BTreeMap::new();
+        for selected in &selection.choices {
+            if supplied
+                .insert(selected.slot_id.as_str(), selected.choice_id.as_str())
+                .is_some()
+            {
+                return Err(single_validation_error(format!(
+                    "character selection repeats slot {}",
+                    selected.slot_id
+                )));
+            }
+        }
+        let mut choices = Vec::new();
+        choices
+            .try_reserve(definition.slots.len())
+            .map_err(|error| single_validation_error(format!("character selection: {error:?}")))?;
+        for slot in &definition.slots {
+            let choice_id = supplied.get(slot.id.as_str()).ok_or_else(|| {
+                single_validation_error(format!("character selection is missing slot {}", slot.id))
+            })?;
+            if !slot.choices.iter().any(|choice| choice.id == **choice_id) {
+                return Err(single_validation_error(format!(
+                    "character selection has unknown choice {} for slot {}",
+                    choice_id, slot.id
+                )));
+            }
+            choices.push(CharacterChoiceSelection {
+                slot_id: slot.id.clone(),
+                choice_id: (*choice_id).to_owned(),
+            });
+        }
+        for slot_id in supplied.keys() {
+            if !definition.slots.iter().any(|slot| slot.id == **slot_id) {
+                return Err(single_validation_error(format!(
+                    "character selection has unknown slot {slot_id}"
+                )));
+            }
+        }
+        Ok(CharacterSelection { name, choices })
+    }
+
+    /// Materialize a custom character solely from compiled authored patches.
+    pub fn custom_character(
+        &self,
+        selection: &CharacterSelection,
+    ) -> Result<Character, ContentValidationError> {
+        let canonical = self.canonical_character_selection(selection)?;
+        self.custom_character_from_canonical(&canonical)
+    }
+
+    /// Construct an authoritative custom starting state from a public recipe.
+    pub fn new_custom_game(
+        &self,
+        selection: &CharacterSelection,
+        seed: u64,
+    ) -> Result<GameState, ContentValidationError> {
+        let canonical = self.canonical_character_selection(selection)?;
+        let character = self.custom_character_from_canonical(&canonical)?;
+        self.new_game_with_character(
+            character,
+            CharacterStart::Custom {
+                selection: canonical,
+            },
+            seed,
+        )
+    }
+
+    fn custom_character_from_canonical(
+        &self,
+        selection: &CharacterSelection,
+    ) -> Result<Character, ContentValidationError> {
+        #[derive(Serialize)]
+        struct CustomCharacterIdentity<'a> {
+            domain: &'static str,
+            build_id: &'a str,
+            selection: &'a CharacterSelection,
+        }
+
+        let definition = self.character_creation.as_ref().ok_or_else(|| {
+            single_validation_error("compiled content does not offer custom character creation")
+        })?;
+        let digest = sha256_json(&CustomCharacterIdentity {
+            domain: "forge-custom-character-v1",
+            build_id: &self.build_id,
+            selection,
+        })
+        .map_err(|error| single_validation_error(error.to_string()))?;
+        let mut character = empty_character(format!("custom-{digest}"));
+        apply_character_patch(&mut character, &definition.base, "creation base")?;
+        for selected in &selection.choices {
+            let slot = definition
+                .slots
+                .iter()
+                .find(|slot| slot.id == selected.slot_id)
+                .expect("canonical selection slot must be compiled");
+            let choice = slot
+                .choices
+                .iter()
+                .find(|choice| choice.id == selected.choice_id)
+                .expect("canonical selection choice must be compiled");
+            apply_character_patch(
+                &mut character,
+                &choice.patch,
+                &format!("creation choice {}.{}", slot.id, choice.id),
+            )?;
+        }
+        if character.lineage.is_empty()
+            || character.origin.is_empty()
+            || character.background.is_empty()
+        {
+            return Err(single_validation_error(
+                "character creation does not define lineage, origin, and background",
+            ));
+        }
+        Ok(character)
+    }
+
+    fn new_game_with_character(
+        &self,
+        character: Character,
+        character_start: CharacterStart,
+        seed: u64,
+    ) -> Result<GameState, ContentValidationError> {
         let mut locations = self.empty_location_runtime();
         let mut npcs = BTreeMap::new();
         for (id, definition) in self.npcs() {
@@ -748,7 +977,7 @@ impl CompiledContent {
                 .insert(id.clone());
             npcs.insert(id.clone(), npc);
         }
-        let state = GameState::new(
+        let mut state = GameState::new(
             self.build_id().to_owned(),
             crate::WorldState::new(
                 self.world_id().to_owned(),
@@ -756,9 +985,10 @@ impl CompiledContent {
                 locations,
                 npcs,
             ),
-            preset.character.clone(),
+            character,
             EntropyState::new(seed),
         );
+        state.character_start = character_start;
         self.validate_state(&state)?;
         Ok(state)
     }
@@ -952,17 +1182,42 @@ impl CompiledContent {
             errors.push("character id cannot be empty");
         }
         if self.contract == ContentContract::Production {
-            match self
-                .character_presets
-                .values()
-                .find(|preset| preset.character.id == state.character.id)
-            {
-                Some(preset)
-                    if static_character_fields_match(&state.character, &preset.character) => {}
-                Some(_) => errors
-                    .push("production character identity fields differ from its compiled preset"),
-                None => errors
-                    .push("production character id does not belong to a compiled character preset"),
+            match &state.character_start {
+                CharacterStart::Preset {
+                    character_preset_id,
+                } => match self.character_preset(character_preset_id) {
+                    Some(preset)
+                        if static_character_fields_match(&state.character, &preset.character) => {}
+                    Some(_) => errors.push(
+                        "production character identity fields differ from its compiled preset",
+                    ),
+                    None => errors.push(
+                        "production character start does not name a compiled character preset",
+                    ),
+                },
+                CharacterStart::Custom { selection } => {
+                    match self.canonical_character_selection(selection) {
+                        Ok(canonical) if &canonical != selection => errors.push(
+                            "production custom character selection is not in canonical order",
+                        ),
+                        Ok(canonical) => match self.custom_character_from_canonical(&canonical) {
+                            Ok(expected)
+                                if static_character_fields_match(&state.character, &expected) => {}
+                            Ok(_) => errors.push(
+                                "production custom character fields differ from its compiled recipe",
+                            ),
+                            Err(error) => errors.push(format!(
+                                "production custom character recipe is invalid: {error}"
+                            )),
+                        },
+                        Err(error) => errors.push(format!(
+                            "production custom character selection is invalid: {error}"
+                        )),
+                    }
+                }
+                CharacterStart::Fixture => {
+                    errors.push("production character cannot use fixture provenance")
+                }
             }
         }
         if state.world.locations.len() != self.locations.len() {
@@ -1203,9 +1458,24 @@ fn validate_draft(
                 preset.character.id
             ));
         }
+        for key in preset.character.facets.keys() {
+            if is_reserved_character_facet_axis(key) {
+                errors.push(format!(
+                    "character preset {} uses reserved facet axis {key}",
+                    preset.id
+                ));
+            }
+        }
     }
     if production && draft.character_presets.len() < 2 {
         errors.push("production content requires at least two character presets");
+    }
+    match &draft.character_creation {
+        Some(definition) => validate_character_creation(definition, &mut errors),
+        None if production => {
+            errors.push("production content requires authored character creation")
+        }
+        None => {}
     }
     for location in &draft.locations {
         validate_text_variants(
@@ -1257,6 +1527,331 @@ fn validate_draft(
     } else {
         Err(errors)
     }
+}
+
+fn validate_character_creation(
+    definition: &CharacterCreationDefinition,
+    errors: &mut ContentValidationError,
+) {
+    if definition.slots.len() < 2 {
+        errors.push("character creation requires at least two slots");
+    }
+    if definition.slots.len() > MAX_CREATION_SLOTS {
+        errors.push(format!(
+            "character creation exceeds {MAX_CREATION_SLOTS} slots"
+        ));
+    }
+    validate_character_patch(&definition.base, "character creation base", false, errors);
+
+    let mut slot_ids = BTreeSet::new();
+    let mut slot_orders = BTreeSet::new();
+    let mut write_owners = BTreeMap::<String, String>::new();
+    register_patch_writes(&definition.base, "base", &mut write_owners, errors);
+
+    for slot in &definition.slots {
+        if !valid_creation_id(&slot.id) {
+            errors.push(format!(
+                "character creation slot {} has an invalid id",
+                slot.id
+            ));
+        }
+        if !slot_ids.insert(&slot.id) {
+            errors.push(format!("character creation repeats slot id {}", slot.id));
+        }
+        if !slot_orders.insert(slot.order) {
+            errors.push(format!(
+                "character creation repeats slot order {}",
+                slot.order
+            ));
+        }
+        if slot.display_name.trim().is_empty() || word_count(&slot.display_name) > 6 {
+            errors.push(format!(
+                "character creation slot {} has an invalid display name",
+                slot.id
+            ));
+        }
+        if slot.choices.len() < 2 {
+            errors.push(format!(
+                "character creation slot {} requires at least two choices",
+                slot.id
+            ));
+        }
+        if slot.choices.len() > MAX_CREATION_CHOICES_PER_SLOT {
+            errors.push(format!(
+                "character creation slot {} exceeds {MAX_CREATION_CHOICES_PER_SLOT} choices",
+                slot.id
+            ));
+        }
+
+        let mut choice_ids = BTreeSet::new();
+        let mut slot_writes = BTreeSet::new();
+        for (choice_index, choice) in slot.choices.iter().enumerate() {
+            if !valid_creation_id(&choice.id) || !choice_ids.insert(&choice.id) {
+                errors.push(format!(
+                    "character creation slot {} has an invalid or duplicate choice id {}",
+                    slot.id, choice.id
+                ));
+            }
+            if choice.display_name.trim().is_empty() || word_count(&choice.display_name) > 8 {
+                errors.push(format!(
+                    "character creation choice {}.{} has an invalid display name",
+                    slot.id, choice.id
+                ));
+            }
+            let sentences = split_sentences(&choice.summary);
+            if choice.summary.trim().is_empty()
+                || sentences.len() > 2
+                || sentences.iter().any(|sentence| word_count(sentence) > 18)
+            {
+                errors.push(format!(
+                    "character creation choice {}.{} exceeds concise summary limits",
+                    slot.id, choice.id
+                ));
+            }
+            validate_character_patch(
+                &choice.patch,
+                &format!("character creation choice {}.{}", slot.id, choice.id),
+                true,
+                errors,
+            );
+            if slot.choices[..choice_index]
+                .iter()
+                .any(|earlier| earlier.patch == choice.patch)
+            {
+                errors.push(format!(
+                    "character creation slot {} has mechanically identical choices",
+                    slot.id
+                ));
+            }
+            slot_writes.extend(character_patch_write_targets(&choice.patch));
+        }
+        for target in slot_writes {
+            if let Some(previous) = write_owners.insert(target.clone(), slot.id.clone())
+                && previous != slot.id
+            {
+                errors.push(format!(
+                    "character creation {previous} and slot {} both write {target}",
+                    slot.id
+                ));
+            }
+        }
+    }
+
+    for (field, base_present, slot_covers) in [
+        (
+            "lineage",
+            definition.base.lineage.is_some(),
+            definition.slots.iter().any(|slot| {
+                slot.choices
+                    .iter()
+                    .all(|choice| choice.patch.lineage.is_some())
+            }),
+        ),
+        (
+            "origin",
+            definition.base.origin.is_some(),
+            definition.slots.iter().any(|slot| {
+                slot.choices
+                    .iter()
+                    .all(|choice| choice.patch.origin.is_some())
+            }),
+        ),
+        (
+            "background",
+            definition.base.background.is_some(),
+            definition.slots.iter().any(|slot| {
+                slot.choices
+                    .iter()
+                    .all(|choice| choice.patch.background.is_some())
+            }),
+        ),
+    ] {
+        if !base_present && !slot_covers {
+            errors.push(format!(
+                "character creation does not define {field} for every selection"
+            ));
+        }
+    }
+}
+
+fn validate_character_patch(
+    patch: &CharacterPatch,
+    owner: &str,
+    choice: bool,
+    errors: &mut ContentValidationError,
+) {
+    for (field, value) in [
+        ("lineage", patch.lineage.as_deref()),
+        ("origin", patch.origin.as_deref()),
+        ("background", patch.background.as_deref()),
+    ] {
+        if value.is_some_and(|value| !valid_authored_value(value)) {
+            errors.push(format!("{owner} has an invalid {field}"));
+        }
+    }
+    if choice && !character_patch_is_mechanical(patch) {
+        errors.push(format!("{owner} is cosmetic-only or empty"));
+    }
+    for (field, len) in [
+        ("aptitudes", patch.aptitudes.len()),
+        ("skills", patch.skills.len()),
+        ("values", patch.values.len()),
+        ("traits", patch.traits.len()),
+        ("flaws", patch.flaws.len()),
+        ("appearance", patch.appearance.len()),
+        ("affiliations", patch.affiliations.len()),
+        ("reputation", patch.reputation.len()),
+        ("knowledge", patch.knowledge.len()),
+        ("inventory", patch.inventory.len()),
+        ("resources", patch.resources.len()),
+        ("injuries", patch.injuries.len()),
+        ("deeds", patch.deeds.len()),
+        ("promises", patch.promises.len()),
+        ("discoveries", patch.discoveries.len()),
+        ("facets", patch.facets.len()),
+    ] {
+        if len > 128 {
+            errors.push(format!("{owner} has more than 128 {field} entries"));
+        }
+    }
+    for (key, value) in &patch.aptitudes {
+        if !valid_authored_value(key) || !(0..=10).contains(value) {
+            errors.push(format!("{owner} has invalid aptitude {key}"));
+        }
+    }
+    for (field, values) in [
+        ("skills", &patch.skills),
+        ("values", &patch.values),
+        ("traits", &patch.traits),
+        ("flaws", &patch.flaws),
+        ("knowledge", &patch.knowledge),
+        ("injuries", &patch.injuries),
+        ("deeds", &patch.deeds),
+        ("promises", &patch.promises),
+        ("discoveries", &patch.discoveries),
+    ] {
+        if values.iter().any(|value| !valid_authored_value(value)) {
+            errors.push(format!("{owner} has an invalid {field} entry"));
+        }
+    }
+    for (key, value) in &patch.appearance {
+        if !valid_authored_value(key) || !valid_authored_value(value) {
+            errors.push(format!("{owner} has invalid appearance {key}"));
+        }
+    }
+    for (field, values) in [
+        ("affiliations", &patch.affiliations),
+        ("reputation", &patch.reputation),
+        ("resources", &patch.resources),
+    ] {
+        for (key, value) in values {
+            if !valid_authored_value(key) || !(-1_000_000..=1_000_000).contains(value) {
+                errors.push(format!("{owner} has invalid {field} entry {key}"));
+            }
+        }
+    }
+    for (key, count) in &patch.inventory {
+        if !valid_authored_value(key) || *count == 0 || *count > 1_000_000 {
+            errors.push(format!("{owner} has invalid inventory entry {key}"));
+        }
+    }
+    for (key, value) in &patch.facets {
+        if is_reserved_character_facet_axis(key) {
+            errors.push(format!("{owner} uses reserved facet axis {key}"));
+        } else if !valid_authored_value(key) || !valid_facet_value(value) {
+            errors.push(format!("{owner} has invalid facet {key}"));
+        }
+    }
+}
+
+fn valid_creation_id(value: &str) -> bool {
+    !value.is_empty()
+        && value.len() <= 48
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
+        })
+}
+
+fn valid_authored_value(value: &str) -> bool {
+    !value.trim().is_empty() && value.len() <= 96 && !value.chars().any(char::is_control)
+}
+
+fn valid_facet_value(value: &FacetValue) -> bool {
+    match value {
+        FacetValue::Text(value) => valid_authored_value(value),
+        FacetValue::Number(value) => (-1_000_000..=1_000_000).contains(value),
+        FacetValue::Boolean(_) => true,
+        FacetValue::Tags(values) => {
+            values.len() <= 128 && values.iter().all(|value| valid_authored_value(value))
+        }
+    }
+}
+
+fn character_patch_is_mechanical(patch: &CharacterPatch) -> bool {
+    patch.lineage.is_some()
+        || patch.origin.is_some()
+        || patch.background.is_some()
+        || !patch.aptitudes.is_empty()
+        || !patch.skills.is_empty()
+        || !patch.values.is_empty()
+        || !patch.traits.is_empty()
+        || !patch.flaws.is_empty()
+        || !patch.affiliations.is_empty()
+        || !patch.reputation.is_empty()
+        || !patch.knowledge.is_empty()
+        || !patch.inventory.is_empty()
+        || !patch.resources.is_empty()
+        || !patch.injuries.is_empty()
+        || !patch.deeds.is_empty()
+        || !patch.promises.is_empty()
+        || !patch.discoveries.is_empty()
+        || !patch.facets.is_empty()
+}
+
+fn register_patch_writes(
+    patch: &CharacterPatch,
+    owner: &str,
+    owners: &mut BTreeMap<String, String>,
+    errors: &mut ContentValidationError,
+) {
+    for target in character_patch_write_targets(patch) {
+        if let Some(previous) = owners.insert(target.clone(), owner.to_owned())
+            && previous != owner
+        {
+            errors.push(format!(
+                "character creation {previous} and {owner} both write {target}"
+            ));
+        }
+    }
+}
+
+fn character_patch_write_targets(patch: &CharacterPatch) -> BTreeSet<String> {
+    let mut targets = BTreeSet::new();
+    if patch.lineage.is_some() {
+        targets.insert("lineage".to_owned());
+    }
+    if patch.origin.is_some() {
+        targets.insert("origin".to_owned());
+    }
+    if patch.background.is_some() {
+        targets.insert("background".to_owned());
+    }
+    extend_write_targets(&mut targets, "aptitudes", patch.aptitudes.keys());
+    extend_write_targets(&mut targets, "appearance", patch.appearance.keys());
+    extend_write_targets(&mut targets, "affiliations", patch.affiliations.keys());
+    extend_write_targets(&mut targets, "reputation", patch.reputation.keys());
+    extend_write_targets(&mut targets, "inventory", patch.inventory.keys());
+    extend_write_targets(&mut targets, "resources", patch.resources.keys());
+    extend_write_targets(&mut targets, "facets", patch.facets.keys());
+    targets
+}
+
+fn extend_write_targets<'a>(
+    targets: &mut BTreeSet<String>,
+    field: &str,
+    keys: impl Iterator<Item = &'a String>,
+) {
+    targets.extend(keys.map(|key| format!("{field}.{key}")));
 }
 
 fn condition_possible_at(condition: &Condition, location: &str) -> bool {
@@ -1915,9 +2510,158 @@ fn word_count(text: &str) -> usize {
     text.split_whitespace().count()
 }
 
+fn canonical_character_name(name: &str) -> Result<String, ContentValidationError> {
+    let canonical = name.split_whitespace().collect::<Vec<_>>().join(" ");
+    if canonical.is_empty() {
+        return Err(single_validation_error("character name cannot be empty"));
+    }
+    if canonical.len() > 48 {
+        return Err(single_validation_error(
+            "character name exceeds the 48-byte limit",
+        ));
+    }
+    if canonical.split_whitespace().count() > 4 {
+        return Err(single_validation_error(
+            "character name exceeds the 4-word limit",
+        ));
+    }
+    if !canonical
+        .chars()
+        .all(|character| character.is_alphanumeric() || matches!(character, ' ' | '-' | '\''))
+    {
+        return Err(single_validation_error(
+            "character name contains unsupported characters",
+        ));
+    }
+    Ok(canonical)
+}
+
+fn empty_character(id: String) -> Character {
+    Character {
+        id,
+        lineage: String::new(),
+        origin: String::new(),
+        background: String::new(),
+        aptitudes: BTreeMap::new(),
+        skills: BTreeSet::new(),
+        values: BTreeSet::new(),
+        traits: BTreeSet::new(),
+        flaws: BTreeSet::new(),
+        appearance: BTreeMap::new(),
+        affiliations: BTreeMap::new(),
+        reputation: BTreeMap::new(),
+        knowledge: BTreeSet::new(),
+        inventory: BTreeMap::new(),
+        resources: BTreeMap::new(),
+        injuries: BTreeSet::new(),
+        deeds: BTreeSet::new(),
+        promises: BTreeSet::new(),
+        discoveries: BTreeSet::new(),
+        facets: BTreeMap::new(),
+    }
+}
+
+fn apply_character_patch(
+    character: &mut Character,
+    patch: &CharacterPatch,
+    owner: &str,
+) -> Result<(), ContentValidationError> {
+    merge_singleton(&mut character.lineage, &patch.lineage, owner, "lineage")?;
+    merge_singleton(&mut character.origin, &patch.origin, owner, "origin")?;
+    merge_singleton(
+        &mut character.background,
+        &patch.background,
+        owner,
+        "background",
+    )?;
+    merge_character_map(
+        &mut character.aptitudes,
+        &patch.aptitudes,
+        owner,
+        "aptitudes",
+    )?;
+    character.skills.extend(patch.skills.iter().cloned());
+    character.values.extend(patch.values.iter().cloned());
+    character.traits.extend(patch.traits.iter().cloned());
+    character.flaws.extend(patch.flaws.iter().cloned());
+    merge_character_map(
+        &mut character.appearance,
+        &patch.appearance,
+        owner,
+        "appearance",
+    )?;
+    merge_character_map(
+        &mut character.affiliations,
+        &patch.affiliations,
+        owner,
+        "affiliations",
+    )?;
+    merge_character_map(
+        &mut character.reputation,
+        &patch.reputation,
+        owner,
+        "reputation",
+    )?;
+    character.knowledge.extend(patch.knowledge.iter().cloned());
+    merge_character_map(
+        &mut character.inventory,
+        &patch.inventory,
+        owner,
+        "inventory",
+    )?;
+    merge_character_map(
+        &mut character.resources,
+        &patch.resources,
+        owner,
+        "resources",
+    )?;
+    character.injuries.extend(patch.injuries.iter().cloned());
+    character.deeds.extend(patch.deeds.iter().cloned());
+    character.promises.extend(patch.promises.iter().cloned());
+    character
+        .discoveries
+        .extend(patch.discoveries.iter().cloned());
+    merge_character_map(&mut character.facets, &patch.facets, owner, "facets")?;
+    Ok(())
+}
+
+fn merge_singleton(
+    target: &mut String,
+    value: &Option<String>,
+    owner: &str,
+    field: &str,
+) -> Result<(), ContentValidationError> {
+    let Some(value) = value else {
+        return Ok(());
+    };
+    if !target.is_empty() {
+        return Err(single_validation_error(format!(
+            "{owner} conflicts on character {field}"
+        )));
+    }
+    target.clone_from(value);
+    Ok(())
+}
+
+fn merge_character_map<T: Clone>(
+    target: &mut BTreeMap<String, T>,
+    values: &BTreeMap<String, T>,
+    owner: &str,
+    field: &str,
+) -> Result<(), ContentValidationError> {
+    for (key, value) in values {
+        if target.insert(key.clone(), value.clone()).is_some() {
+            return Err(single_validation_error(format!(
+                "{owner} conflicts on character {field}.{key}"
+            )));
+        }
+    }
+    Ok(())
+}
+
 /// Fields for which the current effect vocabulary has no mutation operation.
 /// Mutable resources and deeds are intentionally excluded; their provenance
-/// is established by a verified trace from an exact preset genesis.
+/// is established by a verified trace from an exact authored genesis.
 fn static_character_fields_match(left: &Character, right: &Character) -> bool {
     left.id == right.id
         && left.lineage == right.lineage
@@ -1981,6 +2725,7 @@ mod tests {
             contract: ContentContract::Fixture,
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
+            character_creation: None,
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
@@ -2068,11 +2813,74 @@ mod tests {
         }
     }
 
+    fn minimal_creation() -> CharacterCreationDefinition {
+        CharacterCreationDefinition {
+            base: CharacterPatch::default(),
+            slots: vec![
+                CharacterCreationSlot {
+                    id: "lineage".to_owned(),
+                    order: 10,
+                    display_name: "Lineage".to_owned(),
+                    choices: vec![
+                        CharacterCreationChoice {
+                            id: "fenborn".to_owned(),
+                            display_name: "Fenborn".to_owned(),
+                            summary: "A tide-aware lineage.".to_owned(),
+                            patch: CharacterPatch {
+                                lineage: Some("fenborn".to_owned()),
+                                traits: BTreeSet::from(["tide-ear".to_owned()]),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                        CharacterCreationChoice {
+                            id: "kilnborn".to_owned(),
+                            display_name: "Kilnborn".to_owned(),
+                            summary: "A heat-aware lineage.".to_owned(),
+                            patch: CharacterPatch {
+                                lineage: Some("kilnborn".to_owned()),
+                                traits: BTreeSet::from(["heat-sense".to_owned()]),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                    ],
+                },
+                CharacterCreationSlot {
+                    id: "path".to_owned(),
+                    order: 20,
+                    display_name: "Path".to_owned(),
+                    choices: vec![
+                        CharacterCreationChoice {
+                            id: "clerk".to_owned(),
+                            display_name: "Clerk".to_owned(),
+                            summary: "A clerk from Lowsail.".to_owned(),
+                            patch: CharacterPatch {
+                                origin: Some("lowsail".to_owned()),
+                                background: Some("clerk".to_owned()),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                        CharacterCreationChoice {
+                            id: "scout".to_owned(),
+                            display_name: "Scout".to_owned(),
+                            summary: "A scout from Red Sluice.".to_owned(),
+                            patch: CharacterPatch {
+                                origin: Some("red-sluice".to_owned()),
+                                background: Some("scout".to_owned()),
+                                ..CharacterPatch::default()
+                            },
+                        },
+                    ],
+                },
+            ],
+        }
+    }
+
     fn production_draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         let mut content = draft(actions);
         content.contract = ContentContract::Production;
         content.start_location = "gate".to_owned();
         content.character_presets = vec![preset("hero", "hero"), preset("scout", "scout")];
+        content.character_creation = Some(minimal_creation());
         content.npcs[0].goals.insert("keep watch".to_owned());
         content.npcs[0].values.insert("order".to_owned());
         content.npcs[0].tags.insert("guard".to_owned());
@@ -2513,6 +3321,7 @@ mod tests {
     fn production_contract_requires_start_and_two_presets() {
         let mut content = production_draft(Vec::new());
         content.character_presets.pop();
+        content.character_creation = None;
         content.start_location.clear();
         let error = compile(content).unwrap_err();
         assert!(
@@ -2526,6 +3335,99 @@ mod tests {
                 .issues
                 .iter()
                 .any(|issue| issue.contains("start_location"))
+        );
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("authored character creation"))
+        );
+    }
+
+    #[test]
+    fn creation_schema_rejects_cosmetic_choices_conflicts_and_duplicate_order() {
+        let mut cosmetic = production_draft(Vec::new());
+        let creation = cosmetic.character_creation.as_mut().unwrap();
+        creation.slots[0].choices[0].patch = CharacterPatch {
+            appearance: BTreeMap::from([("marking".to_owned(), "blue".to_owned())]),
+            ..CharacterPatch::default()
+        };
+        let error = compile(cosmetic).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("cosmetic-only"))
+        );
+
+        let mut conflicting = production_draft(Vec::new());
+        let creation = conflicting.character_creation.as_mut().unwrap();
+        creation.slots[1].choices[0].patch.lineage = Some("other".to_owned());
+        let error = compile(conflicting).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("both write lineage"))
+        );
+
+        let mut duplicate_order = production_draft(Vec::new());
+        let creation = duplicate_order.character_creation.as_mut().unwrap();
+        creation.slots[1].order = creation.slots[0].order;
+        let error = compile(duplicate_order).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("slot order"))
+        );
+
+        let mut shadowing = production_draft(Vec::new());
+        shadowing.character_creation.as_mut().unwrap().slots[0].choices[0]
+            .patch
+            .facets
+            .insert("lineage".to_owned(), FacetValue::Text("forged".to_owned()));
+        let error = compile(shadowing).unwrap_err();
+        assert!(
+            error
+                .issues
+                .iter()
+                .any(|issue| issue.contains("reserved facet axis lineage"))
+        );
+
+        let mut character = character();
+        character.lineage = "authoritative".to_owned();
+        character
+            .facets
+            .insert("lineage".to_owned(), FacetValue::Text("forged".to_owned()));
+        assert_eq!(
+            character.facet_value("lineage"),
+            Some(FacetValue::Text("authoritative".to_owned()))
+        );
+    }
+
+    #[test]
+    fn creation_source_order_is_canonical_but_mechanical_changes_rebuild_identity() {
+        let ordered = production_draft(Vec::new());
+        let mut reordered = ordered.clone();
+        let creation = reordered.character_creation.as_mut().unwrap();
+        creation.slots.reverse();
+        for slot in &mut creation.slots {
+            slot.choices.reverse();
+        }
+        assert_eq!(
+            compile(ordered.clone()).unwrap().build_id(),
+            compile(reordered).unwrap().build_id()
+        );
+
+        let mut changed = ordered;
+        changed.character_creation.as_mut().unwrap().slots[0].choices[0]
+            .patch
+            .traits
+            .insert("new-mechanic".to_owned());
+        assert_ne!(
+            compile(production_draft(Vec::new())).unwrap().build_id(),
+            compile(changed).unwrap().build_id()
         );
     }
 

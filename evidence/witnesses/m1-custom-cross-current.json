@@ -1,0 +1,144 @@
+{
+  "format_version": "forge-evidence-witness-v3",
+  "verifier_id": "04a457dadb5989261785fc221b0e8d8e5f493f254f7b76cee1c2ab173a5ea42c",
+  "scenario_id": "m1-custom-cross-current",
+  "scenario_binding": "eef57dc410ccbc0a03be91c35c0d1b0eb94e1e920fbccb929b48400daf1ceb04",
+  "player_trace": {
+    "format_version": "forge-player-trace-v2",
+    "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+    "start": {
+      "kind": "character_creation",
+      "selection": {
+        "name": "Mara Venn",
+        "choices": [
+          {
+            "slot_id": "lineage",
+            "choice_id": "fenborn"
+          },
+          {
+            "slot_id": "origin",
+            "choice_id": "red-sluice"
+          },
+          {
+            "slot_id": "calling",
+            "choice_id": "ledger-clerk"
+          },
+          {
+            "slot_id": "value",
+            "choice_id": "order"
+          },
+          {
+            "slot_id": "burden",
+            "choice_id": "wanted"
+          },
+          {
+            "slot_id": "history",
+            "choice_id": "stole-permit"
+          }
+        ]
+      },
+      "seed": 71
+    },
+    "action_ids": [
+      "516825fb00daccbc926969ec90d8aabbb002d92b8b8d777fc204b222bece3c94",
+      "cb97d9281d62b7b6ddd86e6100faf4afdfe0754533bd310c33a828db0745277b",
+      "be4c36935344dd59a1f4d42c42dd098605291691dfedb6682bbf76342be593d0"
+    ],
+    "final_state_id": "4d654a2555010d718e1743333539f39c5c049c836647b02296e405fc4ca0d3ba",
+    "final_receipt": "3ea85d2a46c52bc2464f9b139ec1cb49099e31671701b4db2d3a749508108768"
+  },
+  "initial_state_id": "12664a0ba949c5241ffbb7a450bca2c5c66cfc06af3b6104922538bb7880ed2c",
+  "initial_observation": {
+    "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+    "state_id": "12664a0ba949c5241ffbb7a450bca2c5c66cfc06af3b6104922538bb7880ed2c",
+    "location_id": "lowsail_market",
+    "title": "Lowsail Checkpoint",
+    "text": "Sava lifts the chain for a clerk with a council mark.",
+    "result": null,
+    "action_set_digest": "a302a31610024c3ecb17af9bf73c559bab240c47851018fcca4e3ca1e76e7088",
+    "action_count": 8
+  },
+  "initial_observation_hash": "8bd41946c1f3c145790a4d5aec1d1c9858fd06c1ea8adbb6827c50318ca22cab",
+  "initial_receipt": "d896847b574fd37eaeefda241d7236c2dc7c53f66090a1d4f0ad64bbd28b56f0",
+  "steps": [
+    {
+      "step_index": 0,
+      "action_id": "516825fb00daccbc926969ec90d8aabbb002d92b8b8d777fc204b222bece3c94",
+      "action_definition_id": "checkpoint.audit_order",
+      "action_parameters": {},
+      "legal_action_set_digest": "a302a31610024c3ecb17af9bf73c559bab240c47851018fcca4e3ca1e76e7088",
+      "pre_state_id": "12664a0ba949c5241ffbb7a450bca2c5c66cfc06af3b6104922538bb7880ed2c",
+      "events_hash": "987138a38047ef23006d4c699a6addbea54e335fa7dec7c016cb67f58394ef21",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "87617efb6e5d72d7c5fb443a882db96c0271163a59592ccd00a1367b676fa519",
+      "observation": {
+        "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+        "state_id": "87617efb6e5d72d7c5fb443a882db96c0271163a59592ccd00a1367b676fa519",
+        "location_id": "lowsail_market",
+        "title": "Lowsail Checkpoint",
+        "text": "Your council mark makes the forgery hard to deny. Sava lifts the chain for a clerk with a council mark.",
+        "result": "Your council mark makes the forgery hard to deny.",
+        "action_set_digest": "ef89ddb6556ecaf14f1186026a0dd0324e3d61d26b1b5058c088fe31d7592112",
+        "action_count": 8
+      },
+      "observation_hash": "0eee785d5c2f3e358419538238c6543cc4b0f75ac3d926fc1369b5d2adcb871e",
+      "receipt": "b3e695f51289b5c3f91f8fe4e73072ea03b0435a4113bb9323f342f745a57c83"
+    },
+    {
+      "step_index": 1,
+      "action_id": "cb97d9281d62b7b6ddd86e6100faf4afdfe0754533bd310c33a828db0745277b",
+      "action_definition_id": "checkpoint.use_stolen_permit",
+      "action_parameters": {},
+      "legal_action_set_digest": "ef89ddb6556ecaf14f1186026a0dd0324e3d61d26b1b5058c088fe31d7592112",
+      "pre_state_id": "87617efb6e5d72d7c5fb443a882db96c0271163a59592ccd00a1367b676fa519",
+      "events_hash": "d25727cc0b5c2366b8d8688afe3efa267015137d5c8b1dd3dfcd0346b35784a3",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "55a3bd0f7dca34899211449018a7bc165c2612ce4b438e2825d7315f8776c6e4",
+      "observation": {
+        "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+        "state_id": "55a3bd0f7dca34899211449018a7bc165c2612ce4b438e2825d7315f8776c6e4",
+        "location_id": "lowsail_market",
+        "title": "Lowsail Checkpoint",
+        "text": "The stolen permit opens a route but marks you as a risk. Sava lifts the chain for a clerk with a council mark.",
+        "result": "The stolen permit opens a route but marks you as a risk.",
+        "action_set_digest": "736053cef41d8f0993011fdb0de561b0d538e0d68c955ccd4495b2cbc6774bb9",
+        "action_count": 8
+      },
+      "observation_hash": "71ecca449406f086b5fa8c907564fe9a2fc0614e3fdfed69fc79401dae4239c1",
+      "receipt": "75543faf496f246fa49fadd9ac0cbbb6b8952aad216dd685e15e7327c3ade15a"
+    },
+    {
+      "step_index": 2,
+      "action_id": "be4c36935344dd59a1f4d42c42dd098605291691dfedb6682bbf76342be593d0",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "lowsail.levee"
+      },
+      "legal_action_set_digest": "736053cef41d8f0993011fdb0de561b0d538e0d68c955ccd4495b2cbc6774bb9",
+      "pre_state_id": "55a3bd0f7dca34899211449018a7bc165c2612ce4b438e2825d7315f8776c6e4",
+      "events_hash": "9dedffac2dafbef09b151f46a60d59aefaeba20511632907e17a0667139d995e",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "4d654a2555010d718e1743333539f39c5c049c836647b02296e405fc4ca0d3ba",
+      "observation": {
+        "build_id": "343b439fbe5ceb2572f72f37c6e33b964b0fe6acb59b56640cc26bf0e398e44d",
+        "state_id": "4d654a2555010d718e1743333539f39c5c049c836647b02296e405fc4ca0d3ba",
+        "location_id": "lowsail.levee",
+        "title": "Lowsail Levee",
+        "text": "You move along the connected path. The levee road runs east to the Sluice. Flood marks show fresh damage.",
+        "result": "You move along the connected path.",
+        "action_set_digest": "655d0c8e3112225f6b683865deebcdea1e56a6b23205d3e81e6dc7f8294208ca",
+        "action_count": 6
+      },
+      "observation_hash": "73610fc25b140239cd3d9bcf167cd6ee03f3d676f7a10e450c3b70c36d999814",
+      "receipt": "3ea85d2a46c52bc2464f9b139ec1cb49099e31671701b4db2d3a749508108768"
+    }
+  ],
+  "final_state_id": "4d654a2555010d718e1743333539f39c5c049c836647b02296e405fc4ca0d3ba",
+  "final_receipt": "3ea85d2a46c52bc2464f9b139ec1cb49099e31671701b4db2d3a749508108768"
+}

@@ -6,7 +6,7 @@
 //! events.
 
 use forge_content::parse_and_compile_production;
-use forge_kernel::{CompiledContent, Observation, sha256_json};
+use forge_kernel::{CompiledContent, Observation, sha256_json, validate_unique_json_keys};
 use forge_replay::{PlayerTrace, ReplayError, Session, resume_player_trace, verify};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -21,7 +21,7 @@ pub use scale::{
 };
 
 const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
-pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v2";
+pub const WITNESS_FORMAT_VERSION: &str = "forge-evidence-witness-v3";
 pub const MAX_WITNESS_STEPS: usize = 4_096;
 pub const MAX_PLAYER_TRACE_BYTES: u64 = 16 * 1024 * 1024;
 
@@ -104,6 +104,8 @@ impl EvidenceWitness {
     }
 
     pub fn from_json(input: &str) -> Result<Self, VerifyError> {
+        validate_unique_json_keys(input)
+            .map_err(|error| VerifyError::new(format!("invalid evidence witness JSON: {error}")))?;
         serde_json::from_str(input)
             .map_err(|error| VerifyError::new(format!("invalid evidence witness JSON: {error}")))
     }
@@ -308,7 +310,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 9);
+        assert_eq!(ids.len(), 11);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();
@@ -336,6 +338,15 @@ mod tests {
             ilyan.steps[0].action_definition_id,
             "checkpoint.audit_order"
         );
+        let cross_current = generate_witness("m1-custom-cross-current").unwrap();
+        let unlikely_ally = generate_witness("m1-custom-unlikely-ally").unwrap();
+        assert_ne!(cross_current.player_trace, unlikely_ally.player_trace);
+        assert_ne!(
+            cross_current.initial_state_id,
+            unlikely_ally.initial_state_id
+        );
+        assert_ne!(cross_current.initial_state_id, ilyan.initial_state_id);
+        assert_ne!(unlikely_ally.initial_state_id, rook.initial_state_id);
         assert_eq!(
             rook.steps[0].action_definition_id,
             "checkpoint.blend_workers"

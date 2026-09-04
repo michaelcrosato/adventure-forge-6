@@ -1,6 +1,8 @@
 use serde::Serialize;
+use serde::de::{Error as DeError, MapAccess, SeqAccess, Visitor};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 
 /// Errors produced while turning a serializable value into canonical JSON.
@@ -58,4 +60,105 @@ pub fn sha256_hex_bytes(bytes: &[u8]) -> String {
 
 pub fn sha256_json<T: Serialize>(value: &T) -> Result<String, HashError> {
     Ok(sha256_hex_bytes(&canonical_json_bytes(value)?))
+}
+
+/// Reject ambiguous JSON before typed deserialization can collapse duplicate
+/// object keys. This walks the entire document, including nested maps.
+pub fn validate_unique_json_keys(input: &str) -> Result<(), HashError> {
+    let mut deserializer = serde_json::Deserializer::from_str(input);
+    serde::de::Deserializer::deserialize_any(&mut deserializer, UniqueJsonVisitor)
+        .map_err(|error| HashError(format!("invalid or ambiguous JSON: {error}")))?;
+    deserializer
+        .end()
+        .map_err(|error| HashError(format!("invalid or ambiguous JSON: {error}")))
+}
+
+struct UniqueJsonVisitor;
+
+impl<'de> Visitor<'de> for UniqueJsonVisitor {
+    type Value = ();
+
+    fn expecting(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("a JSON value with unique object keys")
+    }
+
+    fn visit_bool<E: DeError>(self, _value: bool) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_i64<E: DeError>(self, _value: i64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_u64<E: DeError>(self, _value: u64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_f64<E: DeError>(self, _value: f64) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_str<E: DeError>(self, _value: &str) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_string<E: DeError>(self, _value: String) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_none<E: DeError>(self) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_unit<E: DeError>(self) -> Result<Self::Value, E> {
+        Ok(())
+    }
+
+    fn visit_some<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_any(UniqueJsonVisitor)
+    }
+
+    fn visit_seq<A: SeqAccess<'de>>(self, mut sequence: A) -> Result<Self::Value, A::Error> {
+        while sequence.next_element_seed(UniqueJsonSeed)?.is_some() {}
+        Ok(())
+    }
+
+    fn visit_map<A: MapAccess<'de>>(self, mut object: A) -> Result<Self::Value, A::Error> {
+        let mut keys = BTreeSet::new();
+        while let Some(key) = object.next_key::<String>()? {
+            if !keys.insert(key.clone()) {
+                return Err(A::Error::custom(format!("duplicate object key {key}")));
+            }
+            object.next_value_seed(UniqueJsonSeed)?;
+        }
+        Ok(())
+    }
+}
+
+struct UniqueJsonSeed;
+
+impl<'de> serde::de::DeserializeSeed<'de> for UniqueJsonSeed {
+    type Value = ();
+
+    fn deserialize<D: serde::Deserializer<'de>>(
+        self,
+        deserializer: D,
+    ) -> Result<Self::Value, D::Error> {
+        deserializer.deserialize_any(UniqueJsonVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::validate_unique_json_keys;
+
+    #[test]
+    fn duplicate_json_keys_are_rejected_at_every_depth() {
+        assert!(validate_unique_json_keys(r#"{"a":1,"b":[{"c":2}]}"#).is_ok());
+        assert!(validate_unique_json_keys(r#"{"a":1,"a":2}"#).is_err());
+        assert!(validate_unique_json_keys(r#"{"a":{"b":1,"b":2}}"#).is_err());
+    }
 }
