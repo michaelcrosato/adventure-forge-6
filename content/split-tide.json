@@ -513,7 +513,13 @@
           "id": "free_ferry",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
-          "text": "Oren, Sava, and Mira stand by the open ferry channel beneath a free-route flag."
+          "text": "Oren, Sava, and Mira stand by the reopened channel; the ferry toll still awaits your decision."
+        },
+        {
+          "id": "ferry_launched",
+          "priority": 30,
+          "condition": {"kind": "world_flag", "flag": "ending_freedom"},
+          "text": "Oren, Sava, and Mira watch the free ferry carry people between both shores."
         },
         {
           "id": "flooded_market",
@@ -910,7 +916,7 @@
       "id": "docks.ask_oren",
       "label": "Ask Oren",
       "category": "Talk",
-      "result": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll.",
+      "result": "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then choose Open Old Channel.",
       "locations": ["lowsail.docks"],
       "condition": {
         "kind": "all",
@@ -1660,9 +1666,9 @@
     },
     {
       "id": "top.break_toll",
-      "label": "Break Toll",
+      "label": "Open Old Channel",
       "category": "Outcome",
-      "result": "The old channel opens and tolls lose their grip.",
+      "result": "You open the old channel. Return to Lowsail and choose Abolish Ferry Toll to launch a free ferry.",
       "locations": ["red_sluice.top"],
       "condition": {
         "kind": "all",
@@ -1798,7 +1804,7 @@
           "id": "free",
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "ferry_free"},
-          "text": "Open water gives Oren a route beyond the toll."
+          "text": "Open water gives Oren a route through the old channel."
         },
         {
           "id": "flooded",

@@ -1,0 +1,47 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -698,7 +698,14 @@ pub fn step(
+     if entropy != &state.entropy {
+         return Err(KernelError::EntropyMismatch);
+     }
+-    validate_action(state, content, action)?;
++    if std::env::var_os("FORGE_MUTANT_STALE_ACTION").is_some() {
++        let mut rebound = action.clone();
++        rebound.pre_state_id = state.state_id();
++        rebound.action_id = rebound.recomputed_id();
++        validate_action(state, content, &rebound)?;
++    } else {
++        validate_action(state, content, action)?;
++    }
+     let definition = content
+         .action(&action.definition_id)
+         .ok_or_else(|| KernelError::UnknownAction(action.definition_id.clone()))?;
+diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/content.rs
+--- a/crates/forge-kernel/src/content.rs
++++ b/crates/forge-kernel/src/content.rs
+@@ -1010,3 +1010,3 @@ impl CompiledContent {
+     pub fn supply_view(&self, state: &GameState) -> SupplyView {
+-        SupplyView {
++        let mut view = SupplyView {
+             resources: state
+@@ -1030,6 +1030,18 @@ impl CompiledContent {
+                 })
+                 .collect(),
+-        }
++        };
++        if std::env::var_os("FORGE_MUTANT_SUPPLY_LEAK").is_some() {
++            for npc in state.world.npcs.values() {
++                for (id, count) in &npc.inventory {
++                    view.items.push(ItemView {
++                        id: id.clone(),
++                        name: self.supply_item_label(id),
++                        count: *count,
++                    });
++                }
++            }
++        }
++        view
+     }
+ 
+     pub fn has_valid_build_id(&self) -> bool {

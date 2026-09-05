@@ -567,7 +567,7 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
     assert_eq!(
         oren_observation.result.as_deref(),
         Some(
-            "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then break the toll."
+            "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then choose Open Old Channel."
         )
     );
     assert!(culvert.world.flags.contains("culvert_revealed"));
@@ -1537,6 +1537,77 @@ fn aftermath_moves_existing_inhabitants_once_and_keeps_their_history() {
     assert!(revisit.state().world.flags.contains("ending_accord"));
     assert!(!definitions(revisit.state(), &content).contains("return.acknowledge_report"));
     content.validate_state(revisit.state()).unwrap();
+}
+
+#[test]
+fn opening_the_channel_previews_but_does_not_complete_the_free_ferry_ending() {
+    let content = content();
+    let mut state = travel_to(new_game(&content, "rook"), &content, "lowsail.docks");
+    state = apply(state, &content, "docks.ask_oren");
+    state = travel_to(state, &content, "lowsail.levee");
+    state = apply(state, &content, "levee.culvert_path");
+    state = apply(state, &content, "floor.climb_hot_face");
+    assert_eq!(state.world.time, 5);
+    let starting_supplies = content.observe(&state).unwrap().supplies;
+    let page = content.action_page(&state, 0, usize::MAX).unwrap();
+    let view = page
+        .actions
+        .iter()
+        .find(|action| action.definition_id == "top.break_toll")
+        .expect("channel outcome is selectable");
+    let guidance = "You open the old channel. Return to Lowsail and choose Abolish Ferry Toll to launch a free ferry.";
+    assert_eq!(view.label, "Open Old Channel");
+    assert_eq!(view.consequence_preview.as_deref(), Some(guidance));
+    assert_eq!(view.time_cost.minimum_ticks, 1);
+    assert_eq!(view.time_cost.maximum_ticks, 1);
+
+    let action = action_for(&state, &content, "top.break_toll");
+    let transition = step(&state, &action, &content, &state.entropy).unwrap();
+    let opened_view = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(opened_view.result.as_deref(), Some(guidance));
+    assert_eq!(opened_view.supplies, starting_supplies);
+    let opened = transition.into_state();
+    assert_eq!(opened.world.time, 6);
+    assert!(opened.world.flags.contains("old_channel_open"));
+    assert!(opened.world.flags.contains("sluice_outcome_chosen"));
+    assert!(!opened.world.flags.contains("ending_freedom"));
+    assert!(definitions(&opened, &content).contains("world.enter_aftermath"));
+    assert!(!definitions(&opened, &content).contains("return.open_ferry"));
+
+    let returned = apply(opened, &content, "world.enter_aftermath");
+    assert_eq!(returned.world.time, 7);
+    let pending = "Oren, Sava, and Mira stand by the reopened channel; the ferry toll still awaits your decision.";
+    let launched = "Oren, Sava, and Mira watch the free ferry carry people between both shores.";
+    assert_eq!(content.location_description(&returned).unwrap(), pending);
+    assert!(!returned.world.flags.contains("ending_freedom"));
+    assert!(definitions(&returned, &content).contains("return.open_ferry"));
+    assert_eq!(
+        content
+            .action_result(&returned, "return.read_tide")
+            .unwrap(),
+        "Open water gives Oren a route through the old channel."
+    );
+
+    let action = action_for(&returned, &content, "return.open_ferry");
+    let transition = step(&returned, &action, &content, &returned.entropy).unwrap();
+    let ending_view = content.observe_after_transition(&transition).unwrap();
+    assert_eq!(ending_view.supplies, starting_supplies);
+    assert_eq!(
+        ending_view.result.as_deref(),
+        Some("You abolish the toll and launch a free ferry between both shores.")
+    );
+    assert!(ending_view.text.ends_with(launched));
+    assert!(!ending_view.text.contains("awaits your decision"));
+    let ended = transition.into_state();
+    assert_eq!(ended.world.time, 8);
+    assert!(ended.world.flags.contains("ending_freedom"));
+    assert!(!definitions(&ended, &content).contains("return.open_ferry"));
+    assert_eq!(content.location_description(&ended).unwrap(), launched);
+    let revisited = travel_to(ended, &content, "lowsail.docks");
+    let revisited = apply(revisited, &content, "world.enter_aftermath");
+    assert_eq!(revisited.world.time, 10);
+    assert_eq!(content.location_description(&revisited).unwrap(), launched);
+    assert!(!definitions(&revisited, &content).contains("return.open_ferry"));
 }
 
 #[test]

@@ -34,6 +34,8 @@ The Tide Key is a persistent item: taking it removes it from Yara's stock and op
 
 `Climb Hot Face` carries a qualified climber directly to Red Sluice Top in one tide step. It also exposes the destructive overload controls; the climb itself does not choose that outcome.
 
+`Open Old Channel` redirects the surge and opens the ferry route. Then use `Return to Lowsail` and `Abolish Ferry Toll` to launch the free ferry. Opening the channel does not complete that ending by itself.
+
 The first return also brings Oren, Sava, and Mira into the changed market. Their positions persist across revisits without resetting their memories, knowledge, relationships, or stock. Return conversations require actual NPC presence; Oren describes the chosen water route and distinguishes opening the channel from launching the free ferry.
 
 `Rig Towline (3 coin)` uses rope and wire to hire a one-step tow from the docks to the levee, revealing the Culvert Path. The fee is spent, but the gear is returned. Asking Oren and then walking remains a free two-step alternative from the same docks.
@@ -42,7 +44,7 @@ Normal observations and creation previews show your own resources and gear with 
 
 `forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
 
-The gate also builds reviewed bad-change mutants in a disposable source copy. A selector-free control must pass before ambient action ordering, page ordering, crawler scheduling, and process-identity mutations are each required to fail the fresh-process crawl contract. No mutant hook is compiled into the production crates.
+The gate also builds reviewed bad-change mutants in a disposable source copy. Three selector-free controls must pass before six defects are activated separately. Action ordering, page ordering, crawler scheduling, and process-identity mutations must fail the fresh-process crawl contract. Stale-action acceptance and private NPC-stock leakage must fail dedicated production boundary tests with specific failure messages. No mutant hook is compiled into the production crates; the inventory probe is not a claim of complete hidden-state mutation coverage.
 
 On Linux, the same gate builds a stripped release-only player bundle and runs a locked CLI boundary rehearsal with Bubblewrap. The player process receives only its executable, required runtime libraries, and one writable save directory; the repository and all other host paths remain unmounted. The test clears its environment, isolates its network, enforces resource limits, exercises canary reads and writes, compares two deterministic sessions, and verifies the resulting save outside the sandbox. Its local report is written under `artifacts/local/locked-player-boundary/`.
 

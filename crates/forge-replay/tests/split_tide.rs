@@ -847,6 +847,7 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
     let mut uninterrupted = Session::new_game("rook", 71, &content).expect("session starts");
     let mut after_climb = None;
     let mut after_return = None;
+    let mut after_ending = None;
 
     for (index, spec) in ROOK_HOT_ROUTE_FERRY_PATH.iter().enumerate() {
         record(
@@ -858,6 +859,7 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
         match index + 1 {
             5 => after_climb = Some(resume_player_save(&uninterrupted, &content)),
             7 => after_return = Some(resume_player_save(&uninterrupted, &content)),
+            8 => after_ending = Some(resume_player_save(&uninterrupted, &content)),
             _ => {}
         }
     }
@@ -900,6 +902,28 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
     assert_eq!(
         uninterrupted.state().world.current_location,
         "lowsail.return"
+    );
+
+    let open_channel_step = &uninterrupted.trace().steps[5];
+    assert_eq!(open_channel_step.action.definition_id, "top.break_toll");
+    assert_eq!(
+        open_channel_step.observation.result.as_deref(),
+        Some(
+            "You open the old channel. Return to Lowsail and choose Abolish Ferry Toll to launch a free ferry."
+        )
+    );
+    assert!(
+        !open_channel_step.observation.text.contains(
+            "Oren, Sava, and Mira watch the free ferry carry people between both shores."
+        )
+    );
+
+    let launch_step = &uninterrupted.trace().steps[7];
+    assert_eq!(launch_step.action.definition_id, "return.open_ferry");
+    assert!(
+        launch_step.observation.text.contains(
+            "Oren, Sava, and Mira watch the free ferry carry people between both shores."
+        )
     );
     assert!(
         uninterrupted
@@ -951,7 +975,9 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
         first_return
             .observation
             .text
-            .contains("Oren, Sava, and Mira")
+            .contains(
+                "Oren, Sava, and Mira stand by the reopened channel; the ferry toll still awaits your decision."
+            )
     );
     assert_eq!(
         first_return.observation.result.as_deref(),
@@ -974,6 +1000,14 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
             ("sava_rusk", "lowsail_market", "lowsail.return"),
             ("mira_kett", "red_sluice.top", "lowsail.return"),
         ]
+    );
+
+    let later_return = &uninterrupted.trace().steps[9];
+    assert_eq!(later_return.action.definition_id, "world.enter_aftermath");
+    assert!(
+        later_return.observation.text.contains(
+            "Oren, Sava, and Mira watch the free ferry carry people between both shores."
+        )
     );
 
     let mut resumed_after_climb = after_climb.expect("climb checkpoint");
@@ -1009,6 +1043,26 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
         &content,
         &ROOK_HOT_ROUTE_FERRY_PATH[..6],
     );
+    assert!(
+        before_return
+            .state()
+            .world
+            .flags
+            .contains("old_channel_open")
+    );
+    assert!(
+        before_return.state().world.locations["lowsail.return"]
+            .flags
+            .contains("ferry_free")
+    );
+    assert!(!before_return.state().world.flags.contains("ending_freedom"));
+    assert!(
+        !before_return
+            .state()
+            .character
+            .deeds
+            .contains("opened_free_ferry")
+    );
     let mut resumed_after_return = after_return.expect("return checkpoint");
     assert_eq!(resumed_after_return.trace().steps.len(), 7);
     assert_eq!(resumed_after_return.state().world.time, 7);
@@ -1028,6 +1082,28 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
             .flags
             .contains("ferry_free")
     );
+    assert!(
+        resumed_after_return
+            .state()
+            .world
+            .flags
+            .contains("sluice_outcome_chosen")
+    );
+    assert!(
+        !resumed_after_return
+            .state()
+            .world
+            .flags
+            .contains("ending_freedom")
+    );
+    assert!(
+        !resumed_after_return
+            .state()
+            .character
+            .deeds
+            .contains("opened_free_ferry")
+    );
+    let _pending_launch = select(&resumed_after_return, &content, "return.open_ferry", None);
     for (npc_id, source_location) in [
         ("oren_pell", "lowsail.docks"),
         ("sava_rusk", "lowsail_market"),
@@ -1060,8 +1136,40 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
         &ROOK_HOT_ROUTE_FERRY_PATH[7..],
     );
 
+    let mut resumed_after_ending = after_ending.expect("ending checkpoint");
+    assert_eq!(resumed_after_ending.trace().steps.len(), 8);
+    assert_eq!(resumed_after_ending.state().world.time, 8);
+    assert!(
+        resumed_after_ending
+            .state()
+            .world
+            .flags
+            .contains("ending_freedom")
+    );
+    assert!(
+        resumed_after_ending
+            .state()
+            .character
+            .deeds
+            .contains("opened_free_ferry")
+    );
+    assert!(
+        resumed_after_ending.trace().steps[7]
+            .observation
+            .text
+            .contains(
+                "Oren, Sava, and Mira watch the free ferry carry people between both shores."
+            )
+    );
+    record_specs(
+        &mut resumed_after_ending,
+        &content,
+        &ROOK_HOT_ROUTE_FERRY_PATH[8..],
+    );
+
     assert_eq!(resumed_after_climb.state(), uninterrupted.state());
     assert_eq!(resumed_after_return.state(), uninterrupted.state());
+    assert_eq!(resumed_after_ending.state(), uninterrupted.state());
     assert_eq!(
         resumed_after_climb.trace().final_state_id,
         uninterrupted.trace().final_state_id
@@ -1076,6 +1184,14 @@ fn rook_hot_route_ferry_path_resumes_across_climb_and_return() {
     );
     assert_eq!(
         resumed_after_return.trace().final_receipt,
+        uninterrupted.trace().final_receipt
+    );
+    assert_eq!(
+        resumed_after_ending.trace().final_state_id,
+        uninterrupted.trace().final_state_id
+    );
+    assert_eq!(
+        resumed_after_ending.trace().final_receipt,
         uninterrupted.trace().final_receipt
     );
     assert_eq!(uninterrupted.trace().steps.len(), 10);
