@@ -225,6 +225,27 @@ impl SessionRegistry {
             .map_err(Into::into)
     }
 
+    /// Return the one active session for browser recovery.
+    ///
+    /// This endpoint is intentionally restricted to the single-active-session
+    /// registry shape.  The registry lock remains held while the service is
+    /// observed, so a concurrent close cannot make the returned handle and
+    /// view disagree.  Observing is read-only and never advances the game.
+    pub fn current(&self) -> Result<Option<CreateResponse>, RegistryError> {
+        if self.registry_limits.max_active_sessions != 1 {
+            return Err(RegistryError::InvalidInput);
+        }
+        let state = self.lock_state()?;
+        let Some(record) = state.records.iter().find(|record| !record.closed) else {
+            return Ok(None);
+        };
+        let view = record.service.observe()?;
+        Ok(Some(CreateResponse {
+            session_id: record.session_id.clone(),
+            view,
+        }))
+    }
+
     /// Return one page from a retained session's complete legal catalog.
     pub fn catalog(
         &self,
@@ -650,6 +671,47 @@ mod tests {
             registry.observe(&created.session_id),
             Err(RegistryError::Service(ServiceError::SessionClosed))
         );
+    }
+
+    #[test]
+    fn current_is_live_single_session_read_and_rejects_multi_active_shape() {
+        let single = registry(RegistryLimits::default());
+        assert_eq!(single.current().unwrap(), None);
+
+        let created = single.start("current", preset(71)).expect("start succeeds");
+        assert_eq!(single.current().unwrap(), Some(created.clone()));
+
+        let action = created
+            .view
+            .catalog
+            .actions
+            .first()
+            .expect("preset has an opening action");
+        let request = ActionRequest {
+            command_id: "current-action".into(),
+            expected_revision: 0,
+            expected_state_id: created.view.catalog.state_id.clone(),
+            action_id: action.action_id.clone(),
+        };
+        let advanced = single
+            .act(&created.session_id, request)
+            .expect("opening action succeeds");
+        let current = single
+            .current()
+            .unwrap()
+            .expect("active session remains recoverable");
+        assert_eq!(current.session_id, created.session_id);
+        assert_eq!(current.view, advanced);
+        assert_ne!(current.view, created.view);
+
+        single.close(&created.session_id).unwrap();
+        assert_eq!(single.current().unwrap(), None);
+
+        let multi_active = registry(RegistryLimits {
+            max_sessions: 2,
+            max_active_sessions: 2,
+        });
+        assert_eq!(multi_active.current(), Err(RegistryError::InvalidInput));
     }
 
     #[test]

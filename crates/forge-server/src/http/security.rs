@@ -5,8 +5,19 @@ use axum::http::{
 };
 
 const SAME_ORIGIN: &str = "same-origin";
+const NONE_SITE: &str = "none";
 const EMPTY_FETCH_DEST: &str = "empty";
+const DOCUMENT_FETCH_DEST: &str = "document";
 const BEARER_PREFIX: &str = "Bearer ";
+
+#[derive(Clone, Copy)]
+enum PublicAssetKind {
+    Document,
+    Script,
+    Style,
+    Image,
+    Unsupported,
+}
 
 /// A process-scoped capability for the loopback adapter.
 ///
@@ -16,6 +27,7 @@ pub(super) struct AccessPolicy {
     host: String,
     origin: String,
     token: String,
+    instance_id: String,
 }
 
 impl AccessPolicy {
@@ -29,11 +41,17 @@ impl AccessPolicy {
         let mut secret = [0_u8; 32];
         getrandom::fill(&mut secret).map_err(|_| ServiceError::Internal)?;
         let token = secret.iter().map(|byte| format!("{byte:02x}")).collect();
+        // Keep the process identity independent from the bearer capability.
+        // It is safe public metadata used to bind a browser journal to the
+        // process that owns its in-memory sessions.
+        getrandom::fill(&mut secret).map_err(|_| ServiceError::Internal)?;
+        let instance_id = secret.iter().map(|byte| format!("{byte:02x}")).collect();
 
         Ok(Self {
             host,
             origin,
             token,
+            instance_id,
         })
     }
 
@@ -60,6 +78,7 @@ impl AccessPolicy {
                     return Err(StatusCode::FORBIDDEN);
                 }
                 self.optional_origin(headers)?;
+                require_document_navigation(headers)?;
                 // The root document is public. A singleton credential is
                 // ignored; duplicate credentials were rejected above.
                 let _ = authorization;
@@ -76,6 +95,24 @@ impl AccessPolicy {
                 if authorization.is_some() {
                     return Err(StatusCode::UNAUTHORIZED);
                 }
+                Ok(())
+            }
+            path if public_asset_kind(path).is_some() => {
+                if *method != Method::GET {
+                    return Err(StatusCode::FORBIDDEN);
+                }
+                self.optional_origin(headers)?;
+                match public_asset_kind(path).expect("asset kind checked above") {
+                    PublicAssetKind::Document => require_document_asset_fetch(headers)?,
+                    PublicAssetKind::Script => require_asset_fetch(headers, "script")?,
+                    PublicAssetKind::Style => require_asset_fetch(headers, "style")?,
+                    PublicAssetKind::Image => require_asset_fetch(headers, "image")?,
+                    PublicAssetKind::Unsupported => return Err(StatusCode::FORBIDDEN),
+                }
+                // Public assets do not need the API bearer capability. A
+                // singleton credential is harmless and is intentionally
+                // ignored, while duplicates were rejected above.
+                let _ = authorization;
                 Ok(())
             }
             path if path == "/api" || path.starts_with("/api/") => {
@@ -102,6 +139,10 @@ impl AccessPolicy {
         &self.token
     }
 
+    pub(super) fn instance_id(&self) -> &str {
+        &self.instance_id
+    }
+
     fn require_host(&self, headers: &HeaderMap) -> Result<(), StatusCode> {
         let host = singleton_header(headers, &HOST)?;
         if host != Some(self.host.as_str()) {
@@ -123,6 +164,17 @@ impl AccessPolicy {
             Some(origin) if origin == self.origin => Ok(()),
             _ => Err(StatusCode::FORBIDDEN),
         }
+    }
+}
+
+fn public_asset_kind(path: &str) -> Option<PublicAssetKind> {
+    let asset = super::assets::get(path)?;
+    match asset.content_type {
+        "text/html; charset=utf-8" => Some(PublicAssetKind::Document),
+        "text/javascript; charset=utf-8" => Some(PublicAssetKind::Script),
+        "text/css; charset=utf-8" => Some(PublicAssetKind::Style),
+        "image/svg+xml" | "image/x-icon" => Some(PublicAssetKind::Image),
+        _ => Some(PublicAssetKind::Unsupported),
     }
 }
 
@@ -192,6 +244,61 @@ fn require_fetch_metadata(headers: &HeaderMap) -> Result<(), StatusCode> {
     Ok(())
 }
 
+fn require_asset_fetch(headers: &HeaderMap, destination: &str) -> Result<(), StatusCode> {
+    if singleton_header(headers, &HeaderName::from_static("sec-fetch-site"))? != Some(SAME_ORIGIN)
+        || singleton_header(headers, &HeaderName::from_static("sec-fetch-dest"))?
+            != Some(destination)
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(())
+}
+
+fn require_document_navigation(headers: &HeaderMap) -> Result<(), StatusCode> {
+    let site = singleton_header(headers, &HeaderName::from_static("sec-fetch-site"))?;
+    if let Some(site) = site
+        && site != NONE_SITE
+        && site != SAME_ORIGIN
+    {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    if let Some(destination) =
+        singleton_header(headers, &HeaderName::from_static("sec-fetch-dest"))?
+    {
+        let allowed = match site {
+            Some(NONE_SITE) => destination == DOCUMENT_FETCH_DEST,
+            Some(SAME_ORIGIN) => {
+                destination == DOCUMENT_FETCH_DEST || destination == EMPTY_FETCH_DEST
+            }
+            None => destination == DOCUMENT_FETCH_DEST || destination == EMPTY_FETCH_DEST,
+            _ => false,
+        };
+        if !allowed {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+    Ok(())
+}
+
+fn require_document_asset_fetch(headers: &HeaderMap) -> Result<(), StatusCode> {
+    let site = singleton_header(headers, &HeaderName::from_static("sec-fetch-site"))?;
+    if site != Some(NONE_SITE) && site != Some(SAME_ORIGIN) {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    let destination = singleton_header(headers, &HeaderName::from_static("sec-fetch-dest"))?;
+    let allowed = match site {
+        Some(NONE_SITE) => destination == Some(DOCUMENT_FETCH_DEST),
+        Some(SAME_ORIGIN) => {
+            destination == Some(DOCUMENT_FETCH_DEST) || destination == Some(EMPTY_FETCH_DEST)
+        }
+        _ => false,
+    };
+    if !allowed {
+        return Err(StatusCode::FORBIDDEN);
+    }
+    Ok(())
+}
+
 fn require_bearer(authorization: Option<&str>, token: &str) -> Result<(), StatusCode> {
     let Some(authorization) = authorization else {
         return Err(StatusCode::UNAUTHORIZED);
@@ -238,6 +345,15 @@ mod tests {
                 .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
         );
         assert_ne!(first.token(), second.token());
+        assert_eq!(first.instance_id().len(), 64);
+        assert!(
+            first
+                .instance_id()
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        );
+        assert_ne!(first.instance_id(), second.instance_id());
+        assert_ne!(first.token(), first.instance_id());
     }
 
     fn headers(policy: &AccessPolicy) -> HeaderMap {

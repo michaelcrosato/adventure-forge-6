@@ -24,6 +24,12 @@ jobs:
       - name: Install pinned Rust toolchain
         run: rustup show
 
+      - name: Install pinned browser toolchain
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: browser/.node-version
+          package-manager-cache: false
+
       - name: Install locked-player sandbox
         run: |
           sudo apt-get update

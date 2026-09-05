@@ -1,8 +1,8 @@
 # Local session service
 
 This crate contains a replay-backed Rust session library and a single-user
-loopback HTTP adapter. The executable serves only the local API and a status
-page; the browser player is not built yet. This is not a public release,
+loopback HTTP adapter. The executable embeds the local React browser player
+and its exact asset allowlist. This is not a public release,
 Internet-facing server, or multi-user authentication service. Saves are exported
 to the caller; the server does not automatically persist them to disk.
 
@@ -92,7 +92,8 @@ save through JavaScript numbers could corrupt a full-width seed.
 
 | Method and path | Body / result |
 | --- | --- |
-| `GET /api/bootstrap` | Returns `{token}` to a same-origin fetch only |
+| `GET /api/bootstrap` | Returns `{token, instance_id}` to a same-origin fetch only |
+| `GET /api/current` | Returns the sole active `{session_id, view}` or null; authenticated and read-only |
 | `GET /api/options` | Public preset and custom-choice metadata |
 | `POST /api/sessions` | `{creation_id, start}` → `{session_id, view}` |
 | `POST /api/resume` | `{creation_id, save_json}` → `{session_id, view}` |
@@ -134,7 +135,11 @@ TOKEN`. The browser must use same-origin fetches: exact Host,
 `Sec-Fetch-Site: same-origin`, and `Sec-Fetch-Dest: empty` are required. Mutations
 also require the exact Origin. GETs may omit Origin, but any supplied Origin
 must match. There is no CORS allowance or cross-site bootstrap. The public root
-has strict CSP, no embedded capability, and no player controls yet.
+has strict CSP and no embedded capability. Only the checked browser asset
+allowlist is served; there is no runtime filesystem or SPA fallback. The
+browser's capability stays in memory and is never included in saved recovery
+records. The public process-instance ID distinguishes restart recovery from
+same-process request retries.
 
 All responses are `no-store`, `nosniff`, and unframeable. Duplicate security
 headers, forwarded headers, host aliases, absolute request URIs, and query-token

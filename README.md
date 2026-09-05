@@ -10,6 +10,16 @@ Milestone 0 evidence passes, and the project is building out Milestone 1 from a 
 
 ## Play and verify
 
+For local browser play, run:
+
+```bash
+cargo run --locked -p forge-server
+```
+
+Open the printed `http://127.0.0.1:38123` address. Choose a preset or create a character, then select the displayed actions. Search includes all current choices, destinations, and consequence previews. Use **Download save** during play or **Save and close** before stopping the server. **Resume a save** imports the exported file without rewriting its numbers. A tab reload can recover the active game while the same server is running; stopping the server discards its in-memory sessions. Saves require the exact game build.
+
+The browser bundle is embedded in the Rust executable, so playing from a checkout needs no Node installation. This remains a single-user local game: do not expose or reverse-proxy the server. Browser development and verification instructions are in [browser/README.md](browser/README.md).
+
 Create a character, select either proof preset, or run a short deterministic demo:
 
 ```bash
@@ -42,7 +52,7 @@ The first return also brings Oren, Sava, and Mira into the changed market. Their
 
 Normal observations and creation previews show your own resources and gear with readable names and exact quantities. The kernel derives this read-only supply line; payments and item transfers update it through canonical actions. NPC stock and hidden world records remain private, and replay binds the same public readout.
 
-`forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The [local session service](crates/forge-server/README.md) adds a loopback-only HTTP API with canonical action submission, retry-safe acknowledgments, and player-safe save/resume. Run it with `cargo run --locked -p forge-server`; its status page is not yet a browser player. Do not expose or reverse-proxy this single-user API.
+`forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The [local session service](crates/forge-server/README.md) supplies the browser's loopback-only HTTP API with canonical action submission, retry-safe acknowledgments, and player-safe save/resume. The browser owns no game rules.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. Three selector-free controls must pass before six defects are activated separately. Action ordering, page ordering, crawler scheduling, and process-identity mutations must fail the fresh-process crawl contract. Stale-action acceptance and private NPC-stock leakage must fail dedicated production boundary tests with specific failure messages. No mutant hook is compiled into the production crates; the inventory probe is not a claim of complete hidden-state mutation coverage.
 

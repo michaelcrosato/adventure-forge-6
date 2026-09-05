@@ -22,6 +22,7 @@ use tokio::sync::{OwnedSemaphorePermit, Semaphore};
 
 mod security;
 use security::AccessPolicy;
+mod assets;
 
 pub const HTTP_SAVE_BYTES: usize = 256 * 1024;
 // An imported save is a JSON string: a byte can expand to six escape bytes.
@@ -65,8 +66,12 @@ fn app_state(content: Arc<CompiledContent>, port: u16) -> Result<App, ServiceErr
 }
 
 async fn handle(State(app): State<App>, request: Request) -> Response {
+    let is_document_fetch = request
+        .headers()
+        .get("sec-fetch-dest")
+        .is_none_or(|value| value == "document");
     let response = handle_inner(app, request).await;
-    secure_response(response)
+    secure_response(response, is_document_fetch)
 }
 
 async fn handle_inner(app: App, request: Request) -> Response {
@@ -83,11 +88,21 @@ async fn handle_inner(app: App, request: Request) -> Response {
     }
     let method = request.method().clone();
     let path = request.uri().path().to_owned();
-    if method == Method::GET && path == "/" {
-        return bytes_response(StatusCode::OK, "text/html; charset=utf-8", b"<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Adventure Forge local API</title><main><h1>Adventure Forge local API</h1><p>The local session API is running. The browser player is not built yet.</p></main></html>".to_vec());
+    if method == Method::GET {
+        let asset_path = if path == "/" { "/index.html" } else { &path };
+        if let Some(asset) = assets::get(asset_path) {
+            let mut response = Response::new(Body::from(asset.bytes));
+            response.headers_mut().insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static(asset.content_type),
+            );
+            return response;
+        }
     }
     if method == Method::GET && path == "/api/bootstrap" {
-        return plain_json(&json!({"token": app.policy.token()}));
+        return plain_json(
+            &json!({"token": app.policy.token(), "instance_id": app.policy.instance_id()}),
+        );
     }
     if method == Method::GET && path == "/api/options" {
         return bytes_response(StatusCode::OK, "application/json", (*app.options).clone());
@@ -164,6 +179,7 @@ where
 }
 
 enum Operation {
+    Current,
     Start,
     Resume,
     Observe(String),
@@ -175,6 +191,13 @@ enum Operation {
 
 impl Operation {
     fn parse(method: &Method, path: &str) -> Result<Self, (StatusCode, &'static str)> {
+        if path == "/api/current" {
+            return if method == Method::GET {
+                Ok(Self::Current)
+            } else {
+                Err(method_not_allowed())
+            };
+        }
         if path == "/api/sessions" {
             return if method == Method::POST {
                 Ok(Self::Start)
@@ -319,6 +342,7 @@ fn execute_result(
     body: &str,
 ) -> Result<Response, RegistryError> {
     match operation {
+        Operation::Current => Ok(public_json(&json!({"session": registry.current()?}))),
         Operation::Start => {
             let input: CreateInput = decode(body)?;
             let response = registry.start(&input.creation_id, input.start.into_start()?)?;
@@ -444,10 +468,28 @@ fn bytes_response(status: StatusCode, content_type: &'static str, bytes: Vec<u8>
     response
 }
 
-fn secure_response(mut response: Response) -> Response {
+fn secure_response(mut response: Response, is_document_fetch: bool) -> Response {
     let headers = response.headers_mut();
     headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
-    headers.insert(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static("default-src 'none'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"));
+    let content_security_policy = if is_document_fetch
+        && headers
+            .get(header::CONTENT_TYPE)
+            .is_some_and(|value| value == "text/html; charset=utf-8")
+    {
+        // Only the embedded HTML document needs to load the browser bundle.
+        // JSON, errors, and non-HTML assets retain the stricter no-script policy.
+        "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    } else {
+        "default-src 'none'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+    };
+    headers.insert(
+        header::CONTENT_SECURITY_POLICY,
+        HeaderValue::from_static(content_security_policy),
+    );
+    headers.insert(
+        "x-forge-ui-build",
+        HeaderValue::from_static(assets::build_id()),
+    );
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
