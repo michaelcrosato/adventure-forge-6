@@ -1,0 +1,15 @@
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -1185,6 +1185,12 @@
+         Effect::MoveNpc { npc, location } => {
+             let npc = resolve_ref(npc, parameters)?;
+             let location = resolve_ref(location, parameters)?;
++            if std::env::var_os("FORGE_MUTANT_STAFFING_MOVEMENT").is_some()
++                && npc == "fume_yards.brann_coil"
++                && location == "fume_yards.ash_beds"
++            {
++                return Ok(());
++            }
+             if !content.has_npc(&npc) {
+                 return Err(KernelError::InvalidAction(format!(
+                     "cannot move unknown NPC {npc}"

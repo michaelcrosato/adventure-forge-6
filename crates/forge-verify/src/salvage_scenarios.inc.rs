@@ -205,6 +205,7 @@ const SALVAGE_BASE: ScenarioExpectations = ScenarioExpectations {
         "fume_yards.prepared_charge",
     ],
     recipe_events: &[],
+    staffing_history: None,
     storage_balances: UNTOUCHED_COLLATERAL,
     storage_transfers: &[],
     entropy_draws: &[],

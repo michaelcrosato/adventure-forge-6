@@ -2735,7 +2735,7 @@ mod tests {
             .crawl;
         assert!(report.is_complete());
         assert_eq!(report.required_definitions.len(), 60);
-        assert_eq!(report.advertised_definitions.len(), 91);
+        assert_eq!(report.advertised_definitions.len(), 95);
         assert!(report.reached_locations.len() >= 7);
         assert!(report.successful_actions >= report.required_definitions.len());
         assert_eq!(report.starting_sessions.len(), 2);

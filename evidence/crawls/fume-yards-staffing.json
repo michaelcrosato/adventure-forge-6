@@ -2,52 +2,41 @@
   "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
   "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
   "budget": {
-    "max_depth": 35,
-    "max_expanded_states": 128,
-    "max_discovered_frontiers": 1024,
-    "max_action_executions": 4096,
+    "max_depth": 20,
+    "max_expanded_states": 96,
+    "max_discovered_frontiers": 768,
+    "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 47,
-  "discovered_frontiers": 187,
-  "successful_actions": 291,
-  "max_legal_actions": 9,
+  "expanded_states": 10,
+  "discovered_frontiers": 68,
+  "successful_actions": 70,
+  "max_legal_actions": 8,
   "reached_locations": [
     "fume_yards.ash_beds",
     "fume_yards.kiln_bay",
     "fume_yards.workshop",
-    "lowsail.docks",
-    "lowsail.levee",
     "lowsail.return"
   ],
   "covered_definitions": [
+    "fume_yards.assign_brann_salvage",
     "fume_yards.brace_rack",
     "fume_yards.buy_collateral_filter",
     "fume_yards.enter_ash_hatch",
-    "fume_yards.escort_market_cask",
     "fume_yards.fit_dust_filter",
     "fume_yards.leave_ash_hatch",
+    "fume_yards.load_cold_freight",
     "fume_yards.load_freight",
-    "fume_yards.pack_catch_screen",
-    "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
-    "fume_yards.report_with_daro",
-    "fume_yards.return_to_cage",
-    "fume_yards.settle_collateral_fuel",
+    "fume_yards.recover_staffed_filter",
+    "fume_yards.return_with_brann",
+    "fume_yards.share_rescue_account",
     "fume_yards.take_cask",
     "fume_yards.take_fuel",
-    "fume_yards.take_market_cask",
     "fume_yards.take_stock",
     "return.ask_oren",
-    "return.draw_clean_water",
-    "return.fit_market_filter",
-    "return.install_market_cask",
-    "return.order_water_stand",
-    "return.patch_stand",
     "return.read_tide",
-    "return.sell_filter",
-    "return.sort_dry_goods",
     "return.visit_workshop",
     "travel_adjacent",
     "wait_tide",
@@ -151,16 +140,10 @@
     "world.enter_aftermath"
   ],
   "required_definitions": [
-    "fume_yards.buy_collateral_filter",
-    "fume_yards.escort_market_cask",
-    "fume_yards.read_collateral_docket",
-    "fume_yards.return_to_cage",
-    "fume_yards.settle_collateral_fuel",
-    "fume_yards.take_market_cask",
-    "return.draw_clean_water",
-    "return.fit_market_filter",
-    "return.install_market_cask",
-    "return.order_water_stand"
+    "fume_yards.assign_brann_salvage",
+    "fume_yards.recover_staffed_filter",
+    "fume_yards.return_with_brann",
+    "fume_yards.share_rescue_account"
   ],
   "starting_sessions": [
     {
@@ -197,5 +180,5 @@
       "state_id": "c92a35bfd735e42545b6fa0d8f6cd7b4281339338478621ce4a074c8177a5c98"
     }
   ],
-  "execution_receipt": "a335d438dec01d3c18adc601f2960fba54529c3300454207c59c6871317d934f"
+  "execution_receipt": "b96558776957640393586a3d538cd4c438b197d41a6f81ed312a717c3ba377b1"
 }

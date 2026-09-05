@@ -23,6 +23,14 @@ const SCENARIO_BINDING_FORMAT: &str = "forge-scenario-spec-v1";
 const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
+    "m2-fume-crew-staffed",
+    "m2-fume-crew-ordinary",
+    "m2-fume-crew-other-history",
+    "m2-fume-crew-no-account",
+    "m2-fume-crew-no-help",
+    "m2-fume-crew-walked-away",
+    "m2-fume-crew-cancelled",
+    "m2-fume-crew-water-composed",
     "m2-fume-collateral-purchase",
     "m2-fume-collateral-fuel",
     "m2-fume-collateral-local",
@@ -158,6 +166,8 @@ struct ScenarioRecipeExpectation {
 
 #[derive(Clone, Copy, Debug, Serialize)]
 pub(super) struct ScenarioExpectations {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    staffing_history: Option<&'static StaffingHistoryExpectation>,
     final_location: &'static str,
     final_action_definition: &'static str,
     final_observation_contains: &'static str,
@@ -660,6 +670,7 @@ const UNTOUCHED_COLLATERAL: &[StorageBalanceExpectation] = &[StorageBalanceExpec
 include!("batch_scenarios.inc.rs");
 include!("salvage_scenarios.inc.rs");
 include!("market_scenarios.inc.rs");
+include!("staffing_scenarios.inc.rs");
 
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
@@ -671,6 +682,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: M0_ILYAN_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -711,6 +723,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: M0_ROOK_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -752,6 +765,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: CUSTOM_CROSS_CURRENT_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -793,6 +807,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: CUSTOM_UNLIKELY_ALLY_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -833,6 +848,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: DEADLINE_MISSED_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
@@ -887,6 +903,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: SPLIT_FLOW_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -951,6 +968,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: HOLD_MARKET_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.count_dry_stalls",
             final_observation_contains: "You enforce council control while the upland works absorb the loss.",
@@ -1016,6 +1034,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: WARNING_UNRELAYED_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "red_sluice.floor",
             final_action_definition: "levee.authority_path",
             final_observation_contains: "",
@@ -1061,6 +1080,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: WARNING_RELAYED_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "red_sluice.floor",
             final_action_definition: "levee.authority_path",
             final_observation_contains: "Edrik knows Lowsail has been warned",
@@ -1109,6 +1129,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: RELIEF_CHANNEL_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1175,6 +1196,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: BREAK_TOLL_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.open_ferry",
             final_observation_contains: "You abolish the toll and launch a free ferry between both shores.",
@@ -1238,6 +1260,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: OVERLOAD_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
@@ -1303,6 +1326,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: LOWSAIL_AREA_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1377,6 +1401,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: RED_SLUICE_AREA_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -1455,6 +1480,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: TIDE_KEY_SPLIT_FLOW_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -1526,6 +1552,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: PAID_TOWLINE_RELIEF_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1594,6 +1621,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: &PILOT_REPAIR_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "spent",
@@ -1691,6 +1719,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: &PILOT_SCREEN_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "screen",
@@ -1777,6 +1806,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: &PILOT_UNSCREENED_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "Lowsail",
@@ -1870,6 +1900,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         seed: 71,
         steps: &PILOT_LATE_STEPS,
         expectations: ScenarioExpectations {
+            staffing_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "spent",
@@ -1981,6 +2012,14 @@ const SCENARIOS: &[ScenarioSpec] = &[
     MARKET_CASK_DELIVERED_SPEC,
     MARKET_CASK_UNDELIVERED_SPEC,
     MARKET_AFTER_REPORT_SPEC,
+    STAFF_STAFFED_SPEC,
+    STAFF_ORDINARY_SPEC,
+    STAFF_OTHER_HISTORY_SPEC,
+    STAFF_NO_ACCOUNT_SPEC,
+    STAFF_NO_HELP_SPEC,
+    STAFF_WALKED_AWAY_SPEC,
+    STAFF_CANCELLED_SPEC,
+    STAFF_WATER_COMPOSED_SPEC,
 ];
 
 #[derive(Serialize)]
@@ -2089,6 +2128,9 @@ pub(super) fn validate_session(
     validate_recipe(spec, session, content)?;
     let state = session.state();
     let expected = &spec.expectations;
+    if let Some(history) = expected.staffing_history {
+        validate_staffing_history(history, session.trace(), state)?;
+    }
     if state.world.current_location != expected.final_location {
         return Err(VerifyError::new(
             "scenario did not reach its claimed final location",
@@ -2153,13 +2195,7 @@ pub(super) fn validate_session(
         expected.forbidden_npc_inventory,
     )?;
     validate_character_resources(state, expected.required_character_resources)?;
-    for item in expected.forbidden_character_inventory {
-        if state.character.inventory.contains_key(*item) {
-            return Err(VerifyError::new(format!(
-                "scenario still owns consumed or forbidden item {item}"
-            )));
-        }
-    }
+    validate_forbidden_inventory(state, expected.forbidden_character_inventory)?;
     for expected_stock in expected.required_npc_inventory {
         if state
             .world
@@ -2319,6 +2355,20 @@ fn validate_inventory(
             return Err(VerifyError::new(format!(
                 "scenario NPC {} still owns forbidden item {}",
                 expected.npc, expected.item
+            )));
+        }
+    }
+    Ok(())
+}
+
+fn validate_forbidden_inventory(
+    state: &forge_kernel::GameState,
+    forbidden: &[&str],
+) -> Result<(), VerifyError> {
+    for item in forbidden {
+        if state.character.inventory.contains_key(*item) {
+            return Err(VerifyError::new(format!(
+                "scenario still owns consumed or forbidden item {item}"
             )));
         }
     }
@@ -2723,6 +2773,9 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                     "scenario forbidden local flags must be named and cannot also be required",
                 ));
             }
+        }
+        if let Some(history) = spec.expectations.staffing_history {
+            validate_staffing_spec(history, spec)?;
         }
         validate_entropy_expectations(
             spec.expectations.entropy_draws,

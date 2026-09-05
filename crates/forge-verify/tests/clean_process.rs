@@ -71,6 +71,17 @@ fn market_water_definitions() -> std::collections::BTreeSet<&'static str> {
     .collect()
 }
 
+fn staffing_definitions() -> std::collections::BTreeSet<&'static str> {
+    [
+        "fume_yards.share_rescue_account",
+        "fume_yards.assign_brann_salvage",
+        "fume_yards.recover_staffed_filter",
+        "fume_yards.return_with_brann",
+    ]
+    .into_iter()
+    .collect()
+}
+
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
     let expected_files: Vec<_> = scenario_ids()
@@ -138,18 +149,19 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     );
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        91
+        95
     );
     assert_eq!(report["reached_locations"].as_array().unwrap().len(), 9);
     let regression = &report["regression"];
     let batchworks = &report["batchworks"];
     let salvage = &report["salvage"];
     let market_water = &report["market_water"];
+    let staffing = &report["staffing"];
     assert_eq!(
         regression["required_definitions"].as_array().unwrap().len(),
         60
     );
-    for component in [regression, batchworks, salvage, market_water] {
+    for component in [regression, batchworks, salvage, market_water, staffing] {
         assert_eq!(component["build_id"], report["build_id"]);
         assert_eq!(component["verifier_id"], report["verifier_id"]);
         assert_eq!(
@@ -166,7 +178,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         );
     }
     let union = |field: &str| {
-        [regression, batchworks, salvage, market_water]
+        [regression, batchworks, salvage, market_water, staffing]
             .into_iter()
             .flat_map(|component| component[field].as_array().unwrap())
             .map(|value| value.as_str().unwrap())
@@ -203,6 +215,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     assert_batchworks_scope(batchworks);
     assert_salvage_scope(salvage);
     assert_market_water_scope(market_water);
+    assert_staffing_scope(staffing);
     let core = &regression["split_tide_projection"];
     assert_eq!(core["required_definitions"], core["covered_definitions"]);
     assert_eq!(core["required_locations"], core["reached_locations"]);
@@ -292,7 +305,7 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        91
+        95
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -331,7 +344,7 @@ fn assert_batchworks_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        91
+        95
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -380,7 +393,7 @@ fn assert_salvage_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        91
+        95
     );
     let locations = report["reached_locations"].as_array().unwrap();
     for location in [
@@ -441,7 +454,7 @@ fn assert_market_water_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        91
+        95
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -504,4 +517,82 @@ fn clean_process_market_water_crawls_match_checked_report() {
         combined["advertised_definitions"]
     );
     assert_eq!(report, combined["market_water"]);
+}
+
+fn assert_staffing_scope(report: &serde_json::Value) {
+    let required = report["required_definitions"].as_array().unwrap();
+    let covered = report["covered_definitions"].as_array().unwrap();
+    assert_eq!(required.len(), 4);
+    assert_eq!(
+        required
+            .iter()
+            .map(|id| id.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>(),
+        staffing_definitions()
+    );
+    assert!(required.iter().all(|id| covered.contains(id)));
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        95
+    );
+    assert_eq!(report["budget"]["max_depth"], 20);
+    assert_eq!(report["budget"]["max_expanded_states"], 96);
+    assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
+    assert_eq!(report["budget"]["max_action_executions"], 2048);
+    assert_eq!(report["budget"]["catalog_page_size"], 7);
+    assert!(report["expanded_states"].as_u64().unwrap() <= 96);
+    assert!(report["discovered_frontiers"].as_u64().unwrap() <= 768);
+    assert!(report["successful_actions"].as_u64().unwrap() <= 2048);
+    for location in [
+        "fume_yards.ash_beds",
+        "fume_yards.kiln_bay",
+        "fume_yards.workshop",
+    ] {
+        assert!(
+            report["reached_locations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|id| id.as_str() == Some(location))
+        );
+    }
+    assert_aftermath_starts(report);
+}
+
+#[test]
+fn clean_process_staffing_crawls_match_checked_report() {
+    let first = verifier(&["crawl-staffing"]);
+    let second = verifier(&["crawl-staffing"]);
+    assert!(
+        first.status.success(),
+        "first staffing crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(
+        second.status.success(),
+        "second staffing crawl failed: {}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process staffing crawls diverged"
+    );
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../evidence/crawls/fume-yards-staffing.json");
+    assert_eq!(
+        first.stdout,
+        std::fs::read(path).expect("checked staffing report exists"),
+        "checked staffing report is stale"
+    );
+    let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_staffing_scope(&report);
+    let combined: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(crawl_path()).unwrap()).unwrap();
+    assert_eq!(report["build_id"], combined["build_id"]);
+    assert_eq!(report["verifier_id"], combined["verifier_id"]);
+    assert_eq!(
+        report["advertised_definitions"],
+        combined["advertised_definitions"]
+    );
+    assert_eq!(report, combined["staffing"]);
 }
