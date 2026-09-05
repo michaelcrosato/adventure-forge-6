@@ -181,12 +181,17 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 9);
     assert_eq!(content.npcs().count(), 9);
-    assert_eq!(content.actions().count(), 95);
+    assert_eq!(content.actions().count(), 100);
     for id in [
         "fume_yards.share_rescue_account",
         "fume_yards.assign_brann_salvage",
         "fume_yards.recover_staffed_filter",
         "fume_yards.return_with_brann",
+        "fume_yards.test_unfired_charge",
+        "fume_yards.report_test",
+        "fume_yards.delegate_cold_shift",
+        "fume_yards.return_with_nessa",
+        "fume_yards.return_brann_to_kiln",
     ] {
         assert!(content.action(id).is_some());
     }

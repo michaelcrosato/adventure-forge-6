@@ -2545,6 +2545,270 @@
             "flag": "fume_yards.stock_given"
           },
           "text": "Two clay and one mesh: plugs unlock three-coin sorting after Lowsail's tide; screening saves two stamina locally."
+        },
+        {
+          "id": "dust_test_waiting",
+          "priority": 500,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "npc_knows_with_provenance",
+                "npc": "fume_yards.nessa_tern",
+                "knowledge_id": "fume_yards.charge_dust_test",
+                "provenance": "witnessed"
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.prepared_charge",
+                    "count": 1
+                  },
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.charge_prepared"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_ignited"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_active"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_closed"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_freight_loaded"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.freight_spoiled"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.dust_filter_fitted"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.nessa_tern",
+                "location": "fume_yards.workshop"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.kiln_bay"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "npc_knows",
+                  "npc": "fume_yards.brann_coil",
+                  "knowledge_id": "fume_yards.charge_dust_test"
+                }
+              }
+            ]
+          },
+          "text": "Bring Nessa and your charge to Kiln Bay; Brann must hear her dust finding in person."
+        },
+        {
+          "id": "dust_report_retained",
+          "priority": 500,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.test_report_delivered"
+              },
+              {
+                "kind": "npc_knows_with_provenance",
+                "npc": "fume_yards.brann_coil",
+                "knowledge_id": "fume_yards.charge_dust_test",
+                "provenance": "told"
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.prepared_charge",
+                    "count": 1
+                  },
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.charge_prepared"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_ignited"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_active"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_closed"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_freight_loaded"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.freight_spoiled"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.dust_filter_fitted"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.nessa_tern",
+                "location": "fume_yards.workshop"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.kiln_bay"
+              }
+            ]
+          },
+          "text": "Brann retains Nessa's report at Kiln Bay; return with your charge to arrange the cold shift."
+        },
+        {
+          "id": "dust_nessa_away",
+          "priority": 510,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.test_report_delivered"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.nessa_tern",
+                "location": "fume_yards.kiln_bay"
+              }
+            ]
+          },
+          "text": "Nessa remains at Kiln Bay; return there to bring her home."
+        },
+        {
+          "id": "cold_brann_waiting_plugs",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.cold_shift_completed"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.workshop"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.repair_lot",
+                "count": 1
+              }
+            ]
+          },
+          "text": "Return Brann to Kiln Bay after his paid shift; your plugs can patch Lowsail's stand."
+        },
+        {
+          "id": "cold_brann_waiting",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.cold_shift_completed"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.workshop"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.repair_lot",
+                  "count": 1
+                }
+              }
+            ]
+          },
+          "text": "Brann waits here after the paid cold shift; return him to Kiln Bay."
         }
       ],
       "exits": [
@@ -5592,6 +5856,785 @@
             ]
           },
           "text": "Brann needed dust protection before freight work closed; your own rack recovery remains available."
+        },
+        {
+          "id": "cold_shift_offer",
+          "priority": 530,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.prepared_charge",
+                    "count": 1
+                  },
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.charge_prepared"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_ignited"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_active"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_closed"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_freight_loaded"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.freight_spoiled"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.dust_filter_fitted"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.kiln_bay"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.test_report_delivered"
+              },
+              {
+                "kind": "npc_knows_with_provenance",
+                "npc": "fume_yards.brann_coil",
+                "knowledge_id": "fume_yards.charge_dust_test",
+                "provenance": "told"
+              },
+              {
+                "kind": "npc_knows_with_provenance",
+                "npc": "fume_yards.nessa_tern",
+                "knowledge_id": "fume_yards.charge_dust_test",
+                "provenance": "witnessed"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.salvage_assignment_active"
+                }
+              },
+              {
+                "kind": "any",
+                "conditions": [
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.kiln_bay"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.workshop"
+                  }
+                ]
+              }
+            ]
+          },
+          "text": "Make plugs, save two stamina; firing, dust fitting and rack lifts end; return Brann from Workshop."
+        },
+        {
+          "id": "dust_nessa_return",
+          "priority": 510,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.test_report_delivered"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.kiln_bay"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "all",
+                          "conditions": [
+                            {
+                              "kind": "has_item",
+                              "item": "fume_yards.prepared_charge",
+                              "count": 1
+                            },
+                            {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.charge_prepared"
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_ignited"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_active"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_closed"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_freight_loaded"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.freight_spoiled"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.dust_filter_fitted"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "npc_at_location",
+                          "npc": "fume_yards.brann_coil",
+                          "location": "fume_yards.kiln_bay"
+                        },
+                        {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.test_report_delivered"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.brann_coil",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "told"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.nessa_tern",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "witnessed"
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "location_flag",
+                            "location": "fume_yards.ash_beds",
+                            "flag": "fume_yards.salvage_assignment_active"
+                          }
+                        },
+                        {
+                          "kind": "any",
+                          "conditions": [
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.kiln_bay"
+                            },
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.workshop"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.freight_spoiled"
+                }
+              }
+            ]
+          },
+          "text": "Nessa remains here after her report; Return With Nessa brings her home without undoing earlier work."
+        },
+        {
+          "id": "dust_nessa_heating",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.test_report_delivered"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.kiln_bay"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "all",
+                          "conditions": [
+                            {
+                              "kind": "has_item",
+                              "item": "fume_yards.prepared_charge",
+                              "count": 1
+                            },
+                            {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.charge_prepared"
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_ignited"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_active"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_closed"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_freight_loaded"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.freight_spoiled"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.dust_filter_fitted"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "npc_at_location",
+                          "npc": "fume_yards.brann_coil",
+                          "location": "fume_yards.kiln_bay"
+                        },
+                        {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.test_report_delivered"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.brann_coil",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "told"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.nessa_tern",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "witnessed"
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "location_flag",
+                            "location": "fume_yards.ash_beds",
+                            "flag": "fume_yards.salvage_assignment_active"
+                          }
+                        },
+                        {
+                          "kind": "any",
+                          "conditions": [
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.kiln_bay"
+                            },
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.workshop"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_active"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ready"
+                }
+              }
+            ]
+          },
+          "text": "The batch is heating; banking preserves freight, while returning Nessa home leaves the batch running."
+        },
+        {
+          "id": "dust_nessa_ready",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.test_report_delivered"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.kiln_bay"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "all",
+                          "conditions": [
+                            {
+                              "kind": "has_item",
+                              "item": "fume_yards.prepared_charge",
+                              "count": 1
+                            },
+                            {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.charge_prepared"
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_ignited"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_active"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_closed"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_freight_loaded"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.freight_spoiled"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.dust_filter_fitted"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "npc_at_location",
+                          "npc": "fume_yards.brann_coil",
+                          "location": "fume_yards.kiln_bay"
+                        },
+                        {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.test_report_delivered"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.brann_coil",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "told"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.nessa_tern",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "witnessed"
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "location_flag",
+                            "location": "fume_yards.ash_beds",
+                            "flag": "fume_yards.salvage_assignment_active"
+                          }
+                        },
+                        {
+                          "kind": "any",
+                          "conditions": [
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.kiln_bay"
+                            },
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.workshop"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_active"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_ready"
+              }
+            ]
+          },
+          "text": "Draw or bank before spoilage; Return With Nessa takes one step and leaves the batch running."
+        },
+        {
+          "id": "dust_nessa_spoiled",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.test_report_delivered"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.nessa_tern",
+                    "location": "fume_yards.kiln_bay"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "all",
+                          "conditions": [
+                            {
+                              "kind": "has_item",
+                              "item": "fume_yards.prepared_charge",
+                              "count": 1
+                            },
+                            {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.charge_prepared"
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_ignited"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.batch_active"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_closed"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_freight_loaded"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.freight_spoiled"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.dust_filter_fitted"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "npc_at_location",
+                          "npc": "fume_yards.brann_coil",
+                          "location": "fume_yards.kiln_bay"
+                        },
+                        {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.test_report_delivered"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.brann_coil",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "told"
+                        },
+                        {
+                          "kind": "npc_knows_with_provenance",
+                          "npc": "fume_yards.nessa_tern",
+                          "knowledge_id": "fume_yards.charge_dust_test",
+                          "provenance": "witnessed"
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "location_flag",
+                            "location": "fume_yards.ash_beds",
+                            "flag": "fume_yards.salvage_assignment_active"
+                          }
+                        },
+                        {
+                          "kind": "any",
+                          "conditions": [
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.kiln_bay"
+                            },
+                            {
+                              "kind": "npc_at_location",
+                              "npc": "fume_yards.nessa_tern",
+                              "location": "fume_yards.workshop"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.freight_spoiled"
+              }
+            ]
+          },
+          "text": "Spoilage lost the freight commission; return Nessa to Workshop."
+        },
+        {
+          "id": "cold_brann_away",
+          "priority": 510,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.cold_shift_completed"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.workshop"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.report_paid"
+                }
+              }
+            ]
+          },
+          "text": "Brann waits at Workshop after his paid shift; bring him back for unpaid rack reports."
+        },
+        {
+          "id": "cold_brann_away_resolved",
+          "priority": 500,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.cold_shift_completed"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.brann_coil",
+                "location": "fume_yards.workshop"
+              }
+            ]
+          },
+          "text": "Brann waits at Workshop after his paid shift; bring him back to Kiln Bay."
         }
       ],
       "exits": [
@@ -8179,6 +9222,105 @@
             ]
           },
           "text": "The rack filter broke; Brann is back at Kiln Bay for Daro's report and the access wage."
+        },
+        {
+          "id": "cold_report_waits_brann",
+          "priority": 510,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.cold_shift_completed"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.brann_coil",
+                    "location": "fume_yards.workshop"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.daro_venn",
+                    "location": "fume_yards.ash_beds"
+                  },
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.ash_beds",
+                    "flag": "fume_yards.rack_cleared"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.ash_beds",
+                      "flag": "fume_yards.report_paid"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.shard",
+                  "count": 1
+                }
+              }
+            ]
+          },
+          "text": "Return Brann from Workshop to Kiln Bay, then use the hatch for Daro's report."
+        },
+        {
+          "id": "cold_broken_report_waits_brann",
+          "priority": 520,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.cold_shift_completed"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.brann_coil",
+                    "location": "fume_yards.workshop"
+                  },
+                  {
+                    "kind": "npc_at_location",
+                    "npc": "fume_yards.daro_venn",
+                    "location": "fume_yards.ash_beds"
+                  },
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.ash_beds",
+                    "flag": "fume_yards.rack_cleared"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.ash_beds",
+                      "flag": "fume_yards.report_paid"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.shard",
+                "count": 1
+              }
+            ]
+          },
+          "text": "The rack filter broke; return Brann from Workshop to Kiln Bay before bringing Daro's report."
         }
       ],
       "exits": [
@@ -19890,6 +21032,703 @@
           },
           "memory_id": "fume_yards.returned_from_rack",
           "subject": "Brann returned from the rack to Kiln Bay with the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.test_unfired_charge",
+      "label": "Test Charge",
+      "category": "Inspect",
+      "result": "Nessa's covered tray catches dust from your charge; the lot stays intact. Bring her to Brann.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.charge_prepared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_freight_loaded"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.freight_spoiled"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.dust_filter_fitted"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "npc_knows",
+              "npc": "fume_yards.nessa_tern",
+              "knowledge_id": "fume_yards.charge_dust_test"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "knowledge_id": "fume_yards.charge_dust_test",
+          "subject": "Nessa's covered tray caught dust from the player's unfired charge.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.charge_dust_test",
+          "subject": "Nessa's covered tray caught dust from the player's unfired charge.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.report_test",
+      "label": "Bring Nessa",
+      "category": "Report",
+      "result": "Nessa's finding permits reclaiming your charge into plugs and loading freight, saving two stamina. Return Brann afterward for unpaid rack reports.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.charge_prepared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_freight_loaded"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.freight_spoiled"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.dust_filter_fitted"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.nessa_tern",
+            "knowledge_id": "fume_yards.charge_dust_test",
+            "provenance": "witnessed"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "npc_knows",
+              "npc": "fume_yards.brann_coil",
+              "knowledge_id": "fume_yards.charge_dust_test"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.test_report_delivered"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "knowledge_id": "fume_yards.charge_dust_test",
+          "subject": "Nessa reported her covered-tray dust finding to Brann.",
+          "provenance": {
+            "kind": "told",
+            "by": "fume_yards.nessa_tern"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.test_report_delivered",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.dust_test_visit",
+          "subject": "Nessa brought her dust finding to Brann at Kiln Bay.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.charge_dust_report",
+          "subject": "Nessa reported her covered-tray dust finding to Brann.",
+          "provenance": {
+            "kind": "told",
+            "by": "fume_yards.nessa_tern"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true,
+      "result_variants": [
+        {
+          "id": "wanted_council_report",
+          "priority": 10,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "facet_equals",
+                "axis": "appearance.marking",
+                "value": {
+                  "kind": "text",
+                  "value": "council-ink"
+                }
+              },
+              {
+                "kind": "has_tag",
+                "tag": "wanted"
+              }
+            ]
+          },
+          "text": "Your council ink and wanted face trouble Brann, but Nessa's report earns his help."
+        }
+      ]
+    },
+    {
+      "id": "fume_yards.delegate_cold_shift",
+      "label": "Cold Crew Shift (+3 coin, no stamina)",
+      "category": "Work",
+      "result": "Brann reclaims your charge into plugs and loads freight; he pays three coins. You return with Brann to Workshop; three steps pass without spending stamina.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.charge_prepared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_freight_loaded"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.freight_spoiled"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.dust_filter_fitted"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.test_report_delivered"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.brann_coil",
+            "knowledge_id": "fume_yards.charge_dust_test",
+            "provenance": "told"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.nessa_tern",
+            "knowledge_id": "fume_yards.charge_dust_test",
+            "provenance": "witnessed"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.salvage_assignment_active"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.nessa_tern",
+                "location": "fume_yards.kiln_bay"
+              },
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.nessa_tern",
+                "location": "fume_yards.workshop"
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.reclaim_charge"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_reclaimed",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.cold_shift_completed",
+          "value": true
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.crew_charge_reclaimed",
+          "subject": "Brann reclaimed the player's unfired charge.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.kiln_freight_paid",
+          "subject": "Brann paid three coins for the player's commissioned cold loading.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.cold_shift_completed",
+          "subject": "Brann finished the cold shift and closed the kiln.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 3
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.return_with_nessa",
+      "label": "Return With Nessa",
+      "category": "Travel",
+      "result": "Nessa returns with you to Workshop. Her dust finding and Brann's report remain recorded.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.test_report_delivered"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.kiln_bay"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.returned_from_dust_test",
+          "subject": "Nessa returned to Workshop with the player after reporting her test.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.return_brann_to_kiln",
+      "label": "Return With Brann",
+      "category": "Travel",
+      "result": "Brann returns with you to Kiln Bay. Cold work stays finished; unpaid rack reports still need Daro.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.cold_shift_completed"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.workshop"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.returned_from_cold_shift",
+          "subject": "Brann returned to Kiln Bay with the player after cold work.",
           "provenance": {
             "kind": "witnessed"
           }

@@ -23,6 +23,19 @@ const SCENARIO_BINDING_FORMAT: &str = "forge-scenario-spec-v1";
 const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
+    "m2-fume-dust-tested",
+    "m2-fume-dust-relayed",
+    "m2-fume-dust-unrelayed",
+    "m2-fume-dust-no-test",
+    "m2-fume-cold-delegated",
+    "m2-fume-cold-personal",
+    "m2-fume-dust-nessa-walked",
+    "m2-fume-dust-nessa-returned",
+    "m2-fume-cold-brann-walked",
+    "m2-fume-cold-brann-returned",
+    "m2-fume-cold-rack-paid",
+    "m2-fume-cold-water-delegated",
+    "m2-fume-cold-water-personal",
     "m2-fume-crew-staffed",
     "m2-fume-crew-ordinary",
     "m2-fume-crew-other-history",
@@ -168,6 +181,8 @@ struct ScenarioRecipeExpectation {
 pub(super) struct ScenarioExpectations {
     #[serde(skip_serializing_if = "Option::is_none")]
     staffing_history: Option<&'static StaffingHistoryExpectation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cold_shift_history: Option<&'static ColdShiftHistory>,
     final_location: &'static str,
     final_action_definition: &'static str,
     final_observation_contains: &'static str,
@@ -671,6 +686,7 @@ include!("batch_scenarios.inc.rs");
 include!("salvage_scenarios.inc.rs");
 include!("market_scenarios.inc.rs");
 include!("staffing_scenarios.inc.rs");
+include!("cold_shift_scenarios.inc.rs");
 
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
@@ -683,6 +699,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: M0_ILYAN_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -724,6 +741,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: M0_ROOK_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -766,6 +784,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: CUSTOM_CROSS_CURRENT_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -808,6 +827,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: CUSTOM_UNLIKELY_ALLY_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.levee",
             final_action_definition: "travel_adjacent",
             final_observation_contains: "",
@@ -849,6 +869,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: DEADLINE_MISSED_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
@@ -904,6 +925,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: SPLIT_FLOW_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -969,6 +991,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: HOLD_MARKET_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.count_dry_stalls",
             final_observation_contains: "You enforce council control while the upland works absorb the loss.",
@@ -1035,6 +1058,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: WARNING_UNRELAYED_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "red_sluice.floor",
             final_action_definition: "levee.authority_path",
             final_observation_contains: "",
@@ -1081,6 +1105,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: WARNING_RELAYED_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "red_sluice.floor",
             final_action_definition: "levee.authority_path",
             final_observation_contains: "Edrik knows Lowsail has been warned",
@@ -1130,6 +1155,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: RELIEF_CHANNEL_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1197,6 +1223,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: BREAK_TOLL_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.open_ferry",
             final_observation_contains: "You abolish the toll and launch a free ferry between both shores.",
@@ -1261,6 +1288,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: OVERLOAD_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.face_flood",
             final_observation_contains: "You face the flooded market and answer for the broken gates.",
@@ -1327,6 +1355,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: LOWSAIL_AREA_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1402,6 +1431,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: RED_SLUICE_AREA_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -1481,6 +1511,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: TIDE_KEY_SPLIT_FLOW_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.share_water",
             final_observation_contains: "Mira records the shared flow as a new market charter.",
@@ -1553,6 +1584,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: PAID_TOWLINE_RELIEF_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "lowsail.return",
             final_action_definition: "return.move_inland",
             final_observation_contains: "You help families open a higher market beyond the next surge.",
@@ -1622,6 +1654,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: &PILOT_REPAIR_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "spent",
@@ -1720,6 +1753,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: &PILOT_SCREEN_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "screen",
@@ -1807,6 +1841,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: &PILOT_UNSCREENED_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "Lowsail",
@@ -1901,6 +1936,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
         steps: &PILOT_LATE_STEPS,
         expectations: ScenarioExpectations {
             staffing_history: None,
+            cold_shift_history: None,
             final_location: "fume_yards.workshop",
             final_action_definition: "return.visit_workshop",
             final_observation_contains: "spent",
@@ -2020,6 +2056,19 @@ const SCENARIOS: &[ScenarioSpec] = &[
     STAFF_WALKED_AWAY_SPEC,
     STAFF_CANCELLED_SPEC,
     STAFF_WATER_COMPOSED_SPEC,
+    COLD_DUST_TESTED_SPEC,
+    COLD_DUST_RELAYED_SPEC,
+    COLD_DUST_UNRELAYED_SPEC,
+    COLD_DUST_NO_TEST_SPEC,
+    COLD_COLD_DELEGATED_SPEC,
+    COLD_COLD_PERSONAL_SPEC,
+    COLD_DUST_NESSA_WALKED_SPEC,
+    COLD_DUST_NESSA_RETURNED_SPEC,
+    COLD_COLD_BRANN_WALKED_SPEC,
+    COLD_COLD_BRANN_RETURNED_SPEC,
+    COLD_COLD_RACK_PAID_SPEC,
+    COLD_COLD_WATER_DELEGATED_SPEC,
+    COLD_COLD_WATER_PERSONAL_SPEC,
 ];
 
 #[derive(Serialize)]
@@ -2128,6 +2177,9 @@ pub(super) fn validate_session(
     validate_recipe(spec, session, content)?;
     let state = session.state();
     let expected = &spec.expectations;
+    if let Some(history) = expected.cold_shift_history {
+        validate_cold_history(history, session.trace(), state)?;
+    }
     if let Some(history) = expected.staffing_history {
         validate_staffing_history(history, session.trace(), state)?;
     }
@@ -2773,6 +2825,9 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                     "scenario forbidden local flags must be named and cannot also be required",
                 ));
             }
+        }
+        if let Some(history) = spec.expectations.cold_shift_history {
+            validate_cold_spec(history, spec)?;
         }
         if let Some(history) = spec.expectations.staffing_history {
             validate_staffing_spec(history, spec)?;

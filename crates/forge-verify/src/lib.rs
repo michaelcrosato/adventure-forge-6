@@ -149,6 +149,10 @@ pub fn generate_staffing_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_staffing_production(&load_content()?)
 }
 
+pub fn generate_cold_shift_crawl_report() -> Result<CrawlReport, VerifyError> {
+    expansion::crawl_cold_shift_production(&load_content()?)
+}
+
 pub fn check_player_trace(
     player_trace: &PlayerTrace,
 ) -> Result<PlayerTraceVerification, VerifyError> {
@@ -335,7 +339,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 55);
+        assert_eq!(ids.len(), 68);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();

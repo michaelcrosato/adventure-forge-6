@@ -523,6 +523,7 @@ fn frontier_score(
     let deferred_flags = pending_deferred_flag_projections(&frontier.state, content)?;
     let mut relevant_flags = BTreeSet::new();
     let mut relevant_items = BTreeSet::new();
+    let mut recipe_items = BTreeSet::new();
     // Preserve established multi-target search ordering. Once only one goal
     // remains, its item prerequisite can justify a temporary walk away before
     // comparing raw clause counts. A closed source must not outrank available
@@ -535,6 +536,7 @@ fn frontier_score(
     for (id, action) in content.actions() {
         if report.required_definitions.contains(id) && !report.covered_definitions.contains(id) {
             collect_condition_flags(&action.condition, &mut relevant_flags);
+            collect_condition_items(&action.condition, &mut recipe_items);
             if final_target {
                 collect_condition_items(&action.condition, &mut relevant_items);
             }
@@ -544,6 +546,7 @@ fn frontier_score(
         potential_flag_producer_projections(&frontier.state, content, &relevant_flags)?;
     let acquisition_hints =
         potential_item_acquisition_projections(&frontier.state, content, &relevant_items)?;
+    let recipe_hints = potential_recipe_work_projections(&frontier.state, content, &recipe_items)?;
     let mut acquisition_ready = 0usize;
     let mut nearest_acquisition = usize::MAX;
     let mut uncovered_here = 0usize;
@@ -577,7 +580,7 @@ fn frontier_score(
                 acquisition_ready += 1;
                 nearest_acquisition = nearest_acquisition.min(distance);
             }
-            let producer_distance = producer_flags
+            let flag_distance = producer_flags
                 .iter()
                 .filter_map(|(distance, projection)| {
                     ((definition.locations.is_empty()
@@ -588,6 +591,8 @@ fn frontier_score(
                     .then_some(*distance)
                 })
                 .min();
+            let recipe_distance = item_acquisition_distance(definition, &recipe_hints, content)?;
+            let producer_distance = flag_distance.into_iter().chain(recipe_distance).min();
             if let Some(distance) = producer_distance {
                 producer_ready += 1;
                 nearest_producer = nearest_producer.min(distance);
@@ -799,6 +804,196 @@ fn potential_flag_producer_projections(
         }
     }
     Ok(projections)
+}
+
+/// Potential inventory and flags after one fixed recipe program and an
+/// available walk. All recipes and direct flag writes are staged in order;
+/// other inventory mutations, movement, randomness and scheduling are excluded.
+/// Local work must be in the actual canonical catalog. Distant work and the
+/// onward walk remain hints: travel effects and crossed timers are not modeled.
+/// Ignored record writes can also leave a negative knowledge/deed guard looking
+/// ready when real execution would invalidate it; this is only potential work.
+/// No projected time, knowledge, history or entropy enters real state or coverage.
+fn potential_recipe_work_projections(
+    state: &GameState,
+    content: &CompiledContent,
+    relevant_items: &BTreeSet<&str>,
+) -> Result<Vec<(usize, GameState)>, VerifyError> {
+    let mut hints = Vec::new();
+    let mut local_catalog: Option<BTreeSet<String>> = None;
+    for (_, action) in content.actions() {
+        if action.movement || !action.parameters.is_empty() {
+            continue;
+        }
+        let mut relevant = false;
+        let supported = action.effects.iter().all(|effect| match effect {
+            Effect::ApplyRecipe { recipe } => {
+                let Some(recipe) = content.recipe(recipe) else {
+                    return false;
+                };
+                relevant |= recipe
+                    .outputs
+                    .keys()
+                    .any(|item| relevant_items.contains(item.as_str()));
+                true
+            }
+            Effect::SetFlag { .. }
+            | Effect::SetWorldFlag { .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Literal(_),
+                ..
+            }
+            | Effect::Noop
+            | Effect::AddNpcMemory { .. }
+            | Effect::TeachNpc { .. }
+            | Effect::AddCharacterDeed { .. }
+            | Effect::AdvanceTime { .. } => true,
+            Effect::TransferNpcItemToCharacter { .. }
+            | Effect::TransferStorageItemToCharacter { .. }
+            | Effect::TransferCharacterItemToStorage { .. }
+            | Effect::AdjustResource { .. }
+            | Effect::AdjustNpcRelationship { .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Parameter(_),
+                ..
+            }
+            | Effect::MoveCharacter { .. }
+            | Effect::MoveNpc { .. }
+            | Effect::RandomChance { .. }
+            | Effect::ScheduleEvent { .. } => false,
+        });
+        if !supported || !relevant {
+            continue;
+        }
+        let locations = if action.locations.is_empty() {
+            std::slice::from_ref(&state.world.current_location)
+        } else {
+            action.locations.as_slice()
+        };
+        for location in locations {
+            let mut projected = state.clone();
+            projected.world.current_location.clone_from(location);
+            if !action.condition.evaluate(&projected) {
+                continue;
+            }
+            let distance = location_distance(
+                content,
+                &state.world.current_location,
+                location,
+                Some(state),
+            )?;
+            if distance == usize::MAX {
+                continue;
+            }
+            if distance == 0 {
+                if local_catalog.is_none() {
+                    local_catalog = Some(
+                        enumerate_legal_actions(state, content)
+                            .map_err(|_| {
+                                VerifyError::new("crawler could not enumerate recipe work")
+                            })?
+                            .into_iter()
+                            .map(|action| action.definition_id)
+                            .collect(),
+                    );
+                }
+                if !local_catalog.as_ref().unwrap().contains(&action.id) {
+                    continue;
+                }
+            }
+            if !project_recipe_work(&mut projected, action, content) {
+                continue;
+            }
+            hints
+                .try_reserve(1)
+                .map_err(|_| VerifyError::new("crawler recipe work hint allocation failed"))?;
+            hints.push((distance.saturating_add(1), projected));
+        }
+    }
+    Ok(hints)
+}
+
+fn project_recipe_work(
+    projected: &mut GameState,
+    action: &ActionDefinition,
+    content: &CompiledContent,
+) -> bool {
+    let mut latest_time = projected.world.time;
+    for effect in &action.effects {
+        match effect {
+            Effect::ApplyRecipe { recipe } => {
+                let Some(recipe) = content.recipe(recipe) else {
+                    return false;
+                };
+                for (item, count) in &recipe.inputs {
+                    let held = projected
+                        .character
+                        .inventory
+                        .get(item)
+                        .copied()
+                        .unwrap_or(0);
+                    let Some(remaining) = held.checked_sub(*count) else {
+                        return false;
+                    };
+                    if remaining == 0 {
+                        projected.character.inventory.remove(item);
+                    } else {
+                        projected
+                            .character
+                            .inventory
+                            .insert(item.clone(), remaining);
+                    }
+                }
+                for (item, count) in &recipe.outputs {
+                    let held = projected
+                        .character
+                        .inventory
+                        .get(item)
+                        .copied()
+                        .unwrap_or(0);
+                    let Some(total) = held.checked_add(*count) else {
+                        return false;
+                    };
+                    projected.character.inventory.insert(item.clone(), total);
+                }
+            }
+            Effect::SetFlag { flag, value } | Effect::SetWorldFlag { flag, value } => {
+                if *value {
+                    projected.world.flags.insert(flag.clone());
+                } else {
+                    projected.world.flags.remove(flag);
+                }
+            }
+            Effect::SetLocationFlag {
+                location: StringRef::Literal(location),
+                flag,
+                value,
+            } => {
+                let Some(runtime) = projected.world.locations.get_mut(location) else {
+                    return false;
+                };
+                if *value {
+                    runtime.flags.insert(flag.clone());
+                } else {
+                    runtime.flags.remove(flag);
+                }
+            }
+            Effect::AdvanceTime { ticks } => {
+                let Some(next) = latest_time.checked_add(*ticks) else {
+                    return false;
+                };
+                latest_time = next;
+            }
+            // These records do not establish projected target knowledge or
+            // history. Their real effects still require canonical execution.
+            Effect::Noop
+            | Effect::AddNpcMemory { .. }
+            | Effect::TeachNpc { .. }
+            | Effect::AddCharacterDeed { .. } => {}
+            _ => return false,
+        }
+    }
+    true
 }
 
 /// Potential item ownership after one fixed withdrawal program. Sources remain
@@ -1875,6 +2070,377 @@ mod tests {
         draft
     }
 
+    fn recipe_work_fixture() -> forge_kernel::ContentDraft {
+        let mut draft = flag_producer_fixture();
+        draft.character_presets[0].character.inventory.clear();
+        draft.npcs[0].inventory = BTreeMap::from([("test.part".to_owned(), 1)]);
+        draft.recipes = vec![
+            forge_kernel::RecipeDefinition {
+                id: "test.make".to_owned(),
+                inputs: BTreeMap::from([("test.part".to_owned(), 1)]),
+                outputs: BTreeMap::from([("test.product".to_owned(), 1)]),
+            },
+            forge_kernel::RecipeDefinition {
+                id: "test.consume".to_owned(),
+                inputs: BTreeMap::from([("test.product".to_owned(), 1)]),
+                outputs: BTreeMap::new(),
+            },
+        ];
+        draft.actions[1].effects[0] = Effect::ApplyRecipe {
+            recipe: "test.make".to_owned(),
+        };
+        draft.actions[1].effects.insert(
+            3,
+            Effect::AddCharacterDeed {
+                deed_id: "test.made".to_owned(),
+            },
+        );
+        draft.actions[1].effects.push(Effect::SetLocationFlag {
+            location: StringRef::Literal("lowsail.docks".to_owned()),
+            flag: "test.made_here".to_owned(),
+            value: true,
+        });
+        draft.actions[2].locations = vec!["lowsail_market".to_owned()];
+        if let Condition::All { conditions } = &mut draft.actions[2].condition {
+            conditions.push(Condition::HasItem {
+                item: "test.product".to_owned(),
+                count: 1,
+            });
+            conditions.push(Condition::LocationFlag {
+                location: "lowsail.docks".to_owned(),
+                flag: "test.made_here".to_owned(),
+            });
+        }
+        draft.actions[2].effects.insert(
+            0,
+            Effect::ApplyRecipe {
+                recipe: "test.consume".to_owned(),
+            },
+        );
+        let mut take = draft.actions[2].clone();
+        take.id = "test.take".to_owned();
+        take.condition = Condition::Not {
+            condition: Box::new(Condition::WorldFlag {
+                flag: "test.stock_given".to_owned(),
+            }),
+        };
+        take.effects = vec![
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava_rusk".to_owned()),
+                item: "test.part".to_owned(),
+                count: 1,
+            },
+            Effect::SetWorldFlag {
+                flag: "test.stock_given".to_owned(),
+                value: true,
+            },
+            Effect::AdvanceTime { ticks: 1 },
+        ];
+        draft.actions.push(take);
+        draft
+    }
+
+    fn recipe_hints(state: &GameState, content: &CompiledContent) -> Vec<(usize, GameState)> {
+        let mut items = BTreeSet::new();
+        collect_condition_items(&content.action("test.use").unwrap().condition, &mut items);
+        potential_recipe_work_projections(state, content, &items).unwrap()
+    }
+
+    fn record_fixture_action(session: &mut Session<'_>, content: &CompiledContent, id: &str) {
+        let action = enumerate_legal_actions(session.state(), content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == id)
+            .unwrap();
+        session.record(&action).unwrap();
+    }
+
+    #[test]
+    fn recipe_work_hints_require_actual_stock_walk_recipe_return_and_complete_catalogs() {
+        let content = forge_content::compile(recipe_work_fixture()).unwrap();
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        assert!(recipe_hints(session.state(), &content).is_empty());
+        record_fixture_action(&mut session, &content, "test.take");
+        let before = session.state().clone();
+        let hints = recipe_hints(&before, &content);
+        assert_eq!(hints.len(), 1);
+        assert_eq!(
+            item_acquisition_distance(content.action("test.use").unwrap(), &hints, &content)
+                .unwrap(),
+            Some(3),
+            "one approach, one recipe action, and one return are required"
+        );
+        let projected = &hints[0].1;
+        assert_eq!(projected.character.inventory["test.product"], 1);
+        assert!(!projected.character.inventory.contains_key("test.part"));
+        assert!(projected.world.flags.contains("test.ready"));
+        assert!(!projected.world.flags.contains("test.closed"));
+        assert_eq!(projected.character.deeds, before.character.deeds);
+        assert_eq!(projected.character.knowledge, before.character.knowledge);
+        assert_eq!(projected.world.npcs, before.world.npcs);
+        assert_eq!(projected.world.storages, before.world.storages);
+        assert_eq!(projected.world.time, before.world.time);
+        assert_eq!(projected.event_log, before.event_log);
+        assert_eq!(projected.entropy, before.entropy);
+        assert_eq!(*session.state(), before);
+        assert!(
+            enumerate_legal_actions(&before, &content)
+                .unwrap()
+                .iter()
+                .all(|action| action.definition_id != "test.use")
+        );
+        for id in ["test.walk", "test.fit", "test.walk", "test.use"] {
+            record_fixture_action(&mut session, &content, id);
+        }
+        assert!(session.state().character.inventory.is_empty());
+        assert!(session.state().world.flags.contains("test.done"));
+        assert_eq!(session.state().world.time, 5);
+        assert_eq!(session.state().entropy.cursor, 0);
+        assert_eq!(
+            forge_replay::verify(session.trace(), &content).unwrap(),
+            *session.state()
+        );
+        let report = crawl_targets(
+            &content,
+            CrawlBudget {
+                max_depth: 5,
+                max_expanded_states: 5,
+                max_discovered_frontiers: 16,
+                max_action_executions: 8,
+                catalog_page_size: 1,
+            },
+            BTreeSet::from(["test.use".to_owned()]),
+        )
+        .unwrap();
+        assert_eq!(report.expanded_states, 5);
+        assert_eq!(report.successful_actions, 8);
+        assert_eq!(
+            report.covered_definitions,
+            ["test.walk", "test.take", "test.fit", "test.use"]
+                .map(str::to_owned)
+                .into_iter()
+                .collect()
+        );
+    }
+
+    #[test]
+    fn recipe_work_hints_help_an_uncovered_item_goal_before_the_final_goal_phase() {
+        let mut draft = recipe_work_fixture();
+        let mut other = draft.actions[2].clone();
+        other.id = "test.other".to_owned();
+        other.condition = Condition::WorldFlag {
+            flag: "test.other_ready".to_owned(),
+        };
+        draft.actions.push(other);
+        let content = forge_content::compile(draft).unwrap();
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        let initial = Frontier {
+            state: session.state().clone(),
+            depth: 0,
+            ordinal: 0,
+            used_actions: BTreeSet::new(),
+        };
+        record_fixture_action(&mut session, &content, "test.take");
+        let stocked = Frontier {
+            state: session.state().clone(),
+            depth: 1,
+            ordinal: 1,
+            used_actions: BTreeSet::new(),
+        };
+        let report = CrawlReport {
+            verifier_id: crate::VERIFIER_ID.to_owned(),
+            build_id: content.build_id().to_owned(),
+            budget: CrawlBudget::default(),
+            expanded_states: 0,
+            discovered_frontiers: 0,
+            successful_actions: 0,
+            max_legal_actions: 0,
+            reached_locations: BTreeSet::new(),
+            covered_definitions: BTreeSet::new(),
+            advertised_definitions: content.actions().map(|(id, _)| id.clone()).collect(),
+            required_definitions: BTreeSet::from(["test.use".to_owned(), "test.other".to_owned()]),
+            starting_sessions: Vec::new(),
+            execution_receipt: "score fixture only".to_owned(),
+        };
+        let initial_score = frontier_score(&initial, &report, &content).unwrap();
+        let stocked_score = frontier_score(&stocked, &report, &content).unwrap();
+        // Both states satisfy two of use's five clauses and zero of other's
+        // one clause. Existing withdrawal guidance is inactive with two goals.
+        assert_eq!(
+            initial_score.6,
+            (0, Reverse(usize::MAX), 409, 0, Reverse(usize::MAX))
+        );
+        assert_eq!(
+            stocked_score.6,
+            (0, Reverse(usize::MAX), 409, 1, Reverse(3))
+        );
+        assert!(stocked_score > initial_score);
+        assert_eq!(report.covered_definitions, BTreeSet::new());
+    }
+
+    #[test]
+    fn recipe_work_hints_reject_missing_stock_overflow_closed_guards_and_consumed_outputs() {
+        for case in [
+            "missing",
+            "overflow",
+            "closed",
+            "consumed",
+            "negative",
+            "blocked_walk",
+        ] {
+            let mut draft = recipe_work_fixture();
+            draft.character_presets[0].character.inventory =
+                BTreeMap::from([("test.part".to_owned(), 1)]);
+            match case {
+                "missing" => draft.character_presets[0].character.inventory.clear(),
+                "overflow" => {
+                    draft.character_presets[0]
+                        .character
+                        .inventory
+                        .insert("test.product".to_owned(), u32::MAX);
+                }
+                "closed" => {
+                    draft.actions[1].condition = Condition::WorldFlag {
+                        flag: "test.unopened".to_owned(),
+                    }
+                }
+                "blocked_walk" => {
+                    draft.actions[0].condition = Condition::WorldFlag {
+                        flag: "test.unopened".to_owned(),
+                    }
+                }
+                "consumed" => draft.actions[1].effects.push(Effect::ApplyRecipe {
+                    recipe: "test.consume".to_owned(),
+                }),
+                "negative" => draft.actions[1].effects.push(Effect::SetWorldFlag {
+                    flag: "test.closed".to_owned(),
+                    value: true,
+                }),
+                _ => unreachable!(),
+            }
+            let content = forge_content::compile(draft).unwrap();
+            let state = content.new_game("ilyan", 71).unwrap();
+            let hints = recipe_hints(&state, &content);
+            assert_eq!(
+                item_acquisition_distance(content.action("test.use").unwrap(), &hints, &content)
+                    .unwrap(),
+                None,
+                "accepted {case} recipe work"
+            );
+        }
+        // A local producer whose explicit guard is true still needs kernel
+        // preflight; direct recipe underflow must not become local work.
+        let mut draft = recipe_work_fixture();
+        draft.actions[1].locations = vec!["lowsail_market".to_owned()];
+        draft.actions[1].condition = Condition::Always;
+        let content = forge_content::compile(draft).unwrap();
+        let state = content.new_game("ilyan", 71).unwrap();
+        assert!(recipe_hints(&state, &content).is_empty());
+        assert!(
+            enumerate_legal_actions(&state, &content)
+                .unwrap()
+                .iter()
+                .all(|action| action.definition_id != "test.fit")
+        );
+    }
+
+    #[test]
+    fn recipe_work_hints_exclude_unsupported_programs_and_never_supply_target_knowledge() {
+        for effect in [
+            Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(Effect::Noop),
+                on_failure: Box::new(Effect::Noop),
+            },
+            Effect::MoveCharacter {
+                location: StringRef::Literal("lowsail_market".to_owned()),
+            },
+            Effect::AdjustResource {
+                resource: "coin".to_owned(),
+                amount: 1,
+            },
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava_rusk".to_owned()),
+                item: "test.part".to_owned(),
+                count: 1,
+            },
+            Effect::TransferStorageItemToCharacter {
+                storage: "test.reserve".to_owned(),
+                item: "test.part".to_owned(),
+                count: 1,
+            },
+            Effect::TransferCharacterItemToStorage {
+                storage: "test.reserve".to_owned(),
+                item: "test.part".to_owned(),
+                count: 1,
+            },
+            Effect::ScheduleEvent {
+                event: "test.later".to_owned(),
+            },
+        ] {
+            let mut draft = recipe_work_fixture();
+            draft.storages.push(forge_kernel::StorageDefinition {
+                id: "test.reserve".to_owned(),
+                name: "Reserve".to_owned(),
+                location: "lowsail.docks".to_owned(),
+                inventory: BTreeMap::from([("test.part".to_owned(), 1)]),
+            });
+            draft
+                .deferred_events
+                .push(forge_kernel::DeferredEventDefinition {
+                    id: "test.later".to_owned(),
+                    delay: 1,
+                    event_kind: "test.later".to_owned(),
+                    label: "Later".to_owned(),
+                    result: "Done.".to_owned(),
+                    condition: Condition::Always,
+                    effects: vec![Effect::SetWorldFlag {
+                        flag: "test.later".to_owned(),
+                        value: true,
+                    }],
+                });
+            draft.character_presets[0].character.inventory =
+                BTreeMap::from([("test.part".to_owned(), 1)]);
+            draft.actions[1].effects.push(effect);
+            let content = forge_content::compile(draft).unwrap();
+            let state = content.new_game("ilyan", 71).unwrap();
+            assert!(recipe_hints(&state, &content).is_empty());
+        }
+        for condition in [
+            Condition::CharacterHasDeed {
+                deed_id: "test.made".to_owned(),
+            },
+            Condition::NpcKnows {
+                npc: "sava_rusk".to_owned(),
+                knowledge_id: "test.receipt".to_owned(),
+            },
+            Condition::Not {
+                condition: Box::new(Condition::HasItem {
+                    item: "test.product".to_owned(),
+                    count: 1,
+                }),
+            },
+        ] {
+            let mut draft = recipe_work_fixture();
+            draft.character_presets[0].character.inventory =
+                BTreeMap::from([("test.part".to_owned(), 1)]);
+            if let Condition::All { conditions } = &mut draft.actions[2].condition {
+                conditions.push(condition);
+            }
+            let content = forge_content::compile(draft).unwrap();
+            let state = content.new_game("ilyan", 71).unwrap();
+            assert_eq!(
+                item_acquisition_distance(
+                    content.action("test.use").unwrap(),
+                    &recipe_hints(&state, &content),
+                    &content
+                )
+                .unwrap(),
+                None
+            );
+        }
+    }
+
     fn acquisition_hints(state: &GameState, content: &CompiledContent) -> Vec<(usize, GameState)> {
         let mut items = BTreeSet::new();
         collect_condition_items(&content.action("test.use").unwrap().condition, &mut items);
@@ -2735,7 +3301,7 @@ mod tests {
             .crawl;
         assert!(report.is_complete());
         assert_eq!(report.required_definitions.len(), 60);
-        assert_eq!(report.advertised_definitions.len(), 95);
+        assert_eq!(report.advertised_definitions.len(), 100);
         assert!(report.reached_locations.len() >= 7);
         assert!(report.successful_actions >= report.required_definitions.len());
         assert_eq!(report.starting_sessions.len(), 2);

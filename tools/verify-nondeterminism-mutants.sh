@@ -12,6 +12,7 @@ DEFERRED_PATCH_PATH="$REPO_DIR/tools/mutants/deferred-env.patch"
 SALVAGE_PATCH_PATH="$REPO_DIR/tools/mutants/salvage-env.patch"
 COLLATERAL_PATCH_PATH="$REPO_DIR/tools/mutants/collateral-env.patch"
 STAFFING_PATCH_PATH="$REPO_DIR/tools/mutants/staffing-env.patch"
+DUST_TEST_PATCH_PATH="$REPO_DIR/tools/mutants/dust-test-delivery-env.patch"
 MUTANT_TMP_PREFIX="${TMPDIR:-/tmp}/forge-nondeterminism-mutants."
 MUTANT_WORKSPACE=""
 MUTANT_SELECTORS=(
@@ -34,6 +35,7 @@ MUTANT_SELECTORS=(
     FORGE_MUTANT_COLLATERAL_PAYMENT
     FORGE_MUTANT_COLLATERAL_FUEL
     FORGE_MUTANT_STAFFING_MOVEMENT
+    FORGE_MUTANT_DUST_TEST_DELIVERY
 )
 MUTANT_UNSET_ARGS=()
 for selector in "${MUTANT_SELECTORS[@]}"; do
@@ -62,7 +64,7 @@ for command in cargo cat cp grep mkdir mktemp mv patch rm sed; do
 done
 [[ -f "$PATCH_PATH" ]] || fail "mutant patch is missing"
 [[ -f "$BOUNDARY_PATCH_PATH" ]] || fail "boundary mutant patch is missing"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH" "$COLLATERAL_PATCH_PATH" "$STAFFING_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH" "$COLLATERAL_PATCH_PATH" "$STAFFING_PATCH_PATH" "$DUST_TEST_PATCH_PATH"; do
     [[ -f "$patch_path" ]] || fail "mutation patch is missing: $patch_path"
 done
 
@@ -88,7 +90,7 @@ patch \
     --batch \
     --forward \
     --input="$BOUNDARY_PATCH_PATH" >/dev/null || fail "could not apply the boundary mutant patch"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH" "$COLLATERAL_PATCH_PATH" "$STAFFING_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH" "$COLLATERAL_PATCH_PATH" "$STAFFING_PATCH_PATH" "$DUST_TEST_PATCH_PATH"; do
     patch --directory="$MUTANT_WORKSPACE" --strip=1 --batch --forward \
         --input="$patch_path" >/dev/null || fail "could not apply mutation patch: $patch_path"
 done
@@ -153,6 +155,7 @@ run_neutral_test "salvage_entropy_boundary" "production_salvage_chance_respects_
 run_neutral_test "collateral_boundary" "production_collateral_purchase_charges_exact_four_coins"
 run_neutral_test "collateral_boundary" "production_collateral_settlement_deposits_the_exact_fuel_lot"
 run_neutral_test "staffing_boundary" "production_staffing_physically_removes_brann_from_kiln_supervision"
+run_neutral_test "cold_shift_boundary" "production_dust_report_physically_brings_its_actual_source"
 
 # Check actual incremental build sensitivity in this disposable copy. Updating
 # an existing source and adding an unreferenced source must both change the
@@ -308,4 +311,8 @@ assert_mutant_killed \
     "staffing-movement" "FORGE_MUTANT_STAFFING_MOVEMENT" \
     "staffing_boundary" "production_staffing_physically_removes_brann_from_kiln_supervision" \
     'staffing left Brann at Kiln Bay'
-echo "PASS mutation corpus: 19/19 killed after 16 neutral controls and 4 incremental manifest probes"
+assert_mutant_killed \
+    "dust-test-delivery" "FORGE_MUTANT_DUST_TEST_DELIVERY" \
+    "cold_shift_boundary" "production_dust_report_physically_brings_its_actual_source" \
+    'dust report left Nessa at Workshop'
+echo "PASS mutation corpus: 20/20 killed after 17 neutral controls and 4 incremental manifest probes"

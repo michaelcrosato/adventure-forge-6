@@ -319,6 +319,7 @@ const MARKET_BASE: ScenarioExpectations = ScenarioExpectations {
     deferred_events: &[],
     pending_deferred_events: &[],
     staffing_history: None,
+    cold_shift_history: None,
     storage_balances: MARKET_EMPTY_CAGE,
     storage_transfers: MARKET_PURCHASE_TRANSFER,
     required_legal_definitions: &["fume_yards.brace_rack", "fume_yards.pull_rack_filter"],

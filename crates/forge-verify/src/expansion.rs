@@ -123,6 +123,24 @@ pub(super) const STAFFING_ACTIONS: &[&str] = &[
     "fume_yards.return_with_brann",
 ];
 
+pub(super) const COLD_SHIFT_ACTIONS: &[&str] = &[
+    "fume_yards.test_unfired_charge",
+    "fume_yards.report_test",
+    "fume_yards.delegate_cold_shift",
+    "fume_yards.return_with_nessa",
+    "fume_yards.return_brann_to_kiln",
+];
+
+// Declared in cycle 37 before the first trial. The three-step shift is one
+// canonical action; the unchanged Hold Market prefix still costs depth seven.
+pub(super) const COLD_SHIFT_BUDGET: CrawlBudget = CrawlBudget {
+    max_depth: 20,
+    max_expanded_states: 96,
+    max_discovered_frontiers: 768,
+    max_action_executions: 2048,
+    catalog_page_size: 7,
+};
+
 // Declared in cycle 35 before the first trial. Depth counts canonical actions;
 // the three-tick lift remains one action, and the reviewed H7 prefix costs seven.
 pub(super) const STAFFING_BUDGET: CrawlBudget = CrawlBudget {
@@ -181,8 +199,8 @@ pub struct RegressionCrawlReport {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 /// Combined coverage from independent crawls. The legacy regression keeps
-/// its original ceilings; batch work, salvage, market water, and staffing have explicit
-/// budgets. Components do not claim exhaustive reachable-state coverage or
+/// its original ceilings; batch work, salvage, market water, staffing and cold
+/// work have explicit budgets. Components do not claim exhaustive reachable-state coverage or
 /// admission of a complete new area.
 pub struct ProductionCrawlReport {
     pub build_id: String,
@@ -195,6 +213,7 @@ pub struct ProductionCrawlReport {
     pub salvage: CrawlReport,
     pub market_water: CrawlReport,
     pub staffing: CrawlReport,
+    pub cold_shift: CrawlReport,
 }
 
 impl ProductionCrawlReport {
@@ -253,6 +272,7 @@ fn validate_expansion_catalog(content: &CompiledContent) -> Result<BTreeSet<Stri
     reviewed.extend(ids(SALVAGE_ACTIONS));
     reviewed.extend(ids(MARKET_WATER_ACTIONS));
     reviewed.extend(ids(STAFFING_ACTIONS));
+    reviewed.extend(ids(COLD_SHIFT_ACTIONS));
     if authored != reviewed {
         return Err(VerifyError::new(
             "expansion crawl action contract contains unreviewed additions or omissions",
@@ -279,6 +299,7 @@ pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlRepo
     let salvage = crawl_salvage(content)?;
     let market_water = crawl_market_water_production(content)?;
     let staffing = crawl_staffing_production(content)?;
+    let cold_shift = crawl_cold_shift_production(content)?;
     combine_crawls(
         content,
         regression,
@@ -286,6 +307,7 @@ pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlRepo
         salvage,
         market_water,
         staffing,
+        cold_shift,
     )
 }
 
@@ -296,6 +318,7 @@ fn combine_crawls(
     salvage: CrawlReport,
     market_water: CrawlReport,
     staffing: CrawlReport,
+    cold_shift: CrawlReport,
 ) -> Result<ProductionCrawlReport, VerifyError> {
     let advertised_definitions = validate_expansion_catalog(content)?;
     for report in [
@@ -304,6 +327,7 @@ fn combine_crawls(
         &salvage,
         &market_water,
         &staffing,
+        &cold_shift,
     ] {
         if report.build_id != content.build_id()
             || report.verifier_id != crate::VERIFIER_ID
@@ -328,6 +352,7 @@ fn combine_crawls(
     }
     check_market_water_report(content, &market_water)?;
     check_staffing_report(content, &staffing)?;
+    check_cold_shift_report(content, &cold_shift)?;
     // Each established component retains its own consequence locations even
     // when a newer component happens to reach the same places.
     if ![
@@ -355,6 +380,7 @@ fn combine_crawls(
         &salvage,
         &market_water,
         &staffing,
+        &cold_shift,
     ]
     .into_iter()
     .flat_map(|report| &report.covered_definitions)
@@ -366,6 +392,7 @@ fn combine_crawls(
         &salvage,
         &market_water,
         &staffing,
+        &cold_shift,
     ]
     .into_iter()
     .flat_map(|report| &report.reached_locations)
@@ -388,6 +415,7 @@ fn combine_crawls(
         salvage,
         market_water,
         staffing,
+        cold_shift,
     })
 }
 
@@ -497,6 +525,20 @@ pub(super) fn crawl_staffing_production(
         &["m1-outcome-hold-market"],
     )?;
     check_staffing_report(content, &report)?;
+    Ok(report)
+}
+
+pub(super) fn crawl_cold_shift_production(
+    content: &CompiledContent,
+) -> Result<CrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    let report = crate::crawler::crawl_targets_with_scenarios(
+        content,
+        COLD_SHIFT_BUDGET,
+        ids(COLD_SHIFT_ACTIONS),
+        &["m1-outcome-hold-market"],
+    )?;
+    check_cold_shift_report(content, &report)?;
     Ok(report)
 }
 
@@ -616,6 +658,44 @@ pub(super) fn check_staffing_report(
     Ok(())
 }
 
+pub(super) fn check_cold_shift_report(
+    content: &CompiledContent,
+    report: &CrawlReport,
+) -> Result<(), VerifyError> {
+    let authored = validate_expansion_catalog(content)?;
+    if report.build_id != content.build_id()
+        || report.verifier_id != crate::VERIFIER_ID
+        || report.advertised_definitions != authored
+        || report.required_definitions != ids(COLD_SHIFT_ACTIONS)
+        || !report.covered_definitions.is_subset(&authored)
+        || !report.is_complete()
+        || report.budget != COLD_SHIFT_BUDGET
+        || report.expanded_states > COLD_SHIFT_BUDGET.max_expanded_states
+        || report.discovered_frontiers > COLD_SHIFT_BUDGET.max_discovered_frontiers
+        || report.successful_actions > COLD_SHIFT_BUDGET.max_action_executions
+    {
+        return Err(VerifyError::new(
+            "cold-shift crawl identity, coverage, or fixed budget differs from contract",
+        ));
+    }
+    let locations: BTreeSet<_> = content.locations().map(|(id, _)| id.clone()).collect();
+    if !report.reached_locations.is_subset(&locations)
+        || !["fume_yards.kiln_bay", "fume_yards.workshop"]
+            .iter()
+            .all(|id| report.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "cold-shift crawl missed a consequence location or added an unknown location",
+        ));
+    }
+    if report.starting_sessions != reviewed_aftermath_starting_sessions(content)? {
+        return Err(VerifyError::new(
+            "cold-shift crawl starting sessions differ from canonical preset and H7 lineage",
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -629,7 +709,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 95);
+        assert_eq!(report.advertised_definitions.len(), 100);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -656,7 +736,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 95);
+        assert_eq!(report.advertised_definitions.len(), 100);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -682,7 +762,7 @@ mod tests {
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 95);
+        assert_eq!(report.advertised_definitions.len(), 100);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -712,7 +792,7 @@ mod tests {
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
         assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 95);
+        assert_eq!(report.advertised_definitions.len(), 100);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -732,6 +812,36 @@ mod tests {
         assert!(report.successful_actions <= 2048);
         eprintln!(
             "staffing: {} states, {} frontiers, {} actions",
+            report.expanded_states, report.discovered_frontiers, report.successful_actions
+        );
+    }
+
+    #[test]
+    fn cold_shift_crawl_covers_five_targets_under_its_predeclared_budget() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let report = crawl_cold_shift_production(&content).unwrap();
+        assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
+        assert_eq!(report.required_definitions.len(), 5);
+        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.budget, COLD_SHIFT_BUDGET);
+        assert!(report.is_complete());
+        assert_eq!(
+            report.starting_sessions,
+            reviewed_aftermath_starting_sessions(&content).unwrap()
+        );
+        assert_eq!(
+            report
+                .starting_sessions
+                .iter()
+                .map(|start| start.depth)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 7]
+        );
+        assert!(report.expanded_states <= 96);
+        assert!(report.discovered_frontiers <= 768);
+        assert!(report.successful_actions <= 2048);
+        eprintln!(
+            "cold-shift: {} states, {} frontiers, {} actions",
             report.expanded_states, report.discovered_frontiers, report.successful_actions
         );
     }
@@ -774,6 +884,8 @@ mod tests {
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
+        cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let combined = combine_crawls(
             &content,
             regression.clone(),
@@ -781,9 +893,10 @@ mod tests {
             salvage.clone(),
             market_water.clone(),
             staffing.clone(),
+            cold_shift.clone(),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 95);
+        assert_eq!(combined.advertised_definitions.len(), 100);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions
@@ -812,7 +925,8 @@ mod tests {
                     changed,
                     salvage.clone(),
                     market_water.clone(),
-                    staffing.clone()
+                    staffing.clone(),
+                    cold_shift.clone(),
                 )
                 .is_err()
             );
@@ -837,7 +951,8 @@ mod tests {
                 missing_location_batch,
                 missing_location_salvage,
                 market_water.clone(),
-                staffing.clone()
+                staffing.clone(),
+                cold_shift.clone(),
             )
             .is_err()
         );
@@ -850,7 +965,8 @@ mod tests {
                 batchworks,
                 salvage,
                 market_water,
-                staffing.clone()
+                staffing.clone(),
+                cold_shift.clone(),
             )
             .is_err()
         );
@@ -878,6 +994,8 @@ mod tests {
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
+        cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         // The established salvage component must retain its own consequence
         // location even when newer synthetic components also cover it.
         regression
@@ -892,6 +1010,7 @@ mod tests {
             salvage.clone(),
             market_water.clone(),
             staffing.clone(),
+            cold_shift.clone(),
         )
         .unwrap();
         for mutation in 0..7 {
@@ -926,7 +1045,8 @@ mod tests {
                     batchworks.clone(),
                     changed,
                     market_water.clone(),
-                    staffing.clone()
+                    staffing.clone(),
+                    cold_shift.clone(),
                 )
                 .is_err(),
                 "mutation {mutation} must not weaken combined coverage"
@@ -950,6 +1070,8 @@ mod tests {
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
+        cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         check_market_water_report(&content, &market_water).unwrap();
         for mutation in [
             "coverage",
@@ -1038,7 +1160,8 @@ mod tests {
                     batchworks.clone(),
                     salvage.clone(),
                     changed,
-                    staffing.clone()
+                    staffing.clone(),
+                    cold_shift.clone(),
                 )
                 .is_err(),
                 "combined report accepted market-water {mutation}"
@@ -1059,6 +1182,8 @@ mod tests {
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
+        cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut market_water =
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
@@ -1150,10 +1275,126 @@ mod tests {
                     batchworks.clone(),
                     salvage.clone(),
                     market_water.clone(),
-                    changed
+                    changed,
+                    cold_shift.clone(),
                 )
                 .is_err(),
                 "combined report accepted staffing {mutation}"
+            );
+        }
+    }
+
+    #[test]
+    fn cold_shift_component_rejects_identity_scope_budget_location_and_seed_corruption() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let regression = preserve_split_tide(declared_report(
+            &content,
+            regression_definitions(),
+            CrawlBudget::default(),
+        ))
+        .unwrap();
+        let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
+        let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
+        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
+        cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        let mut market_water =
+            declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
+        market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        check_cold_shift_report(&content, &cold_shift).unwrap();
+        for mutation in [
+            "coverage",
+            "build",
+            "verifier",
+            "required",
+            "advertised",
+            "depth budget",
+            "state budget",
+            "frontier budget",
+            "execution budget",
+            "page budget",
+            "states",
+            "frontiers",
+            "executions",
+            "location",
+            "unknown location",
+            "unknown coverage",
+            "missing seed",
+            "seed label",
+            "seed depth",
+            "seed receipt",
+            "seed state",
+            "seed start",
+            "seed order",
+        ] {
+            let mut changed = cold_shift.clone();
+            match mutation {
+                "coverage" => {
+                    changed
+                        .covered_definitions
+                        .remove("fume_yards.delegate_cold_shift");
+                }
+                "build" => changed.build_id.push('x'),
+                "verifier" => changed.verifier_id.push('x'),
+                "required" => {
+                    changed
+                        .required_definitions
+                        .remove("fume_yards.delegate_cold_shift");
+                }
+                "advertised" => {
+                    changed
+                        .advertised_definitions
+                        .remove("fume_yards.delegate_cold_shift");
+                }
+                "depth budget" => changed.budget.max_depth += 1,
+                "state budget" => changed.budget.max_expanded_states += 1,
+                "frontier budget" => changed.budget.max_discovered_frontiers += 1,
+                "execution budget" => changed.budget.max_action_executions += 1,
+                "page budget" => changed.budget.catalog_page_size += 1,
+                "states" => changed.expanded_states = 97,
+                "frontiers" => changed.discovered_frontiers = 769,
+                "executions" => changed.successful_actions = 2049,
+                "location" => {
+                    changed.reached_locations.remove("fume_yards.kiln_bay");
+                }
+                "unknown location" => {
+                    changed.reached_locations.insert("test.unknown".to_owned());
+                }
+                "unknown coverage" => {
+                    changed
+                        .covered_definitions
+                        .insert("test.unknown".to_owned());
+                }
+                "missing seed" => {
+                    changed.starting_sessions.pop();
+                }
+                "seed label" => changed.starting_sessions[2].label.push('x'),
+                "seed depth" => changed.starting_sessions[2].depth = 0,
+                "seed receipt" => changed.starting_sessions[2].final_receipt.push('x'),
+                "seed state" => changed.starting_sessions[2].state_id.push('x'),
+                "seed start" => {
+                    changed.starting_sessions[2].start = changed.starting_sessions[1].start.clone()
+                }
+                "seed order" => changed.starting_sessions.swap(0, 2),
+                _ => unreachable!(),
+            }
+            assert!(
+                check_cold_shift_report(&content, &changed).is_err(),
+                "accepted cold-shift {mutation}"
+            );
+            assert!(
+                combine_crawls(
+                    &content,
+                    regression.clone(),
+                    batchworks.clone(),
+                    salvage.clone(),
+                    market_water.clone(),
+                    staffing.clone(),
+                    changed,
+                )
+                .is_err(),
+                "combined report accepted cold-shift {mutation}"
             );
         }
     }

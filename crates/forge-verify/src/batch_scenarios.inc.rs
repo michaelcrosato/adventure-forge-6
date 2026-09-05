@@ -383,6 +383,7 @@ const fn batch_expectations(
         ),
         recipe_events: &[],
         staffing_history: None,
+        cold_shift_history: None,
         storage_balances: UNTOUCHED_COLLATERAL,
         storage_transfers: &[],
         entropy_draws: &[],

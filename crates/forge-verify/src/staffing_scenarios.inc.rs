@@ -401,6 +401,7 @@ const STAFF_UNRESOLVED_FLAGS: &[(&str, &str)] = &market_append::<_, 17>(
 );
 const STAFF_BASE: ScenarioExpectations = ScenarioExpectations {
     staffing_history: None,
+    cold_shift_history: None,
     final_location: SALVAGE_BAY,
     final_action_definition: "wait_tide",
     final_world_time: Some(14),
@@ -1275,7 +1276,8 @@ mod staffing_tests {
             .iter()
             .filter(|spec| spec.expectations.staffing_history.is_none())
             .collect();
-        assert_eq!(legacy.len(), 47);
+        // The original 47 and the 13 later cold-shift witnesses omit staffing history.
+        assert_eq!(legacy.len(), 47 + 13);
         for spec in legacy {
             assert!(
                 serde_json::to_value(spec.expectations)

@@ -1,0 +1,15 @@
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -1188,6 +1188,12 @@
+             if std::env::var_os("FORGE_MUTANT_STAFFING_MOVEMENT").is_some()
+                 && npc == "fume_yards.brann_coil"
+                 && location == "fume_yards.ash_beds"
++            {
++                return Ok(());
++            }
++            if std::env::var_os("FORGE_MUTANT_DUST_TEST_DELIVERY").is_some()
++                && npc == "fume_yards.nessa_tern"
++                && location == "fume_yards.kiln_bay"
+             {
+                 return Ok(());
+             }
