@@ -292,13 +292,13 @@
           "id": "warning_read",
           "priority": 40,
           "condition": {"kind": "location_flag", "location": "lowsail_market", "flag": "warning_seen"},
-          "text": "The posted warning points to Red Sluice; Sava keeps both roads open."
+          "text": "The posted warning points to Red Sluice; its guarded road needs entry papers or another route."
         },
         {
           "id": "sava_guidance",
           "priority": 30,
           "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "met_player_checkpoint"},
-          "text": "Sava points east from the raised chain; follow the levee road to Red Sluice."
+          "text": "Sava has explained the guarded Sluice road; Oren at Lowsail Docks offers another way."
         },
         {
           "id": "ilyan_mark",
@@ -385,6 +385,24 @@
           "priority": 100,
           "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
           "text": "The Sluice decision is settled beyond the levee; choose Return to Lowsail to see what changed."
+        },
+        {
+          "id": "entry_needed",
+          "priority": 20,
+          "condition": {
+            "kind": "not",
+            "condition": {
+              "kind": "any",
+              "conditions": [
+                {"kind": "world_flag", "flag": "council_route"},
+                {"kind": "location_flag", "location": "lowsail_market", "flag": "market_permit"},
+                {"kind": "world_flag", "flag": "culvert_revealed"},
+                {"kind": "location_flag", "location": "lowsail_market", "flag": "worker_cover"},
+                {"kind": "world_flag", "flag": "stolen_route"}
+              ]
+            }
+          },
+          "text": "Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
         },
         {
           "id": "report_sent",
@@ -650,13 +668,13 @@
       "id": "checkpoint.ask_sava",
       "label": "Ask Sava",
       "category": "Talk",
-      "result": "Sava points east: the levee road reaches the Red Sluice.",
+      "result": "Sava explains: the Red Sluice road needs entry papers; Oren at Lowsail Docks knows another way.",
       "result_variants": [
         {
           "id": "guarded_after_threat",
           "priority": 20,
           "condition": {"kind": "npc_remembers", "npc": "sava_rusk", "memory_id": "sava_was_pressured"},
-          "text": "Sava points east toward the guarded Red Sluice, one hand near the alarm."
+          "text": "Sava keeps one hand near the alarm: the Red Sluice road needs entry papers."
         }
       ],
       "locations": ["lowsail_market"],
@@ -763,7 +781,7 @@
       "id": "checkpoint.blend_workers",
       "label": "Blend Workers",
       "category": "Stealth",
-      "result": "The workers hide your passage and send Oren a note confirming your safe crossing.",
+      "result": "The workers reveal the Culvert Path at Lowsail Levee and hide your passage. Their note confirms your crossing to Oren.",
       "locations": ["lowsail_market"],
       "condition": {
         "kind": "all",
@@ -845,7 +863,7 @@
       "id": "checkpoint.use_stolen_permit",
       "label": "Use Stolen Permit",
       "category": "Deception",
-      "result": "The stolen permit opens a route but marks you as a risk.",
+      "result": "Your permit opens Take Stolen Path at Lowsail Levee; Sava marks you as a risk.",
       "locations": ["lowsail_market"],
       "condition": {
         "kind": "all",

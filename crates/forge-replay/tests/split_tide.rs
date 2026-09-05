@@ -46,6 +46,57 @@ fn record(
         .unwrap_or_else(|error| panic!("recording {definition_id} failed: {error}"));
 }
 
+fn record_one_tick(
+    session: &mut Session<'_>,
+    content: &forge_kernel::CompiledContent,
+    definition_id: &str,
+    parameter: Option<(&str, &str)>,
+) {
+    let action = select(session, content, definition_id, parameter);
+    let page = content
+        .action_page(session.state(), 0, usize::MAX)
+        .expect("one-tick action page renders");
+    let view = page
+        .actions
+        .iter()
+        .find(|view| view.action_id == action.action_id)
+        .unwrap_or_else(|| panic!("missing action view for {definition_id}"));
+    assert_eq!(view.time_cost.minimum_ticks, 1);
+    assert_eq!(view.time_cost.maximum_ticks, 1);
+    let before_time = session.state().world.time;
+    let recorded = session
+        .record(&action)
+        .unwrap_or_else(|error| panic!("recording {definition_id} failed: {error}"));
+    let expected_time = before_time
+        .checked_add(1)
+        .expect("one-tick route time does not overflow");
+    assert_eq!(session.state().world.time, expected_time);
+    assert_eq!(recorded.observation.world_time, expected_time);
+}
+
+fn assert_views_inert(session: &Session<'_>, content: &forge_kernel::CompiledContent) {
+    let state_id = session.state().state_id();
+    let receipt = session.trace().final_receipt.clone();
+    let save = session.player_trace().expect("save before viewing");
+    let first_observation = content
+        .observe(session.state())
+        .expect("observation renders");
+    let second_observation = content
+        .observe(session.state())
+        .expect("observation repeats");
+    assert_eq!(first_observation, second_observation);
+    let first_page = content
+        .action_page(session.state(), 0, usize::MAX)
+        .expect("catalog renders");
+    let second_page = content
+        .action_page(session.state(), 0, usize::MAX)
+        .expect("catalog repeats");
+    assert_eq!(first_page, second_page);
+    assert_eq!(session.state().state_id(), state_id);
+    assert_eq!(session.trace().final_receipt, receipt);
+    assert_eq!(session.player_trace().expect("save after viewing"), save);
+}
+
 #[derive(Clone, Copy)]
 struct ActionSpec {
     definition_id: &'static str,
@@ -232,6 +283,41 @@ const ROOK_HOT_ROUTE_FERRY_PATH: [ActionSpec; 10] = [
     },
     ActionSpec {
         definition_id: "world.enter_aftermath",
+        parameter: None,
+    },
+];
+
+const ROOK_ROUTE_GUIDANCE_PATH: [ActionSpec; 8] = [
+    ActionSpec {
+        definition_id: "checkpoint.read_flag",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "checkpoint.ask_sava",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.levee")),
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail_market")),
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.docks")),
+    },
+    ActionSpec {
+        definition_id: "docks.ask_oren",
+        parameter: None,
+    },
+    ActionSpec {
+        definition_id: "travel_adjacent",
+        parameter: Some(("destination", "lowsail.levee")),
+    },
+    ActionSpec {
+        definition_id: "levee.culvert_path",
         parameter: None,
     },
 ];
@@ -440,6 +526,221 @@ fn real_split_tide_path_round_trips_and_replays() {
     assert_eq!(&verified, session.state());
     assert_eq!(decoded.final_state_id, verified.state_id());
     assert_eq!(decoded.final_receipt, decoded.steps.last().unwrap().receipt);
+}
+
+#[test]
+fn rook_route_guidance_replays_blocked_and_earned_culvert_checkpoints() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("rook", 71, &content).expect("session starts");
+    let mut after_blocked = None;
+    let mut after_return = None;
+    let mut after_earned = None;
+
+    for (index, spec) in ROOK_ROUTE_GUIDANCE_PATH.iter().enumerate() {
+        record_one_tick(
+            &mut uninterrupted,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+        match index + 1 {
+            3 => after_blocked = Some(resume_player_save(&uninterrupted, &content)),
+            4 => after_return = Some(resume_player_save(&uninterrupted, &content)),
+            7 => after_earned = Some(resume_player_save(&uninterrupted, &content)),
+            _ => {}
+        }
+    }
+
+    let warning_step = &uninterrupted.trace().steps[0];
+    assert_eq!(warning_step.action.definition_id, "checkpoint.read_flag");
+    assert_eq!(
+        warning_step.observation.result.as_deref(),
+        Some("Go to the Red Sluice and redirect the next surge before it floods Lowsail.")
+    );
+    let sava_step = &uninterrupted.trace().steps[1];
+    assert_eq!(sava_step.action.definition_id, "checkpoint.ask_sava");
+    assert_eq!(
+        sava_step.observation.result.as_deref(),
+        Some(
+            "Sava explains: the Red Sluice road needs entry papers; Oren at Lowsail Docks knows another way."
+        )
+    );
+
+    let blocked_step = &uninterrupted.trace().steps[2];
+    assert_eq!(blocked_step.action.definition_id, "travel_adjacent");
+    assert_eq!(blocked_step.observation.location_id, "lowsail.levee");
+    assert_eq!(
+        blocked_step.observation.text,
+        "You move along the connected path. Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
+    );
+
+    let mut resumed_after_blocked = after_blocked.expect("blocked route checkpoint");
+    assert_eq!(resumed_after_blocked.trace().steps.len(), 3);
+    assert_eq!(resumed_after_blocked.state().world.time, 3);
+    assert_eq!(
+        resumed_after_blocked.state().world.current_location,
+        "lowsail.levee"
+    );
+    assert_eq!(
+        resumed_after_blocked.trace().steps[2].observation,
+        blocked_step.observation
+    );
+    assert!(
+        !resumed_after_blocked
+            .state()
+            .world
+            .flags
+            .contains("culvert_revealed")
+    );
+    assert!(
+        !resumed_after_blocked
+            .state()
+            .world
+            .flags
+            .contains("council_route")
+    );
+    assert!(
+        !resumed_after_blocked
+            .state()
+            .world
+            .flags
+            .contains("stolen_route")
+    );
+    assert!(
+        !resumed_after_blocked.state().world.locations["lowsail_market"]
+            .flags
+            .contains("market_permit")
+    );
+    assert!(
+        !resumed_after_blocked.state().world.locations["lowsail_market"]
+            .flags
+            .contains("worker_cover")
+    );
+    assert_eq!(
+        content
+            .location_description(resumed_after_blocked.state())
+            .expect("blocked description renders"),
+        "Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
+    );
+    assert_not_legal(&resumed_after_blocked, &content, "levee.culvert_path");
+    assert_views_inert(&resumed_after_blocked, &content);
+
+    let mut resumed_after_return = after_return.expect("return checkpoint");
+    assert_eq!(resumed_after_return.trace().steps.len(), 4);
+    assert_eq!(resumed_after_return.state().world.time, 4);
+    assert_eq!(
+        resumed_after_return.state().world.current_location,
+        "lowsail_market"
+    );
+    assert_eq!(
+        resumed_after_return.trace().steps[3].observation.text,
+        "You move along the connected path. The posted warning points to Red Sluice; its guarded road needs entry papers or another route."
+    );
+    assert_views_inert(&resumed_after_return, &content);
+
+    let earned_step = &uninterrupted.trace().steps[6];
+    assert_eq!(earned_step.action.definition_id, "travel_adjacent");
+    assert_eq!(earned_step.observation.location_id, "lowsail.levee");
+    assert_eq!(
+        earned_step.observation.text,
+        "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment."
+    );
+    assert_eq!(
+        uninterrupted.trace().steps[5].observation.result.as_deref(),
+        Some(
+            "Oren reveals the submerged Culvert Path at Lowsail Levee. Take it into the Sluice, climb to Red Sluice Top, then choose Open Old Channel."
+        )
+    );
+
+    let mut resumed_after_earned = after_earned.expect("earned route checkpoint");
+    assert_eq!(resumed_after_earned.trace().steps.len(), 7);
+    assert_eq!(resumed_after_earned.state().world.time, 7);
+    assert_eq!(
+        resumed_after_earned.state().world.current_location,
+        "lowsail.levee"
+    );
+    assert!(
+        resumed_after_earned
+            .state()
+            .world
+            .flags
+            .contains("culvert_revealed")
+    );
+    let _culvert = select(&resumed_after_earned, &content, "levee.culvert_path", None);
+    assert_views_inert(&resumed_after_earned, &content);
+    assert_eq!(
+        resumed_after_earned.trace().steps[6].observation,
+        earned_step.observation
+    );
+
+    for spec in &ROOK_ROUTE_GUIDANCE_PATH[3..] {
+        record_one_tick(
+            &mut resumed_after_blocked,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+    }
+    for spec in &ROOK_ROUTE_GUIDANCE_PATH[4..] {
+        record_one_tick(
+            &mut resumed_after_return,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+    }
+    for spec in &ROOK_ROUTE_GUIDANCE_PATH[7..] {
+        record_one_tick(
+            &mut resumed_after_earned,
+            &content,
+            spec.definition_id,
+            spec.parameter,
+        );
+    }
+
+    let culvert_step = uninterrupted.trace().steps.last().expect("culvert step");
+    assert_eq!(culvert_step.action.definition_id, "levee.culvert_path");
+    assert_eq!(culvert_step.observation.location_id, "red_sluice.floor");
+    assert_eq!(
+        culvert_step.observation.result.as_deref(),
+        Some("The hidden culvert opens below the Sluice.")
+    );
+    assert_eq!(uninterrupted.state().world.time, 8);
+    assert_eq!(
+        uninterrupted.state().world.current_location,
+        "red_sluice.floor"
+    );
+    assert!(
+        uninterrupted
+            .state()
+            .world
+            .flags
+            .contains("culvert_revealed")
+    );
+
+    for resumed in [
+        &resumed_after_blocked,
+        &resumed_after_return,
+        &resumed_after_earned,
+    ] {
+        assert_eq!(resumed.state(), uninterrupted.state());
+        assert_eq!(
+            resumed.player_trace().expect("resumed save"),
+            uninterrupted.player_trace().expect("uninterrupted save")
+        );
+        assert_eq!(
+            resumed.trace().final_state_id,
+            uninterrupted.trace().final_state_id
+        );
+        assert_eq!(
+            resumed.trace().final_receipt,
+            uninterrupted.trace().final_receipt
+        );
+        assert_eq!(
+            resumed.trace().steps.last().unwrap().observation,
+            culvert_step.observation
+        );
+    }
 }
 
 #[test]

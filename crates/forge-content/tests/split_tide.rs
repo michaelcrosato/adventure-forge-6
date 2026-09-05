@@ -327,8 +327,24 @@ fn all_sixty_four_custom_builds_are_authoritative_distinct_and_playable() {
             assert_eq!(towline.character.inventory, gear);
             assert_eq!(towline.world.current_location, "lowsail.levee");
         }
+        let blocked = travel_to(routed.clone(), &content, "lowsail.levee");
+        assert_eq!(
+            content.location_description(&blocked).unwrap(),
+            "Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
+        );
+        let blocked_definitions = definitions(&blocked, &content);
+        assert!(!blocked_definitions.contains("levee.authority_path"));
+        assert!(!blocked_definitions.contains("levee.culvert_path"));
+        assert!(!blocked_definitions.contains("levee.stolen_path"));
+
         let routed = apply(routed, &content, "docks.ask_oren");
         let routed = travel_to(routed, &content, "lowsail.levee");
+        assert!(
+            !content
+                .location_description(&routed)
+                .unwrap()
+                .contains("Guards bar Red Sluice")
+        );
         assert!(
             enumerate_legal_actions(&routed, &content)
                 .unwrap()
@@ -509,7 +525,7 @@ fn result_first_and_conditional_prose_show_character_and_npc_reactions() {
         content
             .action_result(&pressured, "checkpoint.ask_sava")
             .unwrap(),
-        "Sava points east toward the guarded Red Sluice, one hand near the alarm."
+        "Sava keeps one hand near the alarm: the Red Sluice road needs entry papers."
     );
     assert!(pressured.world.npcs["sava_rusk"].remembers("sava_was_pressured"));
 }
@@ -524,13 +540,16 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
         .unwrap();
     assert_eq!(
         sava_result,
-        "Sava points east: the levee road reaches the Red Sluice."
+        "Sava explains: the Red Sluice road needs entry papers; Oren at Lowsail Docks knows another way."
     );
     let opening_description = content.location_description(&authority).unwrap();
     authority = apply(authority, &content, "checkpoint.ask_sava");
     let guided_description = content.location_description(&authority).unwrap();
     assert_ne!(guided_description, opening_description);
-    assert!(guided_description.contains("follow the levee road to Red Sluice"));
+    assert_eq!(
+        guided_description,
+        "Sava has explained the guarded Sluice road; Oren at Lowsail Docks offers another way."
+    );
     authority = apply(authority, &content, "checkpoint.show_charter");
     let charter_observation = content
         .observe_action(&authority, "checkpoint.show_charter")
@@ -581,6 +600,121 @@ fn dialogue_feedback_names_and_unlocks_the_routes_it_describes() {
             .unwrap(),
         "Edrik eyes the culvert mud while the gauge shows rising pressure."
     );
+}
+
+#[test]
+fn guarded_levee_guidance_keeps_route_sources_optional_and_truthful() {
+    let content = content();
+
+    let mut rook = new_game(&content, "rook");
+    rook = apply(rook, &content, "checkpoint.read_flag");
+    assert_eq!(
+        content.location_description(&rook).unwrap(),
+        "The posted warning points to Red Sluice; its guarded road needs entry papers or another route."
+    );
+    rook = apply(rook, &content, "checkpoint.ask_sava");
+    assert_eq!(
+        content.action_result(&rook, "checkpoint.ask_sava").unwrap(),
+        "Sava explains: the Red Sluice road needs entry papers; Oren at Lowsail Docks knows another way."
+    );
+    rook = travel_to(rook, &content, "lowsail.levee");
+    assert_eq!(
+        content.location_description(&rook).unwrap(),
+        "Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
+    );
+    let blocked = definitions(&rook, &content);
+    assert!(!blocked.contains("levee.authority_path"));
+    assert!(!blocked.contains("levee.culvert_path"));
+    assert!(!blocked.contains("levee.stolen_path"));
+    assert!(
+        !enumerate_legal_actions(&rook, &content)
+            .unwrap()
+            .iter()
+            .any(|action| {
+                action.definition_id == "travel_adjacent"
+                    && action.parameters.get("destination").map(String::as_str)
+                        == Some("red_sluice.floor")
+            })
+    );
+
+    let mut via_oren = travel_to(rook, &content, "lowsail_market");
+    via_oren = travel_to(via_oren, &content, "lowsail.docks");
+    via_oren = apply(via_oren, &content, "docks.ask_oren");
+    via_oren = travel_to(via_oren, &content, "lowsail.levee");
+    assert!(definitions(&via_oren, &content).contains("levee.culvert_path"));
+    assert!(
+        !content
+            .location_description(&via_oren)
+            .unwrap()
+            .contains("Guards bar Red Sluice")
+    );
+
+    let mut worker_cover = new_game(&content, "rook");
+    worker_cover = apply(worker_cover, &content, "checkpoint.blend_workers");
+    worker_cover = travel_to(worker_cover, &content, "lowsail.levee");
+    assert!(definitions(&worker_cover, &content).contains("levee.culvert_path"));
+    assert!(
+        !content
+            .location_description(&worker_cover)
+            .unwrap()
+            .contains("Guards bar Red Sluice")
+    );
+    let worker_time = worker_cover.world.time;
+    worker_cover = apply(worker_cover, &content, "levee.culvert_path");
+    assert_eq!(worker_cover.world.current_location, "red_sluice.floor");
+    assert_eq!(worker_cover.world.time, worker_time + 1);
+
+    let mut stolen = new_game(&content, "rook");
+    assert_eq!(
+        content
+            .action_result(&stolen, "checkpoint.use_stolen_permit")
+            .unwrap(),
+        "Your permit opens Take Stolen Path at Lowsail Levee; Sava marks you as a risk."
+    );
+    stolen = apply(stolen, &content, "checkpoint.use_stolen_permit");
+    stolen = travel_to(stolen, &content, "lowsail.levee");
+    assert!(definitions(&stolen, &content).contains("levee.stolen_path"));
+    assert!(
+        !content
+            .location_description(&stolen)
+            .unwrap()
+            .contains("Guards bar Red Sluice")
+    );
+    let stolen_time = stolen.world.time;
+    stolen = apply(stolen, &content, "levee.stolen_path");
+    assert_eq!(stolen.world.current_location, "red_sluice.floor");
+    assert_eq!(stolen.world.time, stolen_time + 1);
+    assert!(!stolen.world.flags.contains("culvert_revealed"));
+    assert!(!stolen.world.npcs["oren_pell"].remembers("oren_revealed_culvert"));
+
+    let mut charter = new_game(&content, "ilyan");
+    charter = apply(charter, &content, "checkpoint.show_charter");
+    charter = travel_to(charter, &content, "lowsail.levee");
+    assert!(definitions(&charter, &content).contains("levee.authority_path"));
+    assert!(
+        !content
+            .location_description(&charter)
+            .unwrap()
+            .contains("Guards bar Red Sluice")
+    );
+    let charter_time = charter.world.time;
+    charter = apply(charter, &content, "levee.authority_path");
+    assert_eq!(charter.world.current_location, "red_sluice.floor");
+    assert_eq!(charter.world.time, charter_time + 1);
+    assert!(!charter.world.flags.contains("culvert_revealed"));
+    assert!(!charter.world.npcs["oren_pell"].remembers("oren_revealed_culvert"));
+
+    let mut warning_only = travel_to(new_game(&content, "ilyan"), &content, "lowsail.docks");
+    warning_only = apply(warning_only, &content, "docks.ring_warning");
+    warning_only = travel_to(warning_only, &content, "lowsail.levee");
+    assert_eq!(
+        content.location_description(&warning_only).unwrap(),
+        "Guards bar Red Sluice; return through Lowsail Checkpoint and ask Oren at Lowsail Docks about another route."
+    );
+    let warning_definitions = definitions(&warning_only, &content);
+    assert!(!warning_definitions.contains("levee.authority_path"));
+    assert!(!warning_definitions.contains("levee.culvert_path"));
+    assert!(!warning_definitions.contains("levee.stolen_path"));
 }
 
 #[test]
@@ -1622,7 +1756,9 @@ fn worker_cover_news_reaches_oren_as_a_written_report() {
             .unwrap()
             .result
             .as_deref(),
-        Some("The workers hide your passage and send Oren a note confirming your safe crossing.")
+        Some(
+            "The workers reveal the Culvert Path at Lowsail Levee and hide your passage. Their note confirms your crossing to Oren.",
+        )
     );
     let state = transition.into_state();
     assert_eq!(state.world.current_location, "lowsail_market");
