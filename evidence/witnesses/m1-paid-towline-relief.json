@@ -1,36 +1,36 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "8d0d7cfaf6288924582e058170e6f60662c54df669f17515fe02360496687bba",
+  "verifier_id": "015759be45f9b08d8672cf386ab0b184436e0d5e41135ec4bf2b6b2191f78943",
   "scenario_id": "m1-paid-towline-relief",
-  "scenario_binding": "08411658035628fa9007f55c39afc8ae4a2b2b30ac467bdee0bd6998c61f4c12",
+  "scenario_binding": "ec7260be131b5de857018ff2f0453f82a9ccf6b4239e1822e95183b4dfc63967",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
+    "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
     "start": {
       "kind": "character_preset",
       "character_preset_id": "rook",
       "seed": 71
     },
     "action_ids": [
-      "b222fe0e5fd1c31882c6cd38deef630609107ce8ca4d9c7c0bee162933969963",
-      "f6571d7573cf6891540656435d1efc0738889589bf5cf0c6e578d3bba2e97744",
-      "cdc073e9ac5a66d0309dd1570555f9ccfbb98f40ae450d5692b9d1f8a6d21b43",
-      "09e4e5daa0f27d43c346564d5e56ab910d899d07ddd2e1d499d2bd334533daf9",
-      "733fb571ba11938ed25d41ed1c5915a2fcdac4172bb64c1f2a63554b7a6d9883",
-      "05846f9d771db3f3a09985a0376366ad90af9b972243b2ba5330f2a47a339822",
-      "9c99b6ebc41db3faaa2cc2949c8d20f6e8ee9314d53f18e2d71efdac036c7ff4",
-      "e723a72b5500ce5ec0438a087b6cfa37e2aa37ca259e679aa0b6928760b19696",
-      "2eae5a71b0aa44616616a52ef3d19227723d19eab833af2a3a554737a05de4c8",
-      "33529f9aaa84e31e2c5f111979d251e9a9b9766c9d0c0b7750cf986cd28550bb",
-      "ab3b77f54c28be1020e5c69ef482a3fbb9a520e046376bac23cf397c7610982c"
+      "5073b6fddca45f340d6629cf120a9958a009d7c275c9f64e55bc418c5fbfa185",
+      "94365c90c37fcb037ea4c1ceba810843eb69e9bfaa57afd3fa84d4e4b22a17ad",
+      "53486710c3e216cb6b7b31564380ce9828f56012b3937ba1039396e9254cb125",
+      "daee3c1f7ab60203f068c38c27d92836cdc0cfeac0a8fc12e30123d6d14b38e8",
+      "979ce84ac5ab4d6c92494f72a772e639b2960ff34d0921c64e3bb6038f9b792d",
+      "5b22aae3af5def22462a48e81746191c4584d86d540c12d59881df37ed7cd2e5",
+      "34a6f6c496b139c82068998af9225fb6c6ff5ddc67cd2e8d87d98c3e2d9b3e52",
+      "7f6b78ebebe18debe62e9a08a755806ce4c09f8f76888d1bd7122869caf27b0f",
+      "03e5bf8c6c919efccbc4fbeb816266ff4998af6ffd9a0516c359f6e2990aaa4d",
+      "94d0bcc35684b2b5bcbbc85e768220c2ff8aee19fae19726caf05d49d96b33b3",
+      "700d80d2b7a2c071a0c4a884774dbf593040b45e59f5a5157422cd72dd55992c"
     ],
-    "final_state_id": "deaa01950af7bae97d7cb0c1aad51314babfdf6eb64f1995f4a54705b42673e4",
-    "final_receipt": "e375c85773793408e8bab10e9ef8a99f1c607e1b73032f0a3ccac7c0a06481c3"
+    "final_state_id": "0d8ba12230ed40b8401fd24a7836d94641188167c1cb9ad6125eb85f9cf0852e",
+    "final_receipt": "b1338b8e4673b3757e876827a67b893e81d277409ffa6cf68d3a04f41f60a3cf"
   },
-  "initial_state_id": "fccd2e0d78e5220804ecab6c14871b41a0f2214c8fef65d6b45e9bb01a865421",
+  "initial_state_id": "fbc35b940d7a0b475eee859e13aa6ceebeee69c7c7b43fe411980922d2d0b230",
   "initial_observation": {
-    "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-    "state_id": "fccd2e0d78e5220804ecab6c14871b41a0f2214c8fef65d6b45e9bb01a865421",
+    "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+    "state_id": "fbc35b940d7a0b475eee859e13aa6ceebeee69c7c7b43fe411980922d2d0b230",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
@@ -68,29 +68,29 @@
         "remaining_ticks": 16
       }
     ],
-    "action_set_digest": "dcc63a900b05a5ab9218d4c44bf59dfff35b2455c28873412ccc1f4db0bb00ae",
+    "action_set_digest": "8c344df69fc9412d5a2d6cb2946b6f67445303b6cb6345993c02fc1a01ad49fd",
     "action_count": 8
   },
-  "initial_observation_hash": "3d9e55eef94c37360cf175b78fcb6f3400903d4be9db04dd0f2038c484bb80ef",
-  "initial_receipt": "9b79512caed2afdd676e670cd3e352f5cb834e4cfb75a1e7fc4fa0c958d7f5d6",
+  "initial_observation_hash": "524e843b9f2d41e963c8b5be4989d7b3776211d178513b1e466c1f30b40f0df7",
+  "initial_receipt": "792ed7a05ef92fb9c0f3cb86bff134f6087868bb5ac6ef0ce7cc921a69879308",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "b222fe0e5fd1c31882c6cd38deef630609107ce8ca4d9c7c0bee162933969963",
+      "action_id": "5073b6fddca45f340d6629cf120a9958a009d7c275c9f64e55bc418c5fbfa185",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.docks"
       },
-      "legal_action_set_digest": "dcc63a900b05a5ab9218d4c44bf59dfff35b2455c28873412ccc1f4db0bb00ae",
-      "pre_state_id": "fccd2e0d78e5220804ecab6c14871b41a0f2214c8fef65d6b45e9bb01a865421",
+      "legal_action_set_digest": "8c344df69fc9412d5a2d6cb2946b6f67445303b6cb6345993c02fc1a01ad49fd",
+      "pre_state_id": "fbc35b940d7a0b475eee859e13aa6ceebeee69c7c7b43fe411980922d2d0b230",
       "events_hash": "c4090373c2115a56fb1d5e2dc4176e14a24f5929f07644b2ef16a96d5fcd489c",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "e268b2df6fd39d30d0aab6f94c676320abcd9ea658ae2f5903bd78b0392802b3",
+      "post_state_id": "b553ef2b8f02688a6d6afbf2acb59109a087283fd353c381825b6af429edc7ec",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "e268b2df6fd39d30d0aab6f94c676320abcd9ea658ae2f5903bd78b0392802b3",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "b553ef2b8f02688a6d6afbf2acb59109a087283fd353c381825b6af429edc7ec",
         "location_id": "lowsail.docks",
         "title": "Lowsail Docks",
         "text": "You move along the connected path. Boats knock against the docks. Oren watches a courier skiff beside a locked tide chest.",
@@ -128,27 +128,27 @@
             "remaining_ticks": 15
           }
         ],
-        "action_set_digest": "f72eba6a0070411b4bd3c05582cec9b2c249f0ec93f0bab24551e9dffef25f7a",
+        "action_set_digest": "edf9f6ddf40bfe05cf203213eada91d9fb5b9895918ea8baa53bca1d1a147f77",
         "action_count": 9
       },
-      "observation_hash": "0228b0990d5f074a607dcfc81e0f942a3b352c87cff27e94c1995eb9d461abb7",
-      "receipt": "25760e46a4449e71fd5de4e10e86ae83f8bc2ae1954551ead854d742beef7a6e"
+      "observation_hash": "a966641bbf016efda6ae8889cb26d2d511f9ef73f2567924f8cfe42bd62eb38d",
+      "receipt": "638b8aebd65b3dde45c576368575f0398f07aebfb6429b606fc9bfe701cf0870"
     },
     {
       "step_index": 1,
-      "action_id": "f6571d7573cf6891540656435d1efc0738889589bf5cf0c6e578d3bba2e97744",
+      "action_id": "94365c90c37fcb037ea4c1ceba810843eb69e9bfaa57afd3fa84d4e4b22a17ad",
       "action_definition_id": "docks.ring_warning",
       "action_parameters": {},
-      "legal_action_set_digest": "f72eba6a0070411b4bd3c05582cec9b2c249f0ec93f0bab24551e9dffef25f7a",
-      "pre_state_id": "e268b2df6fd39d30d0aab6f94c676320abcd9ea658ae2f5903bd78b0392802b3",
+      "legal_action_set_digest": "edf9f6ddf40bfe05cf203213eada91d9fb5b9895918ea8baa53bca1d1a147f77",
+      "pre_state_id": "b553ef2b8f02688a6d6afbf2acb59109a087283fd353c381825b6af429edc7ec",
       "events_hash": "3a27dc2f6e304b7b68069ad55e2d2e192cd02027cfda9e550a94475638a05313",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "c84aa15b8ff4b598f134181992f61f4855d71fa5526cd37757981e4e964bda29",
+      "post_state_id": "4016318914b475eb943bd55388f44c565ac97d812fc846d42f6ed5b53b808188",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "c84aa15b8ff4b598f134181992f61f4855d71fa5526cd37757981e4e964bda29",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "4016318914b475eb943bd55388f44c565ac97d812fc846d42f6ed5b53b808188",
         "location_id": "lowsail.docks",
         "title": "Lowsail Docks",
         "text": "You sound the market warning. Oren sends loading crews uphill; relay his warning at Lowsail Levee so Edrik can open relief. The loading crews have cleared the docks; Oren and Yara remain beside the warning bell.",
@@ -186,27 +186,27 @@
             "remaining_ticks": 14
           }
         ],
-        "action_set_digest": "27dbc498fa25e5038a1cee05d2b21c581b1bbe16c88d48473d3868bd324f6566",
+        "action_set_digest": "86e4ec1c2f2129c059fe2787a3176cce133f5ee2ad5d5ff4328fd0f0c764f832",
         "action_count": 9
       },
-      "observation_hash": "39e2e803c487bb434343ff182c62ec94c70b49ed5aeec17bd5494ff20a78eaf9",
-      "receipt": "060cbbaac96ffede9c1a6af1a7ebc99d2d0a8a6c136164b61a985f246c0745d0"
+      "observation_hash": "b11958a47acd74b6c6a7b141c323041ec6338e731737d7614e4b1715d5d89870",
+      "receipt": "835e6a11c4fa158e841a2742fab6dcd7221b908780be7ade8108d8ec78ad033e"
     },
     {
       "step_index": 2,
-      "action_id": "cdc073e9ac5a66d0309dd1570555f9ccfbb98f40ae450d5692b9d1f8a6d21b43",
+      "action_id": "53486710c3e216cb6b7b31564380ce9828f56012b3937ba1039396e9254cb125",
       "action_definition_id": "docks.rig_towline",
       "action_parameters": {},
-      "legal_action_set_digest": "27dbc498fa25e5038a1cee05d2b21c581b1bbe16c88d48473d3868bd324f6566",
-      "pre_state_id": "c84aa15b8ff4b598f134181992f61f4855d71fa5526cd37757981e4e964bda29",
+      "legal_action_set_digest": "86e4ec1c2f2129c059fe2787a3176cce133f5ee2ad5d5ff4328fd0f0c764f832",
+      "pre_state_id": "4016318914b475eb943bd55388f44c565ac97d812fc846d42f6ed5b53b808188",
       "events_hash": "a4736bdab49ff0f511dd3562159d8323a406202b2fe05b990e896ba79cd29f38",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "c986e9b664313d57dece448cfaf967bd62604ef6237f0bfa7a5cf8ce8f39dc3b",
+      "post_state_id": "5d839dd6c33869cc9ae3779186d92009557c245e2068aa56b6a7f697fdb2abf0",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "c986e9b664313d57dece448cfaf967bd62604ef6237f0bfa7a5cf8ce8f39dc3b",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "5d839dd6c33869cc9ae3779186d92009557c245e2068aa56b6a7f697fdb2abf0",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You rig your rope and wire; Oren's crew tows you to Lowsail Levee for three coins. They return your gear and point out Culvert Path into Red Sluice. The levee crew moves uphill because Lowsail expects the next surge.",
@@ -244,27 +244,27 @@
             "remaining_ticks": 13
           }
         ],
-        "action_set_digest": "c3aaa54f760b31885e2c87806fd6716527d79c7cde59ffc1bb4516ca3f6c63d7",
-        "action_count": 6
+        "action_set_digest": "82f6d69885580259db9b0d4fc2106016f7b6743f7e66330bb41d981b93cbe144",
+        "action_count": 7
       },
-      "observation_hash": "06a077567a1ff72016bdeb803c2bf2ca5f423fb09fa8c80ecf3047840386beb0",
-      "receipt": "28294cecf7473b1d865ad982a0dda3f7993a7c2035978ee4a4ca9f65f174401d"
+      "observation_hash": "a389de4a9015d2fe652943d10eb1d48f19137c8ebfd97afddd1b64260ee3d5f7",
+      "receipt": "d2d24e671f654208b4e59aae86b7acfcd7870715076f88d7a3bc832eb6565300"
     },
     {
       "step_index": 3,
-      "action_id": "09e4e5daa0f27d43c346564d5e56ab910d899d07ddd2e1d499d2bd334533daf9",
+      "action_id": "daee3c1f7ab60203f068c38c27d92836cdc0cfeac0a8fc12e30123d6d14b38e8",
       "action_definition_id": "levee.relay_warning",
       "action_parameters": {},
-      "legal_action_set_digest": "c3aaa54f760b31885e2c87806fd6716527d79c7cde59ffc1bb4516ca3f6c63d7",
-      "pre_state_id": "c986e9b664313d57dece448cfaf967bd62604ef6237f0bfa7a5cf8ce8f39dc3b",
+      "legal_action_set_digest": "82f6d69885580259db9b0d4fc2106016f7b6743f7e66330bb41d981b93cbe144",
+      "pre_state_id": "5d839dd6c33869cc9ae3779186d92009557c245e2068aa56b6a7f697fdb2abf0",
       "events_hash": "dd33be0cb5da78bd08dbe0d43d20cc7e27312da5cfe94b5605e5dd5a3df25b03",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "b1369ba0261e4152fade8995b9c3309e174bf78761a10b2027847465280adf8f",
+      "post_state_id": "de23d3fc00e8b5c80c203676638bc6ea49c8459bd6cade5cfe3633e65485a477",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "b1369ba0261e4152fade8995b9c3309e174bf78761a10b2027847465280adf8f",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "de23d3fc00e8b5c80c203676638bc6ea49c8459bd6cade5cfe3633e65485a477",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "Oren's warning reaches Edrik; he can now help open relief at Red Sluice Floor. The levee crew moves uphill because Lowsail expects the next surge.",
@@ -302,27 +302,27 @@
             "remaining_ticks": 12
           }
         ],
-        "action_set_digest": "561a86808e53a2b28cb261f1e50633d348103de87af054ff86fd51edc7389157",
-        "action_count": 5
+        "action_set_digest": "fedda955894c55c0142b9c5ceecedf8275ff152e50c81220f227c40ff7b76919",
+        "action_count": 6
       },
-      "observation_hash": "2c7b304921d88a5146e7752be2d1b01dba2d048379997172dcc6be733dc60b79",
-      "receipt": "ce49031f51ceff5f9e22c38642d683529dc8a5e310c60bb891b346ff402f05c6"
+      "observation_hash": "6ba47bf67574a3d80ce2c6dfebb09fd6f330fb6338e023311451cd22444df9ac",
+      "receipt": "7379c6ae7141d38b2059055db8226090aaedd4c39879b9e5b4cb2edb8c442e8e"
     },
     {
       "step_index": 4,
-      "action_id": "733fb571ba11938ed25d41ed1c5915a2fcdac4172bb64c1f2a63554b7a6d9883",
+      "action_id": "979ce84ac5ab4d6c92494f72a772e639b2960ff34d0921c64e3bb6038f9b792d",
       "action_definition_id": "levee.culvert_path",
       "action_parameters": {},
-      "legal_action_set_digest": "561a86808e53a2b28cb261f1e50633d348103de87af054ff86fd51edc7389157",
-      "pre_state_id": "b1369ba0261e4152fade8995b9c3309e174bf78761a10b2027847465280adf8f",
+      "legal_action_set_digest": "fedda955894c55c0142b9c5ceecedf8275ff152e50c81220f227c40ff7b76919",
+      "pre_state_id": "de23d3fc00e8b5c80c203676638bc6ea49c8459bd6cade5cfe3633e65485a477",
       "events_hash": "985c0f754e539f70eaaeef605e92e7047f30d6e2723131ea10f4da5132612514",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "419a63e6b81541c059fec5c0cd341506ca8579a0a3d9cfa9846b057bfc5c7367",
+      "post_state_id": "60d37a1b98feabd29d579aebb17079ae7e563458c45bd1e8e2d1a4ccd5b52fb0",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "419a63e6b81541c059fec5c0cd341506ca8579a0a3d9cfa9846b057bfc5c7367",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "60d37a1b98feabd29d579aebb17079ae7e563458c45bd1e8e2d1a4ccd5b52fb0",
         "location_id": "red_sluice.floor",
         "title": "Red Sluice Floor",
         "text": "The hidden culvert opens below the Sluice. Heat marks reveal stress above the intake.",
@@ -360,27 +360,27 @@
             "remaining_ticks": 11
           }
         ],
-        "action_set_digest": "39f2d6a4319c9f495288c522778ae0b64b759b389bdfa240961ea35ea350dffe",
+        "action_set_digest": "59ff1fe05d431de3ac27b681e15c53c6e5c9bfc28198b2982c5c4a3c7662610f",
         "action_count": 7
       },
-      "observation_hash": "0c7e877c9e09ec5d87a19049d10edf6bab024253f2314310fd8fee8b1ee11d73",
-      "receipt": "477f2d1a2197234f1448b8f1d5f5587fe8d51aad6ffc150c788097fd7d38df26"
+      "observation_hash": "6ac8e70a4c8cb3ac2bc992a61b8ac665a4c73a7a4327608091abf157b6c0069d",
+      "receipt": "3a7698592ce7e311ade9313e66eb55fd81b106610672b9ef48f84987c47aa02f"
     },
     {
       "step_index": 5,
-      "action_id": "05846f9d771db3f3a09985a0376366ad90af9b972243b2ba5330f2a47a339822",
+      "action_id": "5b22aae3af5def22462a48e81746191c4584d86d540c12d59881df37ed7cd2e5",
       "action_definition_id": "floor.open_relief",
       "action_parameters": {},
-      "legal_action_set_digest": "39f2d6a4319c9f495288c522778ae0b64b759b389bdfa240961ea35ea350dffe",
-      "pre_state_id": "419a63e6b81541c059fec5c0cd341506ca8579a0a3d9cfa9846b057bfc5c7367",
+      "legal_action_set_digest": "59ff1fe05d431de3ac27b681e15c53c6e5c9bfc28198b2982c5c4a3c7662610f",
+      "pre_state_id": "60d37a1b98feabd29d579aebb17079ae7e563458c45bd1e8e2d1a4ccd5b52fb0",
       "events_hash": "4f8f6a9133597d501c69e8fb34b8a68fb27eef04980c031d976fa2770b0e0ffc",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "b10fdf1bf67039d0b27ebc2a227315dc8e06153913109c9a67d05e2d8cdb30ec",
+      "post_state_id": "7b7b413db3ebc3cae1d9bd1ce83c08164ce9afca546b7d5c9b8d1bad933a3110",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "b10fdf1bf67039d0b27ebc2a227315dc8e06153913109c9a67d05e2d8cdb30ec",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "7b7b413db3ebc3cae1d9bd1ce83c08164ce9afca546b7d5c9b8d1bad933a3110",
         "location_id": "red_sluice.floor",
         "title": "Red Sluice Floor",
         "text": "Edrik follows the warning and opens the safer channel. Heat marks reveal stress above the intake.",
@@ -418,29 +418,29 @@
             "remaining_ticks": 10
           }
         ],
-        "action_set_digest": "d522f61d6e9336b085abfa448c135890a95e03bf852b605a83d5bc35931c9713",
+        "action_set_digest": "f73cafb5753ae32f5ec01c5339862bb48bb83945ba157d86974c0be3274274e7",
         "action_count": 6
       },
-      "observation_hash": "07ad126fc339fc1af217480778a70f8b41d7a218c413018ef2b509f8235cc278",
-      "receipt": "d52d5e4155e1426115cf0e5c38cb3605840ea5139647b3d6c4b2ff7099596985"
+      "observation_hash": "b98fa78351663d70600741c0813ecab7456392cfac34410f8ca0128ab3102a91",
+      "receipt": "2dfdb5b3778871f9fcd1475e4cde968fb5a9a2898a34c7b6f3ffbc3c51dd470e"
     },
     {
       "step_index": 6,
-      "action_id": "9c99b6ebc41db3faaa2cc2949c8d20f6e8ee9314d53f18e2d71efdac036c7ff4",
+      "action_id": "34a6f6c496b139c82068998af9225fb6c6ff5ddc67cd2e8d87d98c3e2d9b3e52",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "red_sluice.top"
       },
-      "legal_action_set_digest": "d522f61d6e9336b085abfa448c135890a95e03bf852b605a83d5bc35931c9713",
-      "pre_state_id": "b10fdf1bf67039d0b27ebc2a227315dc8e06153913109c9a67d05e2d8cdb30ec",
+      "legal_action_set_digest": "f73cafb5753ae32f5ec01c5339862bb48bb83945ba157d86974c0be3274274e7",
+      "pre_state_id": "7b7b413db3ebc3cae1d9bd1ce83c08164ce9afca546b7d5c9b8d1bad933a3110",
       "events_hash": "3e2b13d1ac84526d30491761127adb5bf32a218ec579a64a50fabc6c3d1a2947",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "909aa17090ca1bce16c7eba10c4a84c747942eaee5b8bb3b000a61488f8000bd",
+      "post_state_id": "62f538d456e3dc9aeb2fae24514c08e3d80c942c04a54016eaf1b2ea18d1be81",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "909aa17090ca1bce16c7eba10c4a84c747942eaee5b8bb3b000a61488f8000bd",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "62f538d456e3dc9aeb2fae24514c08e3d80c942c04a54016eaf1b2ea18d1be81",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "You move along the connected path. Mira points to a relief wheel that gives the warned market one safe escape.",
@@ -478,27 +478,27 @@
             "remaining_ticks": 9
           }
         ],
-        "action_set_digest": "67b8e1ace601851216aba731c0792d74a9b7320c58310db13787ca0a810cbf5a",
+        "action_set_digest": "949d0d083f50405de506ff5646934e18c76435c0b5c679753eae4b218312b479",
         "action_count": 7
       },
-      "observation_hash": "ad68942824d56215b04f88ea666178b8aab91837a59b1caaf1a6eafc610683bd",
-      "receipt": "f6ab0e1942a2b4b40414ef77157af594b63ce63178ed6f9635b2c2467cf0d11a"
+      "observation_hash": "51080537c2ce8a37d5881c89f43a0f9aae8923933ecd45c7d20cd3feddd455a0",
+      "receipt": "a53475f4f2fb17faa58498c1e27d42061db8cd5acafbd153aab547e3eb3338b2"
     },
     {
       "step_index": 7,
-      "action_id": "e723a72b5500ce5ec0438a087b6cfa37e2aa37ca259e679aa0b6928760b19696",
+      "action_id": "7f6b78ebebe18debe62e9a08a755806ce4c09f8f76888d1bd7122869caf27b0f",
       "action_definition_id": "top.check_wheels",
       "action_parameters": {},
-      "legal_action_set_digest": "67b8e1ace601851216aba731c0792d74a9b7320c58310db13787ca0a810cbf5a",
-      "pre_state_id": "909aa17090ca1bce16c7eba10c4a84c747942eaee5b8bb3b000a61488f8000bd",
+      "legal_action_set_digest": "949d0d083f50405de506ff5646934e18c76435c0b5c679753eae4b218312b479",
+      "pre_state_id": "62f538d456e3dc9aeb2fae24514c08e3d80c942c04a54016eaf1b2ea18d1be81",
       "events_hash": "0ba52716b220c14c393ebe01fa3875dc0a930d10c3a4010df6e6414fb486e5d2",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "bd0974b9803894b72202b2536fb78e5edbb27f27ef548af998d8bb0539f74ee0",
+      "post_state_id": "e8cc1be7699c515bdabcfc39642a435f76ddd76e446b0697e3e2748301e4c85c",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "bd0974b9803894b72202b2536fb78e5edbb27f27ef548af998d8bb0539f74ee0",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "e8cc1be7699c515bdabcfc39642a435f76ddd76e446b0697e3e2748301e4c85c",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "The control wheels turn, but the split still needs a choice. Mira points to a relief wheel that gives the warned market one safe escape.",
@@ -536,27 +536,27 @@
             "remaining_ticks": 8
           }
         ],
-        "action_set_digest": "43f6bb5660840ec1bfbac6b571e95c3b340824809a73e9cd630aedc881dd9b83",
+        "action_set_digest": "61e5a69e4b6bc780c3882173214a0035107ba1edb027067ad16f6eb30ab79757",
         "action_count": 6
       },
-      "observation_hash": "53710857a47519e8b5c3380dfb1132e950509f2cd2d5174906794f4495bfdf03",
-      "receipt": "2f1f0a51290a73c804d5fdf4bd2cb95d21d9aae56576287b9a7f877608ada9cd"
+      "observation_hash": "50548140b95030491a4122812274e9ccc0fa398b1b2da8b33a5a549314e9d07e",
+      "receipt": "089be03d18e078a5b71a52c8041878c64143237d5c66a896a796c793c050afa1"
     },
     {
       "step_index": 8,
-      "action_id": "2eae5a71b0aa44616616a52ef3d19227723d19eab833af2a3a554737a05de4c8",
+      "action_id": "03e5bf8c6c919efccbc4fbeb816266ff4998af6ffd9a0516c359f6e2990aaa4d",
       "action_definition_id": "top.divert_relief",
       "action_parameters": {},
-      "legal_action_set_digest": "43f6bb5660840ec1bfbac6b571e95c3b340824809a73e9cd630aedc881dd9b83",
-      "pre_state_id": "bd0974b9803894b72202b2536fb78e5edbb27f27ef548af998d8bb0539f74ee0",
+      "legal_action_set_digest": "61e5a69e4b6bc780c3882173214a0035107ba1edb027067ad16f6eb30ab79757",
+      "pre_state_id": "e8cc1be7699c515bdabcfc39642a435f76ddd76e446b0697e3e2748301e4c85c",
       "events_hash": "573e1af8a8a4c650996c9e6c4e4cdf6f197791295bc19eb1e8ecc21bcc01d6b8",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "f53674299723d27fbc927c624c662832dcd59b5c216ed128a9c6b20baca351b0",
+      "post_state_id": "055ce061d4ddcc04998b2152ebf28f182730cd1268cc5bc55d34fd73d8b4765f",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "f53674299723d27fbc927c624c662832dcd59b5c216ed128a9c6b20baca351b0",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "055ce061d4ddcc04998b2152ebf28f182730cd1268cc5bc55d34fd73d8b4765f",
         "location_id": "red_sluice.top",
         "title": "Red Sluice Top",
         "text": "The relief channel takes the surge away from the market. This surge is settled; choose Return to Lowsail to see the result.",
@@ -589,27 +589,27 @@
         "result": "The relief channel takes the surge away from the market.",
         "world_time": 9,
         "upcoming_events": [],
-        "action_set_digest": "23e4f3322ae9518412857978fb808ca4398d85cb73dd2c546e03921689512777",
+        "action_set_digest": "67070821fb86e77d00a8ebb80f515cb9a75ec6254c966696a5f30f20f229a38e",
         "action_count": 3
       },
-      "observation_hash": "060020984bc1fad76b65f049212503386ea53bb55f60cf4397f56841d8cf60d1",
-      "receipt": "61ee66e11b41793b64ed48adea342582bed81de49b85b601898aeb6b1bed3593"
+      "observation_hash": "9047130537921a4c0cac00b8e0f8976cf3c7466f866722005df591e67ec0ff52",
+      "receipt": "5bf8907bba4c59330b6bf486450a4d1edbc07072f1ac1157df46a67dd8814c1b"
     },
     {
       "step_index": 9,
-      "action_id": "33529f9aaa84e31e2c5f111979d251e9a9b9766c9d0c0b7750cf986cd28550bb",
+      "action_id": "94d0bcc35684b2b5bcbbc85e768220c2ff8aee19fae19726caf05d49d96b33b3",
       "action_definition_id": "world.enter_aftermath",
       "action_parameters": {},
-      "legal_action_set_digest": "23e4f3322ae9518412857978fb808ca4398d85cb73dd2c546e03921689512777",
-      "pre_state_id": "f53674299723d27fbc927c624c662832dcd59b5c216ed128a9c6b20baca351b0",
+      "legal_action_set_digest": "67070821fb86e77d00a8ebb80f515cb9a75ec6254c966696a5f30f20f229a38e",
+      "pre_state_id": "055ce061d4ddcc04998b2152ebf28f182730cd1268cc5bc55d34fd73d8b4765f",
       "events_hash": "623d35d5e8a9f55ed2f34627ca8f641c87d9fcbf6657d79880c5663a9c6613ce",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "31a96080accb385325319f1e5d56f3fbb018d4b8c75bd66912e77f777dd75401",
+      "post_state_id": "ba0c85bfdf48740ec3508422c412c6c1df41d00197fd771026cca2b158306dd7",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "31a96080accb385325319f1e5d56f3fbb018d4b8c75bd66912e77f777dd75401",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "ba0c85bfdf48740ec3508422c412c6c1df41d00197fd771026cca2b158306dd7",
         "location_id": "lowsail.return",
         "title": "Lowsail Return",
         "text": "You return to Lowsail's changed market. Oren, Sava, and Mira watch families carry goods toward higher ground beyond the empty stalls.",
@@ -642,27 +642,27 @@
         "result": "You return to Lowsail's changed market.",
         "world_time": 10,
         "upcoming_events": [],
-        "action_set_digest": "09cb6cf17f9678158ab188c5675bfcc59e352966f15b6b0a51801e70fd42b22d",
-        "action_count": 6
+        "action_set_digest": "b1836eac6e71559363af3665a392c212057e433cdaa4e80f6af6494395926104",
+        "action_count": 7
       },
-      "observation_hash": "089c2014763183fa7f69395fca4e14dc5815db0c2fc7c9d8b00e5831c5f47797",
-      "receipt": "cc382d7c2ce1fce9e457d0d9b246f4d9fc1f2e8f43c053cff68a1ac4d8221b2c"
+      "observation_hash": "d534df334cc75f7ceb6b6a82bb2c85a71ae13f6bf8e9917e3298dbe958f80928",
+      "receipt": "258fe60fb746a8a5805d5201f5aa943d827bf1935a3ec6f9e0eef20ea95ca0d9"
     },
     {
       "step_index": 10,
-      "action_id": "ab3b77f54c28be1020e5c69ef482a3fbb9a520e046376bac23cf397c7610982c",
+      "action_id": "700d80d2b7a2c071a0c4a884774dbf593040b45e59f5a5157422cd72dd55992c",
       "action_definition_id": "return.move_inland",
       "action_parameters": {},
-      "legal_action_set_digest": "09cb6cf17f9678158ab188c5675bfcc59e352966f15b6b0a51801e70fd42b22d",
-      "pre_state_id": "31a96080accb385325319f1e5d56f3fbb018d4b8c75bd66912e77f777dd75401",
+      "legal_action_set_digest": "b1836eac6e71559363af3665a392c212057e433cdaa4e80f6af6494395926104",
+      "pre_state_id": "ba0c85bfdf48740ec3508422c412c6c1df41d00197fd771026cca2b158306dd7",
       "events_hash": "e703d484d8c57c0474289eb7ce8343f71c22edd65ce49335eca7afd83b44aba5",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "deaa01950af7bae97d7cb0c1aad51314babfdf6eb64f1995f4a54705b42673e4",
+      "post_state_id": "0d8ba12230ed40b8401fd24a7836d94641188167c1cb9ad6125eb85f9cf0852e",
       "observation": {
-        "build_id": "2105d1f0a5bba8c214abf17754f50f743f8921879e73609d831bddfc231aa912",
-        "state_id": "deaa01950af7bae97d7cb0c1aad51314babfdf6eb64f1995f4a54705b42673e4",
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "0d8ba12230ed40b8401fd24a7836d94641188167c1cb9ad6125eb85f9cf0852e",
         "location_id": "lowsail.return",
         "title": "Lowsail Return",
         "text": "You help families open a higher market beyond the next surge. Oren, Sava, and Mira watch families carry goods toward higher ground beyond the empty stalls.",
@@ -695,13 +695,13 @@
         "result": "You help families open a higher market beyond the next surge.",
         "world_time": 11,
         "upcoming_events": [],
-        "action_set_digest": "537729691f190884ab8663ef5e9192acc0118357ed6935883452f95d20264a81",
-        "action_count": 5
+        "action_set_digest": "adba92082dd5eec66a32a27498593abf2c782cfaebc62850dbad1c98237321c1",
+        "action_count": 6
       },
-      "observation_hash": "3682cd3a40f517220e56a8562dcc2f7b24a27439f270d240499f1cacfcbf798d",
-      "receipt": "e375c85773793408e8bab10e9ef8a99f1c607e1b73032f0a3ccac7c0a06481c3"
+      "observation_hash": "6394110c47287dd56937b83d73d0cd9a9b1b52b22ca028114b4f782301bc1b96",
+      "receipt": "b1338b8e4673b3757e876827a67b893e81d277409ffa6cf68d3a04f41f60a3cf"
     }
   ],
-  "final_state_id": "deaa01950af7bae97d7cb0c1aad51314babfdf6eb64f1995f4a54705b42673e4",
-  "final_receipt": "e375c85773793408e8bab10e9ef8a99f1c607e1b73032f0a3ccac7c0a06481c3"
+  "final_state_id": "0d8ba12230ed40b8401fd24a7836d94641188167c1cb9ad6125eb85f9cf0852e",
+  "final_receipt": "b1338b8e4673b3757e876827a67b893e81d277409ffa6cf68d3a04f41f60a3cf"
 }

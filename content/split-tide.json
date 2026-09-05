@@ -1,6 +1,6 @@
 {
-  "schema_version": "forge-schema-v7",
-  "rules_version": "forge-rules-v5",
+  "schema_version": "forge-schema-v8",
+  "rules_version": "forge-rules-v6",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
@@ -8,13 +8,53 @@
     "items": {
       "rope": "Rope",
       "wire": "Wire",
-      "split_tide.tide_key": "Tide Key"
+      "split_tide.tide_key": "Tide Key",
+      "fume_yards.clay": "Clay",
+      "fume_yards.mesh": "Mesh",
+      "fume_yards.repair_lot": "Repair Plugs",
+      "fume_yards.catch_screen": "Catch Screen"
     },
     "resources": {
       "coin": "Coin",
       "stamina": "Stamina"
     }
   },
+  "recipes": [
+    {
+      "id": "fume_yards.press_repair_plugs",
+      "inputs": {
+        "fume_yards.clay": 2,
+        "fume_yards.mesh": 1
+      },
+      "outputs": {
+        "fume_yards.repair_lot": 1
+      }
+    },
+    {
+      "id": "fume_yards.pack_catch_screen",
+      "inputs": {
+        "fume_yards.clay": 2,
+        "fume_yards.mesh": 1
+      },
+      "outputs": {
+        "fume_yards.catch_screen": 1
+      }
+    },
+    {
+      "id": "fume_yards.fit_catch_screen",
+      "inputs": {
+        "fume_yards.catch_screen": 1
+      },
+      "outputs": {}
+    },
+    {
+      "id": "fume_yards.patch_stand",
+      "inputs": {
+        "fume_yards.repair_lot": 1
+      },
+      "outputs": {}
+    }
+  ],
   "character_presets": [
     {
       "id": "ilyan",
@@ -417,7 +457,7 @@
           "text": "The levee crew moves uphill because Lowsail expects the next surge."
         }
       ],
-      "exits": ["lowsail_market"],
+      "exits": ["lowsail_market", "fume_yards.workshop"],
       "terminal": false
     },
     {
@@ -544,9 +584,452 @@
           "priority": 20,
           "condition": {"kind": "location_flag", "location": "lowsail.return", "flag": "market_flooded"},
           "text": "Oren, Sava, and Mira wait beside flooded stalls under the broken gates."
+        },
+        {
+          "id": "fume_yards_patched_stable_market",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "lowsail.return",
+                    "flag": "market_stable"
+                  },
+                  {
+                    "kind": "world_flag",
+                    "flag": "flow_split"
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods beside calm water; both shores still receive a share."
+        },
+        {
+          "id": "fume_yards_sorted_stable_market",
+          "priority": 220,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "lowsail.return",
+                    "flag": "market_stable"
+                  },
+                  {
+                    "kind": "world_flag",
+                    "flag": "flow_split"
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods beside calm water; both shores still receive a share."
+        },
+        {
+          "id": "fume_yards_patched_upland_dry",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "upland_dry"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods in dry Lowsail; the upland works still lack water."
+        },
+        {
+          "id": "fume_yards_sorted_upland_dry",
+          "priority": 220,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "upland_dry"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods in dry Lowsail; the upland works still lack water."
+        },
+        {
+          "id": "fume_yards_patched_moved_market",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_moved"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods uphill, beside families carrying stock from the empty stalls."
+        },
+        {
+          "id": "fume_yards_sorted_moved_market",
+          "priority": 220,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_moved"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods uphill, beside families carrying stock from the empty stalls."
+        },
+        {
+          "id": "fume_yards_patched_free_ferry",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "ferry_free"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods beside the open channel; the ferry toll remains undecided."
+        },
+        {
+          "id": "fume_yards_sorted_free_ferry",
+          "priority": 220,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "ferry_free"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods beside the open channel; the ferry toll remains undecided."
+        },
+        {
+          "id": "fume_yards_patched_ferry_launched",
+          "priority": 130,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "world_flag",
+                "flag": "ending_freedom"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods beside the free ferry carrying people between both shores."
+        },
+        {
+          "id": "fume_yards_sorted_ferry_launched",
+          "priority": 230,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "world_flag",
+                "flag": "ending_freedom"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods beside the free ferry carrying people between both shores."
+        },
+        {
+          "id": "fume_yards_patched_flooded_market",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_flooded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.stand_patched"
+              }
+            ]
+          },
+          "text": "Oren's patched stand awaits dry goods above flooded stalls; the old market crossing remains lost."
+        },
+        {
+          "id": "fume_yards_sorted_flooded_market",
+          "priority": 220,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_flooded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.dry_goods_sorted"
+              }
+            ]
+          },
+          "text": "Oren's patched stand holds sorted goods above flooded stalls; the old market crossing remains lost."
         }
       ],
       "exits": ["lowsail.docks", "red_sluice.top"],
+      "terminal": false
+    },
+    {
+      "id": "fume_yards.workshop",
+      "name": "Fume Yards Workshop",
+      "description": "Nessa offers two clay and one mesh for plugs or screening; optional work uses tide steps. Plugs unlock Lowsail's three-coin sorting job after the tide; screening saves two stamina loading freight.",
+      "description_variants": [
+        {
+          "id": "screen_work_finished",
+          "priority": 100,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.freight_loaded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.screen_fitted"
+              }
+            ]
+          },
+          "text": "Nessa's stock and freight job are spent; your fitted catch screen still lines her loading tray."
+        },
+        {
+          "id": "all_work_finished",
+          "priority": 90,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.freight_loaded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.stock_given"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.clay",
+                  "count": 1
+                }
+              },
+            {"kind": "not", "condition": {"kind": "has_item", "item": "fume_yards.repair_lot", "count": 1}}
+          ]
+          },
+          "text": "Nessa's clay, mesh, and freight job are spent; your workshop work remains finished."
+        },
+        {
+          "id": "screen_ready",
+          "priority": 80,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.workshop",
+            "flag": "fume_yards.screen_fitted"
+          },
+          "text": "Your screen lines Nessa's tray; Load Freight pays two coins without the usual two-stamina cleanup."
+        },
+        {
+          "id": "screen_owned",
+          "priority": 70,
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.catch_screen",
+            "count": 1
+          },
+          "text": "Fit your catch screen in Nessa's loading tray to save two stamina on Load Freight."
+        },
+        {
+          "id": "repair_owned",
+          "priority": 70,
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.repair_lot",
+            "count": 1
+          },
+          "text": "Nessa's stock is spent; Patch Stand at Lowsail unlocks three-coin sorting after the tide."
+        },
+        {
+          "id": "freight_done_materials_owned",
+          "priority": 60,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.freight_loaded"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.clay",
+                "count": 2
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.mesh",
+                "count": 1
+              }
+            ]
+          },
+          "text": "Nessa's freight job is finished; Press Repair Plugs uses your remaining materials for Lowsail's three-coin sorting."
+        },
+        {
+          "id": "materials_spent",
+          "priority": 65,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.stock_given"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.clay",
+                  "count": 1
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.repair_lot",
+                  "count": 1
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.catch_screen",
+                  "count": 1
+                }
+              }
+            ]
+          },
+          "text": "Nessa's clay and mesh are spent; her remaining freight job pays two coins and costs two stamina."
+        },
+        {
+          "id": "freight_done_stock_waiting",
+          "priority": 60,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.workshop",
+                "flag": "fume_yards.freight_loaded"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.workshop",
+                  "flag": "fume_yards.stock_given"
+                }
+              }
+            ]
+          },
+          "text": "Nessa's freight job is finished; her remaining clay and mesh can make plugs for Lowsail's three-coin sorting."
+        },
+        {
+          "id": "stock_owned",
+          "priority": 50,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.workshop",
+            "flag": "fume_yards.stock_given"
+          },
+          "text": "Two clay and one mesh: plugs unlock three-coin sorting after Lowsail's tide; screening saves two stamina locally."
+        }
+      ],
+      "exits": [
+        "lowsail.levee"
+      ],
       "terminal": false
     }
   ],
@@ -591,6 +1074,27 @@
       "goals": ["pay_workers", "share_water"],
       "values": ["mercy", "fairness"],
       "tags": ["worker", "organizer"]
+    },
+    {
+      "id": "fume_yards.nessa_tern",
+      "name": "Nessa Tern",
+      "location": "fume_yards.workshop",
+      "inventory": {
+        "fume_yards.clay": 2,
+        "fume_yards.mesh": 1
+      },
+      "goals": [
+        "fume_yards.finish_freight",
+        "fume_yards.put_stock_to_work"
+      ],
+      "values": [
+        "craft",
+        "fair_pay"
+      ],
+      "tags": [
+        "craftsperson",
+        "freight_commissioner"
+      ]
     }
   ],
   "timed_events": [
@@ -1774,7 +2278,7 @@
       "label": "Return to Lowsail",
       "category": "Travel",
       "result": "You return to Lowsail's changed market.",
-      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top"],
+      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top", "fume_yards.workshop"],
       "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
       "effects": [
         {"kind": "move_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "location": {"kind": "literal", "value": "lowsail.return"}},
@@ -2050,6 +2554,613 @@
       "effects": [
         {"kind": "add_npc_memory", "npc": {"kind": "literal", "value": "sava_rusk"}, "memory_id": "sava_received_return_report", "subject": "The player confirmed that Edrik received Sava's report.", "provenance": {"kind": "witnessed"}},
         {"kind": "advance_time", "ticks": 1}
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.take_stock",
+      "label": "Take Clay and Mesh",
+      "category": "Supplies",
+      "result": "Nessa hands over two clay and one mesh, enough for one product.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.stock_given"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "item": "fume_yards.clay",
+          "count": 2
+        },
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "item": "fume_yards.mesh",
+          "count": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          },
+          "flag": "fume_yards.stock_given",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.stock_handed_over",
+          "subject": "Nessa handed the player two clay and one mesh.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.press_repair_plugs",
+      "label": "Press Repair Plugs",
+      "category": "Craft",
+      "result": "You press two clay and one mesh into repair plugs. Patch Stand at Lowsail unlocks three-coin sorting after the tide.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.clay",
+            "count": 2
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.mesh",
+            "count": 1
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.press_repair_plugs"
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.repair_plugs_pressed",
+          "subject": "Nessa watched the player press repair plugs.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.pack_catch_screen",
+      "label": "Pack Catch Screen",
+      "category": "Craft",
+      "result": "You pack two clay and one mesh into a catch screen. Fit it before loading freight to save two stamina.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.clay",
+            "count": 2
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.mesh",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.freight_loaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.pack_catch_screen"
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.catch_screen_packed",
+          "subject": "Nessa watched the player pack a catch screen.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.fit_catch_screen",
+      "label": "Fit Catch Screen",
+      "category": "Craft",
+      "result": "You fit the catch screen into the loading tray. Load Freight now pays two coins without costing stamina.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.catch_screen",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.screen_fitted"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.freight_loaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.fit_catch_screen"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          },
+          "flag": "fume_yards.screen_fitted",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.catch_screen_fitted",
+          "subject": "Nessa watched the player fit the catch screen.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.load_freight",
+      "label": "Load Freight (+2 coin, -2 stamina)",
+      "category": "Work",
+      "result": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.freight_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.screen_fitted"
+            }
+          },
+          {
+          "kind": "not",
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.catch_screen",
+            "count": 1
+          }
+        },
+        {
+            "kind": "resource_at_least",
+            "resource": "stamina",
+            "amount": 2
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "stamina",
+          "amount": -2
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 2
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          },
+          "flag": "fume_yards.freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.freight_paid",
+          "subject": "Nessa paid the player two coins for loading her freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.load_screened_freight",
+      "label": "Load Freight (+2 coin)",
+      "category": "Work",
+      "result": "Your catch screen holds the loose ash, saving two stamina. Nessa pays two coins; this job is finished.",
+      "locations": [
+        "fume_yards.workshop"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.nessa_tern",
+            "location": "fume_yards.workshop"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.workshop",
+              "flag": "fume_yards.freight_loaded"
+            }
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.workshop",
+            "flag": "fume_yards.screen_fitted"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 2
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          },
+          "flag": "fume_yards.freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.nessa_tern"
+          },
+          "memory_id": "fume_yards.freight_paid",
+          "subject": "Nessa paid the player two coins for loading her freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.visit_workshop",
+      "label": "Visit Workshop",
+      "category": "Travel",
+      "result": "You follow the raised road to Nessa's workshop.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "world_flag",
+            "flag": "sluice_outcome_chosen"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.workshop"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "return.patch_stand",
+      "label": "Patch Stand",
+      "category": "Craft",
+      "result": "You use the repair plugs on Oren's raised sorting stand. Sort Dry Goods now pays three coins once.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "world_flag",
+            "flag": "sluice_outcome_chosen"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.repair_lot",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.stand_patched"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.patch_stand"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.stand_patched",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "knowledge_id": "fume_yards.stand_patched",
+          "subject": "The player patched Oren's raised sorting stand.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.stand_patched",
+          "subject": "Oren watched the player patch his sorting stand.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.sort_dry_goods",
+      "label": "Sort Dry Goods (+3 coin)",
+      "category": "Work",
+      "result": "You sort dry goods on the patched stand. Oren pays three coins; the sorting job is finished.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "world_flag",
+            "flag": "sluice_outcome_chosen"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.stand_patched"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.dry_goods_sorted"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.dry_goods_sorted",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.dry_goods_paid",
+          "subject": "Oren paid the player three coins for sorting dry goods.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
       ],
       "parameters": [],
       "meaningful": true,

@@ -1,8 +1,9 @@
 use forge_kernel::{
-    ActionDefinition, CanonicalAction, CompiledContent, Condition, Effect, GameState,
+    ActionDefinition, CanonicalAction, CompiledContent, Condition, Effect, EventKind, GameState,
     LocationDefinition, ParameterDomain, StringRef, enumerate_legal_actions, legal_action_digest,
     sha256_json, step,
 };
+use forge_replay::{Session, Trace, TraceStart};
 use serde::Serialize;
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
@@ -44,10 +45,77 @@ pub struct CrawlReport {
     pub reached_locations: BTreeSet<String>,
     pub covered_definitions: BTreeSet<String>,
     pub advertised_definitions: BTreeSet<String>,
+    /// Explicit coverage targets. Every complete catalog is still executed;
+    /// an optional-area crawl targets fewer definitions, never fewer actions
+    /// from an expanded state's legal set.
+    pub required_definitions: BTreeSet<String>,
+    /// Authored sessions from which frontiers begin. Prefix actions establish
+    /// lineage and consume depth; only expanded catalogs count as coverage.
+    pub starting_sessions: Vec<CrawlStartingSession>,
     /// Opaque hash chain over ordered starts, expansions, legal catalogs, and
     /// transitions. This makes the checked report sensitive to traversal or
     /// catalog-order drift even when its aggregate coverage totals match.
     pub execution_receipt: String,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct CrawlStartingSession {
+    pub label: String,
+    pub start: TraceStart,
+    pub depth: usize,
+    pub final_receipt: String,
+    pub state_id: String,
+}
+
+struct CrawlSeed {
+    provenance: CrawlStartingSession,
+    state: GameState,
+    used_actions: BTreeSet<ActionShape>,
+}
+
+impl CrawlSeed {
+    fn from_trace(
+        label: String,
+        trace: &Trace,
+        content: &CompiledContent,
+    ) -> Result<Self, VerifyError> {
+        let state = forge_replay::verify(trace, content).map_err(crate::replay_error)?;
+        content
+            .validate_state(&state)
+            .map_err(|error| VerifyError::new(format!("invalid crawl seed: {error}")))?;
+        let mut used_actions = BTreeSet::new();
+        let mut location = trace.initial_state.world.current_location.clone();
+        for step in &trace.steps {
+            used_actions.insert(ActionShape {
+                location: location.clone(),
+                definition_id: step.action.definition_id.clone(),
+                parameters: step.action.parameters.clone(),
+            });
+            // Replay has checked these exact ordered events. This only
+            // reconstructs the crawler's prior-action bookkeeping.
+            for event in &step.events {
+                if let EventKind::Moved { to, .. } = &event.kind {
+                    location.clone_from(to);
+                }
+            }
+        }
+        if location != state.world.current_location {
+            return Err(VerifyError::new(
+                "crawl seed movement history differs from replay",
+            ));
+        }
+        Ok(Self {
+            provenance: CrawlStartingSession {
+                label,
+                start: trace.start.clone(),
+                depth: trace.steps.len(),
+                final_receipt: trace.final_receipt.clone(),
+                state_id: state.state_id(),
+            },
+            state,
+            used_actions,
+        })
+    }
 }
 
 impl CrawlReport {
@@ -61,14 +129,15 @@ impl CrawlReport {
     }
 
     pub fn uncovered_definitions(&self) -> BTreeSet<String> {
-        self.advertised_definitions
+        self.required_definitions
             .difference(&self.covered_definitions)
             .cloned()
             .collect()
     }
 
     pub fn is_complete(&self) -> bool {
-        self.covered_definitions == self.advertised_definitions
+        self.required_definitions
+            .is_subset(&self.covered_definitions)
     }
 }
 
@@ -121,13 +190,37 @@ pub fn crawl_production(
     content: &CompiledContent,
     budget: CrawlBudget,
 ) -> Result<CrawlReport, VerifyError> {
+    let required = content.actions().map(|(id, _)| id.clone()).collect();
+    crawl_targets(content, budget, required)
+}
+
+pub(super) fn crawl_targets(
+    content: &CompiledContent,
+    budget: CrawlBudget,
+    required_definitions: BTreeSet<String>,
+) -> Result<CrawlReport, VerifyError> {
+    crawl_targets_with_scenarios(content, budget, required_definitions, &[])
+}
+
+pub(super) fn crawl_targets_with_scenarios(
+    content: &CompiledContent,
+    budget: CrawlBudget,
+    required_definitions: BTreeSet<String>,
+    scenario_seeds: &[&str],
+) -> Result<CrawlReport, VerifyError> {
     validate_budget(budget)?;
     let advertised_definitions: BTreeSet<_> = content.actions().map(|(id, _)| id.clone()).collect();
+    if required_definitions.is_empty() || !required_definitions.is_subset(&advertised_definitions) {
+        return Err(VerifyError::new(
+            "crawl targets must name existing action definitions",
+        ));
+    }
     let execution_receipt = sha256_json(&(
         CRAWL_EXECUTION_RECEIPT_FORMAT,
         "genesis",
         content.build_id(),
         budget,
+        &required_definitions,
     ))
     .map_err(|_| VerifyError::new("crawler could not create its execution receipt"))?;
     let mut report = CrawlReport {
@@ -141,16 +234,59 @@ pub fn crawl_production(
         reached_locations: BTreeSet::new(),
         covered_definitions: BTreeSet::new(),
         advertised_definitions,
+        required_definitions,
+        starting_sessions: Vec::new(),
         execution_receipt,
     };
     let mut pending = Vec::new();
     let mut dominance: BTreeMap<String, Vec<BTreeSet<ActionShape>>> = BTreeMap::new();
 
+    let mut seeds = Vec::new();
+    let seed_count = content
+        .character_presets()
+        .size_hint()
+        .0
+        .checked_add(scenario_seeds.len())
+        .ok_or_else(|| VerifyError::new("crawler starting-session count overflowed"))?;
+    seeds
+        .try_reserve(seed_count)
+        .map_err(|_| VerifyError::new("crawler starting-session allocation failed"))?;
+    report
+        .starting_sessions
+        .try_reserve(seed_count)
+        .map_err(|_| VerifyError::new("crawler starting-session report allocation failed"))?;
     for (preset_id, _) in content.character_presets() {
-        let state = content
-            .new_game(preset_id, 71)
-            .map_err(|_| VerifyError::new("could not create a crawler start state"))?;
-        let used_actions = BTreeSet::new();
+        let session = Session::new_game(preset_id, 71, content).map_err(crate::replay_error)?;
+        seeds.push(CrawlSeed::from_trace(
+            format!("preset:{preset_id}"),
+            session.trace(),
+            content,
+        )?);
+    }
+    let mut scenario_ids = BTreeSet::new();
+    for scenario_id in scenario_seeds {
+        if !scenario_ids.insert(*scenario_id) {
+            return Err(VerifyError::new("crawler cannot repeat a scenario seed"));
+        }
+        let spec = crate::scenarios::get(scenario_id)?;
+        let session = crate::scenarios::run(spec, content)?;
+        seeds.push(CrawlSeed::from_trace(
+            format!("scenario:{scenario_id}"),
+            session.trace(),
+            content,
+        )?);
+    }
+    for seed in seeds {
+        let CrawlSeed {
+            provenance,
+            state,
+            used_actions,
+        } = seed;
+        if provenance.depth > budget.max_depth {
+            return Err(VerifyError::new(
+                "crawl seed prefix exceeds the depth budget",
+            ));
+        }
         let key = normalized_state_id(&state)?;
         if accept_frontier(&mut dominance, key, &used_actions)? {
             if report.discovered_frontiers >= budget.max_discovered_frontiers {
@@ -165,14 +301,15 @@ pub fn crawl_production(
             let ordinal = report.discovered_frontiers;
             report.execution_receipt = advance_execution_receipt(
                 &report.execution_receipt,
-                &("start", preset_id.as_str(), state.state_id(), ordinal),
+                &("start", &provenance, ordinal),
             )?;
             pending.push(Frontier {
                 state,
-                depth: 0,
+                depth: provenance.depth,
                 ordinal,
                 used_actions,
             });
+            report.starting_sessions.push(provenance);
             report.discovered_frontiers += 1;
         }
     }
@@ -378,7 +515,9 @@ fn frontier_score(
     let mut total_progress = 0usize;
     let mut best_partial = (0usize, Reverse(usize::MAX));
     for (definition_id, definition) in content.actions() {
-        if report.covered_definitions.contains(definition_id) {
+        if !report.required_definitions.contains(definition_id)
+            || report.covered_definitions.contains(definition_id)
+        {
             continue;
         }
         let ready = definition.condition.evaluate(&frontier.state);
@@ -916,6 +1055,7 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
         | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::ApplyRecipe { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::AddCharacterDeed { .. } => Ok((0, 0)),
@@ -977,7 +1117,67 @@ mod tests {
     const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 
     #[test]
-    fn bounded_crawl_executes_every_split_tide_definition() {
+    fn scenario_seed_replays_exact_prefix_and_preserves_depth_and_action_history() {
+        let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
+        let spec = crate::scenarios::get("m1-outcome-hold-market").unwrap();
+        let session = crate::scenarios::run(spec, &content).unwrap();
+        let seed = CrawlSeed::from_trace(
+            "scenario:m1-outcome-hold-market".to_owned(),
+            session.trace(),
+            &content,
+        )
+        .unwrap();
+        assert_eq!(seed.provenance.depth, 7);
+        assert_eq!(seed.provenance.final_receipt, session.trace().final_receipt);
+        assert_eq!(seed.provenance.state_id, session.state().state_id());
+        assert_eq!(seed.state, *session.state());
+        assert_eq!(seed.used_actions.len(), 7);
+        assert!(seed.used_actions.contains(&ActionShape {
+            location: "red_sluice.top".to_owned(),
+            definition_id: "top.hold_market".to_owned(),
+            parameters: BTreeMap::new(),
+        }));
+        assert!(seed.used_actions.contains(&ActionShape {
+            location: "lowsail.return".to_owned(),
+            definition_id: "return.count_dry_stalls".to_owned(),
+            parameters: BTreeMap::new(),
+        }));
+
+        let mut forged_receipt = session.trace().clone();
+        forged_receipt.final_receipt.push('0');
+        assert!(CrawlSeed::from_trace("forged".to_owned(), &forged_receipt, &content).is_err());
+        let mut reordered = session.trace().clone();
+        reordered.steps.swap(0, 1);
+        assert!(CrawlSeed::from_trace("reordered".to_owned(), &reordered, &content).is_err());
+        let mut fabricated_genesis = session.trace().clone();
+        fabricated_genesis
+            .initial_state
+            .world
+            .flags
+            .insert("sluice_outcome_chosen".to_owned());
+        assert!(
+            CrawlSeed::from_trace("fabricated".to_owned(), &fabricated_genesis, &content).is_err()
+        );
+
+        let error = crawl_targets_with_scenarios(
+            &content,
+            CrawlBudget {
+                max_depth: 6,
+                ..CrawlBudget::default()
+            },
+            BTreeSet::from(["return.patch_stand".to_owned()]),
+            &["m1-outcome-hold-market"],
+        )
+        .unwrap_err();
+        assert!(
+            error
+                .to_string()
+                .contains("seed prefix exceeds the depth budget")
+        );
+    }
+
+    #[test]
+    fn bounded_crawl_executes_every_authored_definition() {
         let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
         let budget = CrawlBudget {
             max_expanded_states: 96,
@@ -985,8 +1185,8 @@ mod tests {
         };
         let report = crawl_production(&content, budget).unwrap();
         assert!(report.is_complete());
-        assert_eq!(report.advertised_definitions.len(), 51);
-        assert_eq!(report.reached_locations.len(), 6);
+        assert_eq!(report.advertised_definitions.len(), 60);
+        assert_eq!(report.reached_locations.len(), 7);
         assert!(report.successful_actions >= report.advertised_definitions.len());
         assert!(report.expanded_states <= 96);
         assert!(report.discovered_frontiers <= 512);

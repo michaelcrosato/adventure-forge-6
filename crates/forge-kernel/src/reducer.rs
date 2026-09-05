@@ -170,60 +170,6 @@ struct ActionCandidates<'a> {
     combinations: usize,
 }
 
-#[derive(Default)]
-struct ItemTransferRequirements {
-    source: BTreeMap<(String, String), u64>,
-    received: BTreeMap<String, u64>,
-    impossible: bool,
-}
-
-impl ItemTransferRequirements {
-    fn add_source(&mut self, source: String, item: String, count: u64) {
-        let key = (source, item);
-        let current = self.source.get(&key).copied().unwrap_or_default();
-        let Some(total) = current.checked_add(count) else {
-            self.impossible = true;
-            return;
-        };
-        self.source.insert(key, total);
-    }
-
-    fn add_received(&mut self, item: String, count: u64) {
-        let current = self.received.get(&item).copied().unwrap_or_default();
-        let Some(total) = current.checked_add(count) else {
-            self.impossible = true;
-            return;
-        };
-        self.received.insert(item, total);
-    }
-
-    fn add_sequential(&mut self, other: Self) {
-        self.impossible |= other.impossible;
-        for ((source, item), count) in other.source {
-            self.add_source(source, item, count);
-        }
-        for (item, count) in other.received {
-            self.add_received(item, count);
-        }
-    }
-
-    fn pointwise_max(&mut self, other: Self) {
-        self.impossible |= other.impossible;
-        for (key, count) in other.source {
-            self.source
-                .entry(key)
-                .and_modify(|current| *current = (*current).max(count))
-                .or_insert(count);
-        }
-        for (item, count) in other.received {
-            self.received
-                .entry(item)
-                .and_modify(|current| *current = (*current).max(count))
-                .or_insert(count);
-        }
-    }
-}
-
 /// Enumerate every legal action.  There is intentionally no action count
 /// limit: dynamic parameter domains are expanded into a complete Cartesian
 /// product and then stably sorted by semantic identity. Action hashes bind the
@@ -296,7 +242,7 @@ pub fn enumerate_legal_actions(
             candidate.definition,
             &candidate.domains,
             candidate.combinations,
-            content.build_id(),
+            content,
             &pre_state_id,
             state,
             &mut actions,
@@ -439,7 +385,7 @@ fn append_parameter_combinations(
     definition: &crate::ActionDefinition,
     domains: &[Vec<String>],
     expected: usize,
-    build_id: &str,
+    content: &CompiledContent,
     pre_state_id: &str,
     state: &GameState,
     output: &mut Vec<CanonicalAction>,
@@ -474,9 +420,9 @@ fn append_parameter_combinations(
                 definition.id
             ))
         })?;
-        if item_transfer_candidate_available(definition, &parameters, state)? {
+        if inventory_candidate_available(definition, &parameters, state, content)? {
             output.push(CanonicalAction::new(
-                build_id.to_owned(),
+                content.build_id().to_owned(),
                 pre_state_id.to_owned(),
                 definition.id.clone(),
                 parameters,
@@ -512,110 +458,169 @@ fn append_parameter_combinations(
     Ok(visited)
 }
 
-fn item_transfer_candidate_available(
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum InventoryOwner {
+    Character,
+    Npc(String),
+}
+
+#[derive(Clone, Copy)]
+struct InventoryRange {
+    minimum: u32,
+    maximum: u32,
+}
+
+/// Every inventory operation changes one item by a fixed integer amount.
+/// Pointwise extrema therefore suffice to prove stock and capacity for every
+/// reachable random path, including operations after a branch rejoins. This
+/// does not inspect entropy or expand the number of possible random paths.
+#[derive(Clone)]
+struct InventoryBounds<'a> {
+    initial: &'a GameState,
+    counts: BTreeMap<(InventoryOwner, String), InventoryRange>,
+}
+
+impl<'a> InventoryBounds<'a> {
+    fn new(initial: &'a GameState) -> Self {
+        Self {
+            initial,
+            counts: BTreeMap::new(),
+        }
+    }
+
+    fn count(&self, owner: &InventoryOwner, item: &str) -> InventoryRange {
+        let key = (owner.clone(), item.to_owned());
+        if let Some(range) = self.counts.get(&key) {
+            return *range;
+        }
+        let inventory = match owner {
+            InventoryOwner::Character => Some(&self.initial.character.inventory),
+            InventoryOwner::Npc(npc) => self.initial.world.npcs.get(npc).map(|npc| &npc.inventory),
+        };
+        let count = inventory
+            .and_then(|inventory| inventory.get(item))
+            .copied()
+            .unwrap_or_default();
+        InventoryRange {
+            minimum: count,
+            maximum: count,
+        }
+    }
+
+    fn consume(&mut self, owner: InventoryOwner, item: &str, count: u32) -> bool {
+        let current = self.count(&owner, item);
+        let Some(minimum) = current.minimum.checked_sub(count) else {
+            return false;
+        };
+        let Some(maximum) = current.maximum.checked_sub(count) else {
+            return false;
+        };
+        self.counts.insert(
+            (owner, item.to_owned()),
+            InventoryRange { minimum, maximum },
+        );
+        true
+    }
+
+    fn produce(&mut self, owner: InventoryOwner, item: &str, count: u32) -> bool {
+        let current = self.count(&owner, item);
+        let Some(minimum) = current.minimum.checked_add(count) else {
+            return false;
+        };
+        let Some(maximum) = current.maximum.checked_add(count) else {
+            return false;
+        };
+        self.counts.insert(
+            (owner, item.to_owned()),
+            InventoryRange { minimum, maximum },
+        );
+        true
+    }
+
+    fn merge(&mut self, other: Self) {
+        let keys: BTreeSet<_> = self
+            .counts
+            .keys()
+            .chain(other.counts.keys())
+            .cloned()
+            .collect();
+        for (owner, item) in keys {
+            let left = self.count(&owner, &item);
+            let right = other.count(&owner, &item);
+            self.counts.insert(
+                (owner, item),
+                InventoryRange {
+                    minimum: left.minimum.min(right.minimum),
+                    maximum: left.maximum.max(right.maximum),
+                },
+            );
+        }
+    }
+}
+
+fn inventory_candidate_available(
     definition: &crate::ActionDefinition,
     parameters: &BTreeMap<String, String>,
     state: &GameState,
+    content: &CompiledContent,
 ) -> Result<bool, KernelError> {
-    if !contains_item_transfer(&definition.effects) {
-        return Ok(true);
-    }
-    let requirements = item_transfer_requirements(&definition.effects, parameters)?;
-    if requirements.impossible {
-        return Ok(false);
-    }
-    for ((source, item), required) in requirements.source {
-        let available = state
-            .world
-            .npcs
-            .get(&source)
-            .and_then(|npc| npc.inventory.get(&item))
-            .copied()
-            .map(u64::from)
-            .unwrap_or_default();
-        if available < required {
-            return Ok(false);
-        }
-    }
-    for (item, received) in requirements.received {
-        let current = state
-            .character
-            .inventory
-            .get(&item)
-            .copied()
-            .map(u64::from)
-            .unwrap_or_default();
-        let Some(total) = current.checked_add(received) else {
-            return Ok(false);
-        };
-        if total > u64::from(u32::MAX) {
+    let mut inventories = InventoryBounds::new(state);
+    for effect in &definition.effects {
+        if !inventory_effect_available(effect, parameters, content, &mut inventories)? {
             return Ok(false);
         }
     }
     Ok(true)
 }
 
-fn contains_item_transfer(effects: &[Effect]) -> bool {
-    effects.iter().any(|effect| match effect {
-        Effect::TransferNpcItemToCharacter { .. } => true,
-        Effect::RandomChance {
-            on_success,
-            on_failure,
-            ..
-        } => {
-            contains_item_transfer(std::slice::from_ref(on_success))
-                || contains_item_transfer(std::slice::from_ref(on_failure))
-        }
-        Effect::Noop
-        | Effect::SetFlag { .. }
-        | Effect::SetWorldFlag { .. }
-        | Effect::SetLocationFlag { .. }
-        | Effect::AdjustResource { .. }
-        | Effect::MoveCharacter { .. }
-        | Effect::MoveNpc { .. }
-        | Effect::AdjustNpcRelationship { .. }
-        | Effect::AddNpcMemory { .. }
-        | Effect::TeachNpc { .. }
-        | Effect::AddCharacterDeed { .. }
-        | Effect::AdvanceTime { .. } => false,
-    })
-}
-
-fn item_transfer_requirements(
-    effects: &[Effect],
-    parameters: &BTreeMap<String, String>,
-) -> Result<ItemTransferRequirements, KernelError> {
-    let mut requirements = ItemTransferRequirements::default();
-    for effect in effects {
-        requirements.add_sequential(item_transfer_effect_requirements(effect, parameters)?);
-    }
-    Ok(requirements)
-}
-
-fn item_transfer_effect_requirements(
+fn inventory_effect_available(
     effect: &Effect,
     parameters: &BTreeMap<String, String>,
-) -> Result<ItemTransferRequirements, KernelError> {
+    content: &CompiledContent,
+    inventories: &mut InventoryBounds<'_>,
+) -> Result<bool, KernelError> {
     match effect {
         Effect::TransferNpcItemToCharacter { npc, item, count } => {
             let source = resolve_ref(npc, parameters)?;
-            let mut requirements = ItemTransferRequirements::default();
-            requirements.add_source(source, item.clone(), u64::from(*count));
-            requirements.add_received(item.clone(), u64::from(*count));
-            Ok(requirements)
+            Ok(
+                inventories.consume(InventoryOwner::Npc(source), item, *count)
+                    && inventories.produce(InventoryOwner::Character, item, *count),
+            )
+        }
+        Effect::ApplyRecipe { recipe } => {
+            let definition = content
+                .recipe(recipe)
+                .ok_or_else(|| KernelError::InvalidContent(format!("unknown recipe {recipe}")))?;
+            for (item, count) in &definition.inputs {
+                if !inventories.consume(InventoryOwner::Character, item, *count) {
+                    return Ok(false);
+                }
+            }
+            for (item, count) in &definition.outputs {
+                if !inventories.produce(InventoryOwner::Character, item, *count) {
+                    return Ok(false);
+                }
+            }
+            Ok(true)
         }
         Effect::RandomChance {
             success_percent,
             on_success,
             on_failure,
         } => match success_percent {
-            0 => item_transfer_effect_requirements(on_failure, parameters),
-            100 => item_transfer_effect_requirements(on_success, parameters),
+            0 => inventory_effect_available(on_failure, parameters, content, inventories),
+            100 => inventory_effect_available(on_success, parameters, content, inventories),
             _ => {
-                let mut requirements = item_transfer_effect_requirements(on_success, parameters)?;
-                requirements
-                    .pointwise_max(item_transfer_effect_requirements(on_failure, parameters)?);
-                Ok(requirements)
+                let mut success = inventories.clone();
+                let mut failure = inventories.clone();
+                if !inventory_effect_available(on_success, parameters, content, &mut success)?
+                    || !inventory_effect_available(on_failure, parameters, content, &mut failure)?
+                {
+                    return Ok(false);
+                }
+                success.merge(failure);
+                *inventories = success;
+                Ok(true)
             }
         },
         Effect::Noop
@@ -629,7 +634,7 @@ fn item_transfer_effect_requirements(
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::AddCharacterDeed { .. }
-        | Effect::AdvanceTime { .. } => Ok(ItemTransferRequirements::default()),
+        | Effect::AdvanceTime { .. } => Ok(true),
     }
 }
 
@@ -1125,6 +1130,45 @@ fn apply_effect(
                 },
             });
         }
+        Effect::ApplyRecipe { recipe } => {
+            let definition = content
+                .recipe(recipe)
+                .ok_or_else(|| KernelError::InvalidAction(format!("unknown recipe {recipe}")))?;
+            // Stage the entire inventory: no input, output, or event changes
+            // until every subtraction and post-consumption addition succeeds.
+            let mut inventory = state.character.inventory.clone();
+            for (item, count) in &definition.inputs {
+                let current = inventory.get(item).copied().unwrap_or_default();
+                let next = current.checked_sub(*count).ok_or_else(|| {
+                    KernelError::InvalidAction(format!(
+                        "character lacks {count} of item {item} for recipe {recipe}"
+                    ))
+                })?;
+                if next == 0 {
+                    inventory.remove(item);
+                } else {
+                    inventory.insert(item.clone(), next);
+                }
+            }
+            for (item, count) in &definition.outputs {
+                let current = inventory.get(item).copied().unwrap_or_default();
+                let next = current.checked_add(*count).ok_or_else(|| {
+                    KernelError::InvalidAction(format!(
+                        "character inventory cannot hold {count} more of item {item} for recipe {recipe}"
+                    ))
+                })?;
+                inventory.insert(item.clone(), next);
+            }
+            state.character.inventory = inventory;
+            events.push(Event {
+                turn,
+                kind: EventKind::RecipeApplied {
+                    recipe: recipe.clone(),
+                    inputs: definition.inputs.clone(),
+                    outputs: definition.outputs.clone(),
+                },
+            });
+        }
         Effect::AddCharacterDeed { deed_id } => {
             state.character.deeds.insert(deed_id.clone());
             events.push(Event {
@@ -1230,14 +1274,15 @@ mod tests {
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v7".to_owned(),
-            rules_version: "forge-rules-v5".to_owned(),
+            schema_version: "forge-schema-v8".to_owned(),
+            rules_version: "forge-rules-v6".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
             supply_labels: Default::default(),
+            recipes: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
@@ -1343,6 +1388,47 @@ mod tests {
             item: item.to_owned(),
             count,
         }
+    }
+
+    fn recipe(
+        id: &str,
+        inputs: &[(&str, u32)],
+        outputs: &[(&str, u32)],
+    ) -> crate::RecipeDefinition {
+        let items = |entries: &[(&str, u32)]| {
+            entries
+                .iter()
+                .map(|(item, count)| ((*item).to_owned(), *count))
+                .collect()
+        };
+        crate::RecipeDefinition {
+            id: id.to_owned(),
+            inputs: items(inputs),
+            outputs: items(outputs),
+        }
+    }
+
+    fn recipe_effect(id: &str) -> Effect {
+        Effect::ApplyRecipe {
+            recipe: id.to_owned(),
+        }
+    }
+
+    fn recipe_content(
+        actions: Vec<ActionDefinition>,
+        recipes: Vec<crate::RecipeDefinition>,
+    ) -> CompiledContent {
+        let mut source = draft(actions);
+        source.recipes = recipes;
+        CompiledContent::try_compile(source).unwrap()
+    }
+
+    fn legal_ids(state: &GameState, content: &CompiledContent) -> Vec<String> {
+        enumerate_legal_actions(state, content)
+            .unwrap()
+            .into_iter()
+            .map(|action| action.definition_id)
+            .collect()
     }
 
     fn move_npc_effect(npc: StringRef, location: StringRef) -> Effect {
@@ -2433,6 +2519,623 @@ mod tests {
     }
 
     #[test]
+    fn recipe_transforms_exact_owned_stock_and_emits_ordered_event() {
+        let press = recipe(
+            "craft.press",
+            &[("item.clay", 2), ("item.mesh", 1)],
+            &[("item.offcut", 2), ("item.repair", 1)],
+        );
+        let content = recipe_content(
+            vec![simple_action(
+                "press",
+                Condition::Always,
+                vec![
+                    Effect::SetWorldFlag {
+                        flag: "started".to_owned(),
+                        value: true,
+                    },
+                    recipe_effect("craft.press"),
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            )],
+            vec![press.clone()],
+        );
+        let mut initial = state(&content);
+        initial.character.inventory.extend([
+            ("item.clay".to_owned(), 3),
+            ("item.mesh".to_owned(), 1),
+            ("item.repair".to_owned(), 2),
+        ]);
+        let before = initial.clone();
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .remove(0);
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        let mut expected = before.character.inventory.clone();
+        expected.insert("item.clay".to_owned(), 1);
+        expected.remove("item.mesh");
+        expected.insert("item.offcut".to_owned(), 2);
+        expected.insert("item.repair".to_owned(), 3);
+        assert_eq!(transition.state().character.inventory, expected);
+        assert_eq!(transition.state().world.npcs, before.world.npcs);
+        assert_eq!(
+            transition.events(),
+            &[
+                Event {
+                    turn: 0,
+                    kind: EventKind::WorldFlagSet {
+                        flag: "started".to_owned(),
+                        value: true
+                    }
+                },
+                Event {
+                    turn: 0,
+                    kind: EventKind::RecipeApplied {
+                        recipe: press.id,
+                        inputs: press.inputs,
+                        outputs: press.outputs
+                    }
+                },
+                Event {
+                    turn: 0,
+                    kind: EventKind::TimeAdvanced { ticks: 1 }
+                },
+            ]
+        );
+        assert_eq!(transition.state().event_log, transition.events());
+        assert_eq!(transition.entropy_after(), &before.entropy);
+        assert!(transition.entropy_draws().is_empty());
+        assert!(legal_ids(transition.state(), &content).is_empty());
+        let after = transition.state().clone();
+        assert!(matches!(
+            step(&after, &action, &content, &after.entropy),
+            Err(KernelError::StaleAction { .. })
+        ));
+        assert_eq!(initial, before);
+        assert_eq!(after, *transition.state());
+    }
+
+    #[test]
+    fn recipe_filters_each_missing_input_and_capacity_without_partial_changes() {
+        let content = recipe_content(
+            vec![simple_action(
+                "press",
+                Condition::Always,
+                vec![recipe_effect("craft.press")],
+            )],
+            vec![recipe(
+                "craft.press",
+                &[("item.clay", 2), ("item.mesh", 1)],
+                &[("item.offcut", 1), ("item.repair", 1)],
+            )],
+        );
+        for (clay, mesh, repair_count, expected_error) in [
+            (1, 1, 1, "lacks 2 of item item.clay"),
+            (2, 0, 1, "lacks 1 of item item.mesh"),
+            (2, 1, u32::MAX, "cannot hold 1 more of item item.repair"),
+        ] {
+            let mut initial = state(&content);
+            initial
+                .character
+                .inventory
+                .insert("item.clay".to_owned(), clay);
+            if mesh > 0 {
+                initial
+                    .character
+                    .inventory
+                    .insert("item.mesh".to_owned(), mesh);
+            }
+            initial
+                .character
+                .inventory
+                .insert("item.repair".to_owned(), repair_count);
+            let before = initial.clone();
+            assert!(legal_ids(&initial, &content).is_empty());
+            let fabricated = CanonicalAction::new(
+                content.build_id(),
+                initial.state_id(),
+                "press",
+                BTreeMap::new(),
+            );
+            assert!(matches!(
+                step(&initial, &fabricated, &content, &initial.entropy),
+                Err(KernelError::IllegalAction(_))
+            ));
+            let mut entropy = initial.entropy.clone();
+            let mut draws = Vec::new();
+            let mut events = Vec::new();
+            let result = apply_effect(
+                &mut initial,
+                &recipe_effect("craft.press"),
+                &BTreeMap::new(),
+                &content,
+                &mut entropy,
+                &mut draws,
+                &mut events,
+            );
+            assert!(
+                matches!(result, Err(KernelError::InvalidAction(message)) if message.contains(expected_error))
+            );
+            assert_eq!(initial, before);
+            assert_eq!(entropy, before.entropy);
+            assert!(events.is_empty());
+            assert!(draws.is_empty());
+        }
+    }
+
+    #[test]
+    fn recipe_capacity_is_checked_after_same_item_consumption_and_install_can_have_no_output() {
+        let content = recipe_content(
+            vec![
+                simple_action("grow", Condition::Always, vec![recipe_effect("craft.grow")]),
+                simple_action(
+                    "install",
+                    Condition::Always,
+                    vec![recipe_effect("craft.install")],
+                ),
+                simple_action(
+                    "rework",
+                    Condition::Always,
+                    vec![recipe_effect("craft.rework")],
+                ),
+            ],
+            vec![
+                recipe("craft.grow", &[("item.clay", 2)], &[("item.clay", 3)]),
+                recipe("craft.install", &[("item.clay", u32::MAX)], &[]),
+                recipe(
+                    "craft.rework",
+                    &[("item.clay", 2)],
+                    &[("item.clay", 2), ("item.offcut", 1)],
+                ),
+            ],
+        );
+        let mut initial = state(&content);
+        initial
+            .character
+            .inventory
+            .insert("item.clay".to_owned(), u32::MAX);
+        assert_eq!(legal_ids(&initial, &content), vec!["install", "rework"]);
+        for action in enumerate_legal_actions(&initial, &content).unwrap() {
+            let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+            if action.definition_id == "install" {
+                assert!(
+                    !transition
+                        .state()
+                        .character
+                        .inventory
+                        .contains_key("item.clay")
+                );
+                assert!(
+                    matches!(&transition.events()[0].kind, EventKind::RecipeApplied { outputs, .. } if outputs.is_empty())
+                );
+            } else {
+                assert_eq!(
+                    transition.state().character.inventory["item.clay"],
+                    u32::MAX
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn sequential_transfers_and_recipes_follow_inventory_order() {
+        let take = transfer_effect(StringRef::Literal("sava".to_owned()), "item.ore", 2);
+        let content = recipe_content(
+            vec![
+                simple_action(
+                    "chain",
+                    Condition::Always,
+                    vec![
+                        take.clone(),
+                        recipe_effect("craft.smelt"),
+                        recipe_effect("craft.brace"),
+                    ],
+                ),
+                simple_action(
+                    "reversed",
+                    Condition::Always,
+                    vec![recipe_effect("craft.smelt"), take],
+                ),
+                simple_action(
+                    "twice",
+                    Condition::Always,
+                    vec![
+                        transfer_effect(StringRef::Literal("sava".to_owned()), "item.ore", 2),
+                        recipe_effect("craft.smelt"),
+                        recipe_effect("craft.smelt"),
+                    ],
+                ),
+            ],
+            vec![
+                recipe("craft.smelt", &[("item.ore", 2)], &[("item.ingot", 1)]),
+                recipe("craft.brace", &[("item.ingot", 1)], &[("item.brace", 1)]),
+            ],
+        );
+        let mut initial = state(&content);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("item.ore".to_owned(), 2);
+        assert_eq!(legal_ids(&initial, &content), vec!["chain"]);
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .remove(0);
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert!(
+            !transition.state().world.npcs["sava"]
+                .inventory
+                .contains_key("item.ore")
+        );
+        assert!(
+            !transition
+                .state()
+                .character
+                .inventory
+                .contains_key("item.ore")
+        );
+        assert!(
+            !transition
+                .state()
+                .character
+                .inventory
+                .contains_key("item.ingot")
+        );
+        assert_eq!(transition.state().character.inventory["item.brace"], 1);
+        assert!(matches!(transition.events(), [
+            Event { kind: EventKind::NpcItemTransferredToCharacter { .. }, .. },
+            Event { kind: EventKind::RecipeApplied { recipe: first, .. }, .. },
+            Event { kind: EventKind::RecipeApplied { recipe: second, .. }, .. },
+        ] if first == "craft.smelt" && second == "craft.brace"));
+    }
+
+    #[test]
+    fn recipe_consumption_can_free_transfer_capacity_but_later_consumption_cannot() {
+        let take = transfer_effect(StringRef::Literal("sava".to_owned()), "item.ore", 2);
+        let consume = recipe_effect("craft.consume");
+        let content = recipe_content(
+            vec![
+                simple_action(
+                    "consume-first",
+                    Condition::Always,
+                    vec![consume.clone(), take.clone()],
+                ),
+                simple_action("take-first", Condition::Always, vec![take, consume]),
+            ],
+            vec![recipe("craft.consume", &[("item.ore", 2)], &[])],
+        );
+        let mut initial = state(&content);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("item.ore".to_owned(), 2);
+        initial
+            .character
+            .inventory
+            .insert("item.ore".to_owned(), u32::MAX);
+        assert_eq!(legal_ids(&initial, &content), vec!["consume-first"]);
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .remove(0);
+        let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+        assert_eq!(transition.state().character.inventory["item.ore"], u32::MAX);
+        assert!(
+            !transition.state().world.npcs["sava"]
+                .inventory
+                .contains_key("item.ore")
+        );
+        assert!(matches!(
+            transition.events(),
+            [
+                Event {
+                    kind: EventKind::RecipeApplied { .. },
+                    ..
+                },
+                Event {
+                    kind: EventKind::NpcItemTransferredToCharacter { .. },
+                    ..
+                },
+            ]
+        ));
+    }
+
+    #[test]
+    fn reachable_random_recipe_paths_all_need_stock_and_output_capacity() {
+        let random = |success_percent, on_success, on_failure| Effect::RandomChance {
+            success_percent,
+            on_success: Box::new(on_success),
+            on_failure: Box::new(on_failure),
+        };
+        let content = recipe_content(
+            vec![
+                simple_action(
+                    "both-fit",
+                    Condition::Always,
+                    vec![
+                        random(50, recipe_effect("craft.one"), recipe_effect("craft.two")),
+                        recipe_effect("craft.finish"),
+                    ],
+                ),
+                simple_action(
+                    "missing-branch",
+                    Condition::Always,
+                    vec![
+                        random(50, recipe_effect("craft.one"), Effect::Noop),
+                        recipe_effect("craft.finish"),
+                    ],
+                ),
+                simple_action(
+                    "overflow-branch",
+                    Condition::Always,
+                    vec![
+                        random(50, recipe_effect("craft.finish"), Effect::Noop),
+                        transfer_effect(StringRef::Literal("sava".to_owned()), "item.ingot", 1),
+                    ],
+                ),
+                simple_action(
+                    "zero",
+                    Condition::Always,
+                    vec![random(
+                        0,
+                        recipe_effect("craft.missing"),
+                        recipe_effect("craft.one"),
+                    )],
+                ),
+                simple_action(
+                    "hundred",
+                    Condition::Always,
+                    vec![random(
+                        100,
+                        recipe_effect("craft.one"),
+                        recipe_effect("craft.missing"),
+                    )],
+                ),
+            ],
+            vec![
+                recipe("craft.one", &[("item.ore", 2)], &[("item.ingot", 1)]),
+                recipe("craft.two", &[("item.ore", 2)], &[("item.ingot", 2)]),
+                recipe("craft.finish", &[("item.ingot", 1)], &[("item.brace", 1)]),
+                recipe("craft.missing", &[("item.missing", 1)], &[]),
+            ],
+        );
+        let mut initial = state(&content);
+        initial.character.inventory.insert("item.ore".to_owned(), 2);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("item.ingot".to_owned(), 1);
+        let mut produced = BTreeSet::new();
+        for seed in 0..16 {
+            initial.entropy = EntropyState::new(seed);
+            assert_eq!(
+                legal_ids(&initial, &content),
+                vec!["both-fit", "hundred", "zero"]
+            );
+            for action in enumerate_legal_actions(&initial, &content).unwrap() {
+                let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+                assert_eq!(transition.entropy_draws().len(), 1);
+                assert_eq!(transition.state().entropy.cursor, 1);
+                if action.definition_id == "both-fit" {
+                    assert_eq!(transition.state().character.inventory["item.brace"], 1);
+                    produced.insert(
+                        transition
+                            .state()
+                            .character
+                            .inventory
+                            .get("item.ingot")
+                            .copied()
+                            .unwrap_or_default(),
+                    );
+                }
+            }
+        }
+        assert_eq!(produced, BTreeSet::from([0, 1]));
+        initial
+            .character
+            .inventory
+            .insert("item.ingot".to_owned(), u32::MAX);
+        assert!(!legal_ids(&initial, &content).contains(&"overflow-branch".to_owned()));
+    }
+
+    #[test]
+    fn random_transfers_then_recipe_use_post_branch_minimum_stock() {
+        let content = recipe_content(
+            vec![simple_action(
+                "random-press",
+                Condition::Always,
+                vec![
+                    Effect::RandomChance {
+                        success_percent: 50,
+                        on_success: Box::new(transfer_effect(
+                            StringRef::Literal("sava".to_owned()),
+                            "item.ore",
+                            1,
+                        )),
+                        on_failure: Box::new(transfer_effect(
+                            StringRef::Literal("sava".to_owned()),
+                            "item.ore",
+                            2,
+                        )),
+                    },
+                    recipe_effect("craft.press"),
+                ],
+            )],
+            vec![recipe(
+                "craft.press",
+                &[("item.ore", 2)],
+                &[("item.brace", 1)],
+            )],
+        );
+        let mut initial = state(&content);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("item.ore".to_owned(), 2);
+        assert!(legal_ids(&initial, &content).is_empty());
+        initial.character.inventory.insert("item.ore".to_owned(), 1);
+        for seed in 0..8 {
+            initial.entropy = EntropyState::new(seed);
+            let action = enumerate_legal_actions(&initial, &content)
+                .unwrap()
+                .remove(0);
+            let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+            assert_eq!(transition.state().character.inventory["item.brace"], 1);
+            let held = transition
+                .state()
+                .character
+                .inventory
+                .get("item.ore")
+                .copied()
+                .unwrap_or_default();
+            let retained = transition.state().world.npcs["sava"]
+                .inventory
+                .get("item.ore")
+                .copied()
+                .unwrap_or_default();
+            assert_eq!(held + retained, 1);
+        }
+    }
+
+    #[test]
+    fn later_failure_rolls_back_recipe_stock_transfer_flags_and_entropy() {
+        let content = recipe_content(
+            vec![simple_action(
+                "fail-late",
+                Condition::Always,
+                vec![
+                    transfer_effect(StringRef::Literal("sava".to_owned()), "item.ore", 2),
+                    Effect::RandomChance {
+                        success_percent: 50,
+                        on_success: Box::new(recipe_effect("craft.press")),
+                        on_failure: Box::new(recipe_effect("craft.press")),
+                    },
+                    Effect::SetWorldFlag {
+                        flag: "pressed".to_owned(),
+                        value: true,
+                    },
+                    Effect::AdjustResource {
+                        resource: "coin".to_owned(),
+                        amount: 1,
+                    },
+                ],
+            )],
+            vec![recipe(
+                "craft.press",
+                &[("item.ore", 2)],
+                &[("item.brace", 1)],
+            )],
+        );
+        let mut initial = state(&content);
+        initial
+            .character
+            .resources
+            .insert("coin".to_owned(), i64::MAX);
+        initial
+            .world
+            .npcs
+            .get_mut("sava")
+            .unwrap()
+            .inventory
+            .insert("item.ore".to_owned(), 2);
+        let before = initial.clone();
+        let action = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .remove(0);
+        let result = step(&initial, &action, &content, &initial.entropy);
+        assert!(
+            matches!(result, Err(KernelError::InvalidState(message)) if message.contains("resource coin overflow"))
+        );
+        assert_eq!(initial, before);
+        assert_eq!(initial.entropy.cursor, 0);
+        assert_eq!(
+            enumerate_legal_actions(&initial, &content).unwrap(),
+            vec![action]
+        );
+    }
+
+    #[test]
+    fn recipe_parameter_catalog_remains_complete_above_256_actions() {
+        let mut action = simple_action(
+            "press",
+            Condition::Always,
+            vec![
+                transfer_effect(StringRef::Parameter("source".to_owned()), "item.ore", 2),
+                recipe_effect("craft.press"),
+            ],
+        );
+        action.parameters = vec![crate::ParameterSpec {
+            name: "source".to_owned(),
+            domain: ParameterDomain::NpcsAtCurrentLocation,
+        }];
+        let mut source = draft(vec![action]);
+        source.recipes = vec![recipe(
+            "craft.press",
+            &[("item.ore", 2)],
+            &[("item.brace", 1)],
+        )];
+        for index in 0..300 {
+            source.npcs.push(NpcDefinition {
+                id: format!("worker-{index:03}"),
+                name: "Worker".to_owned(),
+                location: "gate".to_owned(),
+                goals: BTreeSet::new(),
+                values: BTreeSet::new(),
+                tags: BTreeSet::new(),
+                inventory: BTreeMap::from([("item.ore".to_owned(), 2)]),
+            });
+        }
+        let content = CompiledContent::try_compile(source).unwrap();
+        let initial = state(&content);
+        let all = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(all.len(), 300);
+        let expected: Vec<_> = all.iter().map(|action| action.action_id.clone()).collect();
+        let digest = legal_action_digest(&all).unwrap();
+        let mut paged = Vec::new();
+        let mut offset = 0;
+        loop {
+            let page = content.action_page(&initial, offset, 17).unwrap();
+            assert_eq!(page.total, 300);
+            assert_eq!(page.digest, digest);
+            paged.extend(page.actions.into_iter().map(|action| action.action_id));
+            let Some(next) = page.next_offset else {
+                break;
+            };
+            offset = next;
+        }
+        assert_eq!(paged, expected);
+        for action in [&all[0], &all[149], &all[299]] {
+            let transition = step(&initial, action, &content, &initial.entropy).unwrap();
+            assert_eq!(transition.state().character.inventory["item.brace"], 1);
+            let after_page = content.action_page(transition.state(), 0, 17).unwrap();
+            assert_eq!(after_page.total, 299);
+            assert!(
+                enumerate_legal_actions(transition.state(), &content)
+                    .unwrap()
+                    .iter()
+                    .all(|candidate| candidate.parameters["source"] != action.parameters["source"])
+            );
+            let stale = step(
+                transition.state(),
+                &all[299],
+                &content,
+                &transition.state().entropy,
+            );
+            assert!(matches!(stale, Err(KernelError::StaleAction { .. })));
+        }
+    }
+
+    #[test]
     fn parameter_domains_are_complete_and_semantically_sorted() {
         let action = ActionDefinition {
             id: "move-and-greet".to_owned(),
@@ -2593,14 +3296,15 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v7".to_owned(),
-            rules_version: "forge-rules-v5".to_owned(),
+            schema_version: "forge-schema-v8".to_owned(),
+            rules_version: "forge-rules-v6".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
             supply_labels: Default::default(),
+            recipes: Vec::new(),
             locations,
             npcs: vec![NpcDefinition {
                 id: "sava".to_owned(),

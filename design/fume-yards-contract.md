@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: reviewed implementation contract; the district remains unimplemented and unshipped.
+Status: the cold-crafting pilot is implemented; the complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -115,19 +115,19 @@ For a first heat implementation, use one batch only: ignite at time `t`, ready a
 
 The current kernel supports boolean composition, facets/tags, player inventory/resource predicates, world/location flags, NPC presence/knowledge/memory/relationship predicates, resource deltas, player/NPC movement, NPC-to-player stock transfer, NPC learning/memory, deeds, time advance, and explicit random branches. Those cover doors, finite process flags, staffing, witnessed reports, payments, and consequence observations.
 
-The following capabilities are missing; flags cannot honestly substitute for their ownership or timing behavior:
+The pilot implements item recipes and their independent assertions. Relative scheduling and the complete district assertions remain prerequisites; flags cannot substitute for ownership or timing:
 
-1. **Authoritative item transformation and consumption.** Add a closed recipe definition with namespaced ID and positive integer input/output maps, and an effect selecting that recipe. Inputs come from player-owned stock; outputs return there. Empty outputs permit installation/consumption. Empty inputs are rejected for this extension. Admission, reducer events, lineage, capacity checks, canonical build identity, strict parsing, and independent replay must understand every consumed and produced quantity. Evaluate the entire staged transition atomically; a later failure must restore ingredients, outputs, flags, stock, and entropy. Do not use a hidden NPC as an infinite output dispenser.
+1. **Authoritative item transformation and consumption: implemented for the pilot.** `RecipeDefinition` has a namespaced ID and positive integer input/output maps; `ApplyRecipe` selects it. Inputs come from player-owned stock; outputs return there. Empty outputs permit installation/consumption; empty inputs and unchanged maps are rejected. Admission reconstructs exact `RecipeApplied` quantities alongside stock transfers. Full-program legality checks consumption, production, and capacity before listing an action. The staged reducer rolls back the entire transition on failure. Schema v8 and rules v6 bind this contract; saves remain exact-build-bound.
 2. **Relative, one-shot scheduled events.** Add typed deferred event templates and a schedule effect using checked `world.time + delay`. Existing absolute events retain their current semantics. This district needs only uniquely identified ready/spoil events for one batch; repeated scheduling of either ID rejects or is explicitly guarded out. Record scheduling in authoritative event history and validate due times against lineage. Templates must not be silently scheduled at genesis. Reject overflow, undeclared templates, illegal rescheduling, and recursively unbounded scheduling. No periodic scheduler or dynamic arbitrary event program is required here.
-3. **Independent district assertions.** Extend witness expectations to cover recipe consumption/production and scheduled-event identity, due time, resolution, and absence. Existing expectation types do not establish these claims. A reviewed deterministic path must bind every parameter and prove both positive and forbidden postconditions.
+3. **Independent district assertions: partial.** Pilot witnesses bind exact ordered recipe IDs, turns, inputs, outputs, forbidden owned goods, NPC stock, local consequences, and witnessed records. Scheduled-event identity, due time, resolution, and absence still need explicit expectations. Every reviewed path must bind its parameters and prove both positive and forbidden postconditions.
 
 A finite one-batch heat model can use typed flags for prepared, lit, ready, drawn, spoiled, and shut down, with explicit mutually incompatible-state checks. This proposal does not require local numeric meters, generic chemistry, continuous temperature, ambient weather, combat, or a full faction simulator. If later design claims any of those behaviors, their actual typed support is a separate prerequisite.
 
-Recipe work necessarily expands the current inventory-lineage model, which presently accounts for authored stock and NPC-to-player transfers. Scheduling likewise expands the current genesis-authored absolute-event model. These are kernel/compiler/replay changes, not content-only additions.
+Recipe lineage now accounts for authored stock, NPC-to-player transfers, consumption, and production. This is structural state admission; trusted saves and evidence additionally reconstruct canonical actions through replay. Scheduling must likewise expand the current genesis-authored absolute-event model in the kernel/compiler/replay layer.
 
-## Next concrete vertical feature
+## Implemented cold-crafting pilot
 
-Implement **cold repair goods carried to Lowsail** before the timed furnace. This is the first material-conversion slice, not acceptance of the whole district:
+The first material-conversion slice implements **cold repair goods carried to Lowsail** before the timed furnace. Its acceptance obligations are:
 
 1. Add the typed recipe/consumption support, focused negative boundary tests, and independent replay assertions.
 2. Author a connected pilot workshop, Nessa's finite two clay units and one mesh unit, and a witnessed stock handover.
@@ -136,6 +136,8 @@ Implement **cold repair goods carried to Lowsail** before the timed furnace. Thi
 5. Bind canonical paths for manufacturing, the competing catch-screen choice and matched unscreened freight job, all five tide contexts, first entry after turn 128, save-before-transform, save-after-transform, and save-after-install. Nessa witnesses and commissions this single two-coin job in the pilot; its completed-job flag and payment memory prevent a repeated wage. Do not imply a general NPC purse simulation.
 
 The pilot's playable workshop does not count as the contracted district or a new verified area. Its route and observations must say exactly what exists. Manager acceptance should prefer delivering this complete causal loop over landing unused crafting primitives alone. Then implement the one-batch scheduler with the controlled-manufacture path; then salvage, supply substitution, staffing, and the complete district evidence. Do not add empty locations early to advertise planned scale.
+
+The implemented location is `fume_yards.workshop`, with Nessa as its single inhabitant. Four recipes and nine action definitions supply the two competing products, finite handover, local freight, Lowsail repair/sorting, and direct resolved-tide visit. The generic levee road and existing aftermath relocation program connect it to the same world. It does not yet implement the three-location geography or four-person cast above. Twenty total production witnesses preserve the sixteen prior paths and add repair, screen, unscreened freight, and late repair. Separate production/replay checks cover all 64 custom starts, all five tide outcomes, deadline crossing during crafting, saves at transformation/install boundaries, and late entry after the existing 128-turn traversal regression.
 
 ## Witness acceptance matrix
 

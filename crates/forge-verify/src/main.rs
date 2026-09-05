@@ -2,7 +2,7 @@ use forge_replay::PlayerTrace;
 use forge_verify::{
     EvidenceWitness, MAX_PLAYER_TRACE_BYTES, SCALE_MAX_REPORT_BYTES, ScaleReport,
     check_player_trace, check_scale_report, check_witness, generate_crawl_report,
-    generate_scale_report, generate_witness, scenario_ids,
+    generate_optional_crawl_report, generate_scale_report, generate_witness, scenario_ids,
 };
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -30,6 +30,9 @@ fn run(args: Vec<String>) -> Result<String, String> {
             .and_then(|witness| witness.to_pretty_json())
             .map_err(|error| error.to_string()),
         [command] if command == "crawl" => generate_crawl_report()
+            .and_then(|report| report.to_pretty_json())
+            .map_err(|error| error.to_string()),
+        [command] if command == "crawl-optional" => generate_optional_crawl_report()
             .and_then(|report| report.to_pretty_json())
             .map_err(|error| error.to_string()),
         [command] if command == "scale" => generate_scale_report()
@@ -104,5 +107,5 @@ fn read_bounded_utf8(path: &Path, max_bytes: u64, kind: &str) -> Result<String, 
 }
 
 fn usage() -> String {
-    "usage: forge-verify crawl | scale | check-scale PATH | emit SCENARIO | check PATH | check-player PATH | scenarios".to_owned()
+    "usage: forge-verify crawl | crawl-optional | scale | check-scale PATH | emit SCENARIO | check PATH | check-player PATH | scenarios".to_owned()
 }

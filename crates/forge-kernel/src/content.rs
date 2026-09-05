@@ -267,6 +267,16 @@ pub struct SupplyLabels {
     pub resources: BTreeMap<String, String>,
 }
 
+/// A closed transformation of player-owned items. An empty output map
+/// represents installation or consumption, while inputs must be nonempty.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct RecipeDefinition {
+    pub id: String,
+    pub inputs: BTreeMap<String, u32>,
+    pub outputs: BTreeMap<String, u32>,
+}
+
 /// Untrusted authoring input. A `CompiledContent` can only be created by
 /// `try_compile`, which performs all semantic checks in the kernel.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -291,6 +301,8 @@ pub struct ContentDraft {
     pub npcs: Vec<NpcDefinition>,
     #[serde(default)]
     pub timed_events: Vec<TimedEventDefinition>,
+    #[serde(default)]
+    pub recipes: Vec<RecipeDefinition>,
     #[serde(default)]
     pub actions: Vec<ActionDefinition>,
 }
@@ -663,6 +675,9 @@ pub enum Effect {
         item: String,
         count: u32,
     },
+    ApplyRecipe {
+        recipe: String,
+    },
     AddCharacterDeed {
         deed_id: String,
     },
@@ -697,6 +712,7 @@ impl Effect {
             | Self::AddNpcMemory { .. }
             | Self::TeachNpc { .. }
             | Self::TransferNpcItemToCharacter { .. }
+            | Self::ApplyRecipe { .. }
             | Self::AddCharacterDeed { .. }
             | Self::AdvanceTime { .. } => true,
         }
@@ -736,6 +752,7 @@ fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::ApplyRecipe { .. }
         | Effect::AddCharacterDeed { .. } => Some(ActionTimeCost {
             minimum_ticks: 0,
             maximum_ticks: 0,
@@ -771,6 +788,7 @@ struct ContentIdentity<'a> {
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
     timed_events: &'a BTreeMap<String, TimedEventDefinition>,
+    recipes: &'a BTreeMap<String, RecipeDefinition>,
     actions: &'a BTreeMap<String, ActionDefinition>,
 }
 
@@ -789,6 +807,7 @@ pub struct CompiledContent {
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
     timed_events: BTreeMap<String, TimedEventDefinition>,
+    recipes: BTreeMap<String, RecipeDefinition>,
     actions: BTreeMap<String, ActionDefinition>,
     build_id: String,
 }
@@ -844,6 +863,11 @@ impl CompiledContent {
             .into_iter()
             .map(|event| (event.id.clone(), event))
             .collect::<BTreeMap<_, _>>();
+        let recipes = draft
+            .recipes
+            .into_iter()
+            .map(|recipe| (recipe.id.clone(), recipe))
+            .collect::<BTreeMap<_, _>>();
         let actions = draft
             .actions
             .into_iter()
@@ -879,6 +903,7 @@ impl CompiledContent {
             locations: &locations,
             npcs: &npcs,
             timed_events: &timed_events,
+            recipes: &recipes,
             actions: &actions,
         };
         let build_id = sha256_json(&identity).expect("validated content must be serializable");
@@ -893,6 +918,7 @@ impl CompiledContent {
             locations,
             npcs,
             timed_events,
+            recipes,
             actions,
             build_id,
         })
@@ -980,6 +1006,14 @@ impl CompiledContent {
         self.timed_events.get(id)
     }
 
+    pub fn recipe(&self, id: &str) -> Option<&RecipeDefinition> {
+        self.recipes.get(id)
+    }
+
+    pub fn recipes(&self) -> &BTreeMap<String, RecipeDefinition> {
+        &self.recipes
+    }
+
     pub fn locations(&self) -> impl Iterator<Item = (&LocationId, &LocationDefinition)> {
         self.locations.iter()
     }
@@ -1044,6 +1078,7 @@ impl CompiledContent {
             locations: &self.locations,
             npcs: &self.npcs,
             timed_events: &self.timed_events,
+            recipes: &self.recipes,
             actions: &self.actions,
         };
         sha256_json(&identity).is_ok_and(|digest| digest == self.build_id)
@@ -1803,11 +1838,24 @@ impl CompiledContent {
             .map(|(id, definition)| (id.clone(), definition.inventory.clone()))
             .collect::<BTreeMap<_, _>>();
 
+        let mut previous_inventory_turn = None;
         for (index, event) in state.event_log.iter().enumerate() {
-            let EventKind::NpcItemTransferredToCharacter { npc, item, count } = &event.kind else {
-                continue;
+            let event_name = match &event.kind {
+                EventKind::NpcItemTransferredToCharacter { .. } => {
+                    format!("inventory transfer event {index}")
+                }
+                EventKind::RecipeApplied { .. } => format!("recipe event {index}"),
+                _ => continue,
             };
-            let event_name = format!("inventory transfer event {index}");
+            if let Some(previous_turn) = previous_inventory_turn
+                && event.turn < previous_turn
+            {
+                errors.push(format!(
+                    "{event_name} has turn {} before prior inventory event turn {previous_turn}",
+                    event.turn
+                ));
+            }
+            previous_inventory_turn = Some(event.turn);
             if event.turn > state.world.time {
                 errors.push(format!(
                     "{event_name} has future turn {} at world time {}",
@@ -1815,43 +1863,98 @@ impl CompiledContent {
                 ));
                 continue;
             }
-            if item.trim().is_empty() || *count == 0 {
-                errors.push(format!("{event_name} has an empty item or zero count"));
-                continue;
-            }
-            let Some(source) = expected_npcs.get(npc) else {
-                errors.push(format!("{event_name} references unknown NPC {npc}"));
-                continue;
-            };
-            let available = source.get(item).copied().unwrap_or_default();
-            if available < *count {
-                errors.push(format!(
-                    "{event_name} exceeds NPC {npc} source balance for {item}"
-                ));
-                continue;
-            }
-            let current = expected_character.get(item).copied().unwrap_or_default();
-            let Some(next) = current.checked_add(*count) else {
-                errors.push(format!(
-                    "{event_name} overflows character inventory for {item}"
-                ));
-                continue;
-            };
+            match &event.kind {
+                EventKind::NpcItemTransferredToCharacter { npc, item, count } => {
+                    if item.trim().is_empty() || *count == 0 {
+                        errors.push(format!("{event_name} has an empty item or zero count"));
+                        continue;
+                    }
+                    let Some(source) = expected_npcs.get(npc) else {
+                        errors.push(format!("{event_name} references unknown NPC {npc}"));
+                        continue;
+                    };
+                    let available = source.get(item).copied().unwrap_or_default();
+                    if available < *count {
+                        errors.push(format!(
+                            "{event_name} exceeds NPC {npc} source balance for {item}"
+                        ));
+                        continue;
+                    }
+                    let current = expected_character.get(item).copied().unwrap_or_default();
+                    let Some(next) = current.checked_add(*count) else {
+                        errors.push(format!(
+                            "{event_name} overflows character inventory for {item}"
+                        ));
+                        continue;
+                    };
 
-            expected_character.insert(item.clone(), next);
-            let source = expected_npcs
-                .get_mut(npc)
-                .expect("source NPC was checked in the expected inventory map");
-            if available == *count {
-                source.remove(item);
-            } else {
-                source.insert(item.clone(), available - *count);
+                    expected_character.insert(item.clone(), next);
+                    let source = expected_npcs
+                        .get_mut(npc)
+                        .expect("source NPC was checked in the expected inventory map");
+                    if available == *count {
+                        source.remove(item);
+                    } else {
+                        source.insert(item.clone(), available - *count);
+                    }
+                }
+                EventKind::RecipeApplied {
+                    recipe,
+                    inputs,
+                    outputs,
+                } => {
+                    let Some(definition) = self.recipe(recipe) else {
+                        errors.push(format!("{event_name} references unknown recipe {recipe}"));
+                        continue;
+                    };
+                    if inputs != &definition.inputs || outputs != &definition.outputs {
+                        errors.push(format!(
+                            "{event_name} item maps differ from compiled recipe {recipe}"
+                        ));
+                        continue;
+                    }
+                    let mut candidate = expected_character.clone();
+                    let mut valid = true;
+                    for (item, count) in inputs {
+                        let available = candidate.get(item).copied().unwrap_or_default();
+                        let Some(remaining) = available.checked_sub(*count) else {
+                            errors.push(format!(
+                                "{event_name} exceeds character source balance for {item}"
+                            ));
+                            valid = false;
+                            break;
+                        };
+                        if remaining == 0 {
+                            candidate.remove(item);
+                        } else {
+                            candidate.insert(item.clone(), remaining);
+                        }
+                    }
+                    if !valid {
+                        continue;
+                    }
+                    for (item, count) in outputs {
+                        let current = candidate.get(item).copied().unwrap_or_default();
+                        let Some(next) = current.checked_add(*count) else {
+                            errors.push(format!(
+                                "{event_name} overflows character inventory for {item}"
+                            ));
+                            valid = false;
+                            break;
+                        };
+                        candidate.insert(item.clone(), next);
+                    }
+                    if valid {
+                        expected_character = candidate;
+                    }
+                }
+                _ => unreachable!("only inventory events reach lineage reduction"),
             }
         }
 
         if expected_character != state.character.inventory {
             errors.push(
-                "production character inventory does not match authored genesis and transfer history",
+                "production character inventory does not match authored genesis and transfer/recipe history",
             );
         }
         for (npc_id, expected) in expected_npcs {
@@ -1859,7 +1962,7 @@ impl CompiledContent {
                 && actual.inventory != expected
             {
                 errors.push(format!(
-                    "production NPC {npc_id} inventory does not match authored genesis and transfer history"
+                    "production NPC {npc_id} inventory does not match authored genesis and transfer/recipe history"
                 ));
             }
         }
@@ -2082,6 +2185,34 @@ fn validate_draft(
         errors.push("world_id cannot be empty");
     }
     validate_supply_labels(&draft.supply_labels, &mut errors);
+    let mut recipe_ids = BTreeSet::new();
+    for recipe in &draft.recipes {
+        if !valid_namespaced_id(&recipe.id) {
+            errors.push(format!("recipe {} has an invalid namespaced id", recipe.id));
+        }
+        if !recipe_ids.insert(&recipe.id) {
+            errors.push(format!("duplicate recipe id {}", recipe.id));
+        }
+        if recipe.inputs.is_empty() {
+            errors.push(format!("recipe {} must have at least one input", recipe.id));
+        }
+        if recipe.inputs == recipe.outputs {
+            errors.push(format!(
+                "recipe {} has identical input and output maps",
+                recipe.id
+            ));
+        }
+        for (kind, items) in [("input", &recipe.inputs), ("output", &recipe.outputs)] {
+            for (item, count) in items {
+                if !valid_namespaced_id(item) || *count == 0 {
+                    errors.push(format!(
+                        "recipe {} has an invalid {kind} item or zero count: {item}",
+                        recipe.id
+                    ));
+                }
+            }
+        }
+    }
     let production = matches!(draft.contract, ContentContract::Production);
     let mut location_ids = BTreeSet::new();
     for location in &draft.locations {
@@ -2231,6 +2362,14 @@ fn validate_draft(
     let mut timed_event_ids = BTreeSet::new();
     for event in &draft.timed_events {
         validate_timed_event(event, &location_ids, &npc_ids, &mut errors);
+        validate_recipe_effects(
+            &event.effects,
+            &event.id,
+            &recipe_ids,
+            false,
+            &mut errors,
+            0,
+        );
         if !timed_event_ids.insert(&event.id) {
             errors.push(format!("duplicate timed event id {}", event.id));
         }
@@ -2239,6 +2378,14 @@ fn validate_draft(
     let mut action_ids = BTreeSet::new();
     for action in &draft.actions {
         validate_action(action, &location_ids, &npc_ids, production, &mut errors);
+        validate_recipe_effects(
+            &action.effects,
+            &action.id,
+            &recipe_ids,
+            true,
+            &mut errors,
+            0,
+        );
         if !action_ids.insert(&action.id) {
             errors.push(format!("duplicate action id {}", action.id));
         }
@@ -2336,6 +2483,7 @@ fn collect_effect_supply_ids(
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
+        | Effect::ApplyRecipe { .. }
         | Effect::AddCharacterDeed { .. }
         | Effect::AdvanceTime { .. } => {}
     }
@@ -2357,6 +2505,10 @@ fn potential_supply_ids(draft: &ContentDraft) -> (BTreeSet<String>, BTreeSet<Str
     }
     for npc in &draft.npcs {
         items.extend(npc.inventory.keys().cloned());
+    }
+    for recipe in &draft.recipes {
+        items.extend(recipe.inputs.keys().cloned());
+        items.extend(recipe.outputs.keys().cloned());
     }
     for action in &draft.actions {
         for effect in &action.effects {
@@ -2723,6 +2875,19 @@ fn valid_creation_id(value: &str) -> bool {
         && value.len() <= 48
         && value.bytes().all(|byte| {
             byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'-' | b'_')
+        })
+}
+
+fn valid_namespaced_id(value: &str) -> bool {
+    value.len() <= 128
+        && value.contains('.')
+        && value.split('.').all(|part| {
+            !part.is_empty()
+                && part.bytes().all(|byte| {
+                    byte.is_ascii_lowercase()
+                        || byte.is_ascii_digit()
+                        || matches!(byte, b'_' | b'-')
+                })
         })
 }
 
@@ -3193,6 +3358,7 @@ fn effect_advances_time(effect: &Effect) -> bool {
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::ApplyRecipe { .. }
         | Effect::AddCharacterDeed { .. } => false,
     }
 }
@@ -3466,7 +3632,52 @@ fn validate_effects(
                     allow_inventory_transfers,
                 );
             }
-            Effect::AdvanceTime { .. } | Effect::Noop => {}
+            Effect::ApplyRecipe { .. } | Effect::AdvanceTime { .. } | Effect::Noop => {}
+        }
+    }
+}
+
+fn validate_recipe_effects(
+    effects: &[Effect],
+    owner: &str,
+    recipes: &BTreeSet<&String>,
+    allow_recipes: bool,
+    errors: &mut ContentValidationError,
+    depth: usize,
+) {
+    // The general effect validator reports the shared AST depth limit.
+    if depth > 64 {
+        return;
+    }
+    for effect in effects {
+        match effect {
+            Effect::ApplyRecipe { recipe } => {
+                if !recipes.contains(recipe) {
+                    errors.push(format!("action {owner} references unknown recipe {recipe}"));
+                }
+                if !allow_recipes {
+                    errors.push(format!(
+                        "action {owner} cannot apply a recipe in a timed event"
+                    ));
+                }
+            }
+            Effect::RandomChance {
+                on_success,
+                on_failure,
+                ..
+            } => {
+                for branch in [on_success, on_failure] {
+                    validate_recipe_effects(
+                        std::slice::from_ref(branch),
+                        owner,
+                        recipes,
+                        allow_recipes,
+                        errors,
+                        depth + 1,
+                    );
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -3627,6 +3838,7 @@ fn guaranteed_npc_knowledge_after_effects(
             | Effect::AdjustNpcRelationship { .. }
             | Effect::AddNpcMemory { .. }
             | Effect::TransferNpcItemToCharacter { .. }
+            | Effect::ApplyRecipe { .. }
             | Effect::AddCharacterDeed { .. }
             | Effect::AdvanceTime { .. } => {}
         }
@@ -3977,7 +4189,7 @@ fn merge_character_map<T: Clone>(
 /// Fields for which the current effect vocabulary has no mutation operation.
 /// Mutable resources, deeds, and inventory are intentionally excluded; their
 /// provenance is established by a verified trace from an exact authored
-/// genesis (inventory uses the typed transfer event ledger below).
+/// genesis (inventory uses the typed transfer and recipe event ledger below).
 fn static_character_fields_match(left: &Character, right: &Character) -> bool {
     left.id == right.id
         && left.lineage == right.lineage
@@ -4073,6 +4285,7 @@ mod tests {
                 inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
+            recipes: Vec::new(),
             actions,
         }
     }
@@ -4214,6 +4427,217 @@ mod tests {
             .inventory
             .insert("tide-key".to_owned(), count);
         compile(content).expect("production stock fixture must compile")
+    }
+
+    fn recipe(id: &str, inputs: &[(&str, u32)], outputs: &[(&str, u32)]) -> RecipeDefinition {
+        RecipeDefinition {
+            id: id.to_owned(),
+            inputs: inputs
+                .iter()
+                .map(|(item, count)| ((*item).to_owned(), *count))
+                .collect(),
+            outputs: outputs
+                .iter()
+                .map(|(item, count)| ((*item).to_owned(), *count))
+                .collect(),
+        }
+    }
+
+    fn repair_recipe() -> RecipeDefinition {
+        recipe(
+            "test.press",
+            &[("test.clay", 2), ("test.mesh", 1)],
+            &[("test.repair", 1)],
+        )
+    }
+
+    #[test]
+    fn recipe_definitions_normalize_order_and_bind_every_map_to_identity() {
+        let mut source = draft(vec![action(
+            "press",
+            Condition::Always,
+            vec![Effect::ApplyRecipe {
+                recipe: "test.press".to_owned(),
+            }],
+        )]);
+        source.recipes = vec![
+            repair_recipe(),
+            recipe("test.install", &[("test.repair", 1)], &[]),
+        ];
+        let content = compile(source.clone()).unwrap();
+        assert_eq!(content.recipe("test.press"), Some(&repair_recipe()));
+        assert_eq!(
+            content
+                .recipes()
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>(),
+            vec!["test.install", "test.press"]
+        );
+        assert!(content.has_valid_build_id());
+        source.recipes.reverse();
+        assert_eq!(
+            compile(source.clone()).unwrap().build_id(),
+            content.build_id()
+        );
+        for change in 0..3 {
+            let mut changed = source.clone();
+            match change {
+                0 => {
+                    changed.recipes[0].id = "test.other_install".to_owned();
+                }
+                1 => {
+                    changed.recipes[1].inputs.insert("test.clay".to_owned(), 1);
+                }
+                _ => {
+                    changed.recipes[1]
+                        .outputs
+                        .insert("test.repair".to_owned(), 2);
+                }
+            }
+            assert_ne!(compile(changed).unwrap().build_id(), content.build_id());
+        }
+        assert!(
+            Effect::ApplyRecipe {
+                recipe: "test.press".to_owned()
+            }
+            .changes_state()
+        );
+    }
+
+    #[test]
+    fn recipe_compilation_rejects_invalid_ids_counts_empty_inputs_and_noops() {
+        let mut invalid = Vec::new();
+        for id in [
+            "",
+            "plain",
+            "test.",
+            ".test",
+            "test..press",
+            "test.Upper",
+            "test.bad id",
+            "test.bad/part",
+        ] {
+            let mut definition = repair_recipe();
+            definition.id = id.to_owned();
+            invalid.push((definition, "invalid namespaced id"));
+        }
+        for kind in ["input", "output"] {
+            for item in ["", "plain", "test.", "test.bad item"] {
+                let mut definition = repair_recipe();
+                if kind == "input" {
+                    definition.inputs.insert(item.to_owned(), 1);
+                } else {
+                    definition.outputs.insert(item.to_owned(), 1);
+                }
+                invalid.push((definition, "invalid"));
+            }
+            let mut definition = repair_recipe();
+            if kind == "input" {
+                definition.inputs.insert("test.clay".to_owned(), 0);
+            } else {
+                definition.outputs.insert("test.repair".to_owned(), 0);
+            }
+            invalid.push((definition, "zero count"));
+        }
+        invalid.push((
+            recipe("test.empty", &[], &[("test.repair", 1)]),
+            "at least one input",
+        ));
+        invalid.push((
+            recipe("test.noop", &[("test.clay", 1)], &[("test.clay", 1)]),
+            "identical input and output",
+        ));
+        for (definition, marker) in invalid {
+            let mut source = draft(Vec::new());
+            source.recipes = vec![definition];
+            let error = compile(source).unwrap_err().to_string();
+            assert!(error.contains(marker), "{error} must contain {marker}");
+        }
+        let mut duplicate = draft(Vec::new());
+        duplicate.recipes = vec![repair_recipe(), repair_recipe()];
+        assert!(
+            compile(duplicate)
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate recipe id test.press")
+        );
+    }
+
+    #[test]
+    fn recipe_effect_references_and_timed_branches_are_closed() {
+        let apply = Effect::ApplyRecipe {
+            recipe: "test.missing".to_owned(),
+        };
+        let mut source = draft(vec![action(
+            "bad-recipe",
+            Condition::Always,
+            vec![Effect::RandomChance {
+                success_percent: 0,
+                on_success: Box::new(apply),
+                on_failure: Box::new(Effect::Noop),
+            }],
+        )]);
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("references unknown recipe test.missing")
+        );
+        source.actions.clear();
+        source.recipes = vec![repair_recipe()];
+        let apply = Effect::ApplyRecipe {
+            recipe: "test.press".to_owned(),
+        };
+        for effect in [
+            apply.clone(),
+            Effect::RandomChance {
+                success_percent: 0,
+                on_success: Box::new(apply),
+                on_failure: Box::new(Effect::Noop),
+            },
+        ] {
+            source.timed_events = vec![TimedEventDefinition {
+                id: "test.deadline".to_owned(),
+                due_time: 2,
+                event_kind: "deadline".to_owned(),
+                label: "Deadline".to_owned(),
+                result: "The deadline arrives.".to_owned(),
+                condition: Condition::Always,
+                effects: vec![effect],
+            }];
+            assert!(
+                compile(source.clone())
+                    .unwrap_err()
+                    .to_string()
+                    .contains("cannot apply a recipe in a timed event")
+            );
+        }
+    }
+
+    #[test]
+    fn recipe_inputs_and_outputs_are_included_in_complete_supply_budgets() {
+        let mut source = production_draft(Vec::new());
+        source.recipes = vec![repair_recipe()];
+        let (_, items) = potential_supply_ids(&source);
+        assert_eq!(
+            items,
+            BTreeSet::from([
+                "test.clay".to_owned(),
+                "test.mesh".to_owned(),
+                "test.repair".to_owned()
+            ])
+        );
+        compile(source.clone()).expect("small recipe supply set fits the routine budget");
+        source.recipes[0].outputs = (0..60)
+            .map(|index| (format!("test.output_{index}"), 1))
+            .collect();
+        assert!(
+            compile(source)
+                .unwrap_err()
+                .to_string()
+                .contains("supplies")
+        );
     }
 
     #[test]
@@ -5187,6 +5611,178 @@ mod tests {
         content
             .validate_state(&game)
             .expect("custom genesis plus transfer history must validate");
+    }
+
+    fn recipe_event(turn: u64, definition: &RecipeDefinition) -> Event {
+        Event {
+            turn,
+            kind: EventKind::RecipeApplied {
+                recipe: definition.id.clone(),
+                inputs: definition.inputs.clone(),
+                outputs: definition.outputs.clone(),
+            },
+        }
+    }
+
+    fn production_recipe_content() -> CompiledContent {
+        let mut source = production_draft(Vec::new());
+        source.npcs[0].inventory = repair_recipe().inputs;
+        source.recipes = vec![
+            repair_recipe(),
+            recipe("test.install", &[("test.repair", 1)], &[]),
+        ];
+        compile(source).unwrap()
+    }
+
+    fn transferred_recipe_inputs(content: &CompiledContent) -> GameState {
+        let mut game = content.new_game("hero", 9).unwrap();
+        game.world.npcs.get_mut("sava").unwrap().inventory.clear();
+        game.character.inventory = repair_recipe().inputs;
+        game.event_log.extend([
+            transfer_event(0, "sava", "test.clay", 2),
+            transfer_event(0, "sava", "test.mesh", 1),
+        ]);
+        game
+    }
+
+    #[test]
+    fn production_recipe_admission_reduces_transfers_transformations_and_installation_in_order() {
+        let content = production_recipe_content();
+        let mut game = transferred_recipe_inputs(&content);
+        content.validate_state(&game).unwrap();
+        game.character.inventory = repair_recipe().outputs;
+        game.event_log.push(recipe_event(0, &repair_recipe()));
+        content
+            .validate_state(&game)
+            .expect("exact consumed and produced maps admit the transformed inventory");
+        game.character.inventory.clear();
+        game.event_log
+            .push(recipe_event(0, content.recipe("test.install").unwrap()));
+        content
+            .validate_state(&game)
+            .expect("empty outputs consume the installation item");
+        assert!(game.world.npcs["sava"].inventory.is_empty());
+
+        let mut source = production_draft(Vec::new());
+        source.character_creation.as_mut().unwrap().base.inventory = repair_recipe().inputs;
+        source.recipes = vec![repair_recipe()];
+        let custom_content = compile(source).unwrap();
+        let selection = CharacterSelection {
+            name: "Mara Venn".to_owned(),
+            choices: vec![
+                CharacterChoiceSelection {
+                    slot_id: "lineage".to_owned(),
+                    choice_id: "fenborn".to_owned(),
+                },
+                CharacterChoiceSelection {
+                    slot_id: "path".to_owned(),
+                    choice_id: "clerk".to_owned(),
+                },
+            ],
+        };
+        let mut custom = custom_content.new_custom_game(&selection, 9).unwrap();
+        custom.character.inventory = repair_recipe().outputs;
+        custom.event_log.push(recipe_event(0, &repair_recipe()));
+        custom_content
+            .validate_state(&custom)
+            .expect("custom genesis also supports exact recipe lineage");
+    }
+
+    #[test]
+    fn production_recipe_admission_rejects_corrupt_maps_history_and_balances() {
+        let content = production_recipe_content();
+        let initial = transferred_recipe_inputs(&content);
+        let mut transformed = initial.clone();
+        transformed.character.inventory = repair_recipe().outputs;
+        transformed
+            .event_log
+            .push(recipe_event(0, &repair_recipe()));
+        content.validate_state(&transformed).unwrap();
+        let mut cases = Vec::new();
+        let mut missing_event = transformed.clone();
+        missing_event.event_log.pop();
+        cases.push((missing_event, "character inventory"));
+        let mut retained_inputs = transformed.clone();
+        retained_inputs
+            .character
+            .inventory
+            .extend(repair_recipe().inputs);
+        cases.push((retained_inputs, "character inventory"));
+        let mut forged_output = transformed.clone();
+        forged_output
+            .character
+            .inventory
+            .insert("test.repair".to_owned(), 2);
+        let EventKind::RecipeApplied { outputs, .. } = &mut forged_output.event_log[2].kind else {
+            unreachable!()
+        };
+        outputs.insert("test.repair".to_owned(), 2);
+        cases.push((forged_output, "maps differ from compiled recipe"));
+        let mut forged_inputs = transformed.clone();
+        let EventKind::RecipeApplied { inputs, .. } = &mut forged_inputs.event_log[2].kind else {
+            unreachable!()
+        };
+        inputs.clear();
+        cases.push((forged_inputs, "maps differ from compiled recipe"));
+        let mut unknown = transformed.clone();
+        let EventKind::RecipeApplied { recipe, .. } = &mut unknown.event_log[2].kind else {
+            unreachable!()
+        };
+        *recipe = "test.unknown".to_owned();
+        cases.push((unknown, "references unknown recipe"));
+        let mut duplicate = transformed.clone();
+        duplicate.event_log.push(recipe_event(0, &repair_recipe()));
+        cases.push((duplicate, "source balance"));
+        let mut premature = transformed.clone();
+        premature.event_log.swap(0, 2);
+        cases.push((premature, "source balance"));
+        let mut future = transformed.clone();
+        future.event_log[2].turn = 1;
+        cases.push((future, "future turn"));
+        let mut backwards = transformed;
+        backwards.world.time = 2;
+        backwards.event_log[1].turn = 2;
+        backwards.event_log[2].turn = 1;
+        cases.push((backwards, "before prior inventory event turn"));
+        for (game, marker) in cases {
+            let error = content.validate_state(&game).unwrap_err().to_string();
+            assert!(error.contains(marker), "{error} must contain {marker}");
+        }
+    }
+
+    #[test]
+    fn production_recipe_admission_checks_capacity_after_consumption() {
+        let mut source = production_draft(Vec::new());
+        source.character_presets[0].character.inventory =
+            BTreeMap::from([("test.clay".to_owned(), u32::MAX)]);
+        source.recipes = vec![recipe(
+            "test.overlap",
+            &[("test.clay", 1)],
+            &[("test.clay", 2)],
+        )];
+        let content = compile(source.clone()).unwrap();
+        let mut game = content.new_game("hero", 9).unwrap();
+        game.event_log
+            .push(recipe_event(0, content.recipe("test.overlap").unwrap()));
+        assert!(
+            content
+                .validate_state(&game)
+                .unwrap_err()
+                .to_string()
+                .contains("overflows character inventory")
+        );
+
+        source.recipes[0] = recipe("test.overlap", &[("test.clay", 2)], &[("test.clay", 1)]);
+        let content = compile(source).unwrap();
+        let mut game = content.new_game("hero", 9).unwrap();
+        game.character
+            .inventory
+            .insert("test.clay".to_owned(), u32::MAX - 1);
+        game.event_log
+            .push(recipe_event(0, content.recipe("test.overlap").unwrap()));
+        content
+            .validate_state(&game)
+            .expect("shared input/output keys consume before producing");
     }
 
     #[test]

@@ -84,7 +84,12 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         report["covered_definitions"],
         report["advertised_definitions"]
     );
-    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 6);
+    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 7);
+    let core = &report["split_tide_projection"];
+    assert_eq!(core["required_definitions"], core["covered_definitions"]);
+    assert_eq!(core["required_locations"], core["reached_locations"]);
+    assert_eq!(core["required_definitions"].as_array().unwrap().len(), 51);
+    assert_eq!(core["required_locations"].as_array().unwrap().len(), 6);
 }
 
 #[test]
@@ -118,4 +123,59 @@ fn clean_process_scale_runs_match_and_checked_report_verifies() {
     assert_eq!(report["location_count"], 500);
     assert_eq!(report["hop_count"], 500);
     assert_eq!(report["final_location"], "loc-0000");
+}
+
+#[test]
+fn clean_process_optional_crawls_match_checked_pilot_report() {
+    let first = verifier(&["crawl-optional"]);
+    let second = verifier(&["crawl-optional"]);
+    assert!(
+        first.status.success(),
+        "first optional crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(second.status.success(), "second optional crawl failed");
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process optional crawls diverged"
+    );
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/fume-yards-pilot.json");
+    assert_eq!(
+        first.stdout,
+        std::fs::read(path).expect("checked optional report exists"),
+        "checked optional report is stale"
+    );
+    let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    let required = report["required_definitions"].as_array().unwrap();
+    let covered = report["covered_definitions"].as_array().unwrap();
+    assert_eq!(required.len(), 9);
+    assert!(required.iter().all(|id| covered.contains(id)));
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        60
+    );
+    assert_eq!(report["budget"]["max_depth"], 13);
+    assert_eq!(report["budget"]["max_expanded_states"], 96);
+    assert_eq!(report["budget"]["max_discovered_frontiers"], 512);
+    assert_eq!(report["budget"]["max_action_executions"], 1024);
+    let starts = report["starting_sessions"].as_array().unwrap();
+    assert_eq!(starts.len(), 3);
+    for (index, preset) in ["ilyan", "rook"].iter().enumerate() {
+        assert_eq!(starts[index]["label"], format!("preset:{preset}"));
+        assert_eq!(starts[index]["depth"], 0);
+        assert_eq!(starts[index]["start"]["character_preset_id"], *preset);
+        assert_eq!(starts[index]["start"]["seed"], 71);
+    }
+    // Bind the extra frontier to the separately checked, unchanged production
+    // witness, including its seven consumed actions and exact final lineage.
+    let hold: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(witness_path("m1-outcome-hold-market")).unwrap())
+            .unwrap();
+    assert_eq!(starts[2]["label"], "scenario:m1-outcome-hold-market");
+    assert_eq!(starts[2]["depth"], 7);
+    assert_eq!(hold["steps"].as_array().unwrap().len(), 7);
+    assert_eq!(starts[2]["start"], starts[0]["start"]);
+    assert_eq!(starts[2]["final_receipt"], hold["final_receipt"]);
+    assert_eq!(starts[2]["state_id"], hold["final_state_id"]);
 }

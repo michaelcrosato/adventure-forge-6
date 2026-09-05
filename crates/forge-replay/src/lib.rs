@@ -818,14 +818,15 @@ mod tests {
 
     fn content_draft() -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v7".to_owned(),
-            rules_version: "forge-rules-v5".to_owned(),
+            schema_version: "forge-schema-v8".to_owned(),
+            rules_version: "forge-rules-v6".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
             supply_labels: SupplyLabels::default(),
+            recipes: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),
@@ -1442,14 +1443,15 @@ mod tests {
         let content = content();
         let trace = two_step_trace(&content);
         let other_draft = ContentDraft {
-            schema_version: "forge-schema-v7".to_owned(),
-            rules_version: "forge-rules-v5".to_owned(),
+            schema_version: "forge-schema-v8".to_owned(),
+            rules_version: "forge-rules-v6".to_owned(),
             world_id: "world".to_owned(),
             contract: Default::default(),
             start_location: "start".to_owned(),
             character_presets: Vec::new(),
             character_creation: None,
             supply_labels: SupplyLabels::default(),
+            recipes: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "start".to_owned(),

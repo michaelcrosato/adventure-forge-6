@@ -8,8 +8,8 @@ pub use forge_kernel::{
     ActionDefinition, ActionPage, ActionTimeCost, ActionView, CharacterCreationChoice,
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
     CharacterSelection, Condition, ContentContract, ContentDraft, Effect, LocationDefinition,
-    NpcDefinition, Observation, ParameterDomain, ParameterSpec, StringRef, TextVariant,
-    TimedEventDefinition, TimedEventView,
+    NpcDefinition, Observation, ParameterDomain, ParameterSpec, RecipeDefinition, StringRef,
+    TextVariant, TimedEventDefinition, TimedEventView,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -97,6 +97,7 @@ mod tests {
             locations: Vec::new(),
             npcs: Vec::new(),
             timed_events: Vec::new(),
+            recipes: Vec::new(),
             actions: Vec::new(),
         };
         let error = compile_production(source).unwrap_err();
@@ -109,14 +110,14 @@ mod tests {
     #[test]
     fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
         let duplicate_top_level = r#"{
-            "schema_version":"forge-schema-v7",
+            "schema_version":"forge-schema-v8",
             "schema_version":"shadow"
         }"#;
         assert!(parse(duplicate_top_level).is_err());
 
         let duplicate_nested_map = r#"{
-            "schema_version":"forge-schema-v7",
-            "rules_version":"forge-rules-v5",
+            "schema_version":"forge-schema-v8",
+            "rules_version":"forge-rules-v6",
             "world_id":"world",
             "character_creation":{
                 "base":{"resources":{"coin":1,"coin":2}},
@@ -124,5 +125,28 @@ mod tests {
             }
         }"#;
         assert!(parse(duplicate_nested_map).is_err());
+    }
+
+    #[test]
+    fn recipe_parser_rejects_duplicate_item_keys_and_unknown_recipe_fields() {
+        for recipes in [
+            r#"[{"id":"test.press","inputs":{"test.clay":1,"test.clay":2},"outputs":{"test.repair":1}}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":1},"outputs":{"test.repair":1,"test.repair":2}}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":1},"outputs":{},"hidden_effect":"free_goods"}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":1}}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":-1},"outputs":{}}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":1.5},"outputs":{}}]"#,
+            r#"[{"id":"test.press","inputs":{"test.clay":4294967296},"outputs":{}}]"#,
+        ] {
+            let input = format!(
+                r#"{{"schema_version":"forge-schema-v8","rules_version":"forge-rules-v6","world_id":"test.world","recipes":{recipes}}}"#
+            );
+            assert!(
+                parse(&input).is_err(),
+                "malformed recipe must fail parsing: {recipes}"
+            );
+        }
+        let source = parse(r#"{"schema_version":"forge-schema-v8","rules_version":"forge-rules-v6","world_id":"test.world"}"#).unwrap();
+        assert!(source.recipes.is_empty());
     }
 }

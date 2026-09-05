@@ -18,8 +18,8 @@ pub use content::{
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
     CompiledContent, Condition, ContentContract, ContentDraft, ContentValidationError, Effect,
     ItemView, LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec,
-    ResourceView, StringRef, SupplyLabels, SupplyView, TextVariant, TimedEventDefinition,
-    TimedEventView,
+    RecipeDefinition, ResourceView, StringRef, SupplyLabels, SupplyView, TextVariant,
+    TimedEventDefinition, TimedEventView,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,

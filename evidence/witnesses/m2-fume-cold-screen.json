@@ -1,8 +1,8 @@
 {
   "format_version": "forge-evidence-witness-v3",
   "verifier_id": "015759be45f9b08d8672cf386ab0b184436e0d5e41135ec4bf2b6b2191f78943",
-  "scenario_id": "m1-outcome-hold-market",
-  "scenario_binding": "d15c6dd8e83d2c6a4eea8041fbd1853dc424a29e3f8093349a6f5af85c82a1c4",
+  "scenario_id": "m2-fume-cold-screen",
+  "scenario_binding": "18b3adf7144776dfe86dc54177696d619edc20c4ccf9a55d5a40cd390a433da6",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
     "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
@@ -18,10 +18,17 @@
       "1250e4fed89d594449262ae221ac9a6f03e679fd95405d282a97a15a44f13115",
       "9b6dd411a56427b48c94dc27c291017df54adb081304824c3af206e2df34fc6a",
       "f6d02b45684c2918d5df9d7fc1c16266725a984f20c4f6746af2e0050b189067",
-      "a6ae5f905b42a621839de9d5cdab74312bbeed5b650e2b1128376f7e184b0930"
+      "a6ae5f905b42a621839de9d5cdab74312bbeed5b650e2b1128376f7e184b0930",
+      "8eb168ae7b943c286df1eab1bf126074585890c5480d818ea5b6a540a95334f8",
+      "fa1d87e3703d06621f9b4b4bd1bad13e699f493e36e3144fc885c770a9ba60cf",
+      "17d741cb3bdf2c231526c61cf2977ded1e2f29bdec76820aa95fba1e944cd703",
+      "51c147eb6948bbb164f857b9434475f6b6f05e00a2ca0a5b582437d7cf06257f",
+      "5049bd38c8356fac84881916eb830625a4669a511d75324d64bbf9fe6147915c",
+      "e81d4bbd6322c5f0c73e188794b0f3cad8d7525e03431cbe6ab1fe289af246db",
+      "a6ffc1ab9f262705baba7be7d94b65c1142a0c8280f5c3561d043614c6adf475"
     ],
-    "final_state_id": "2fdeb4e2fa7748d45f1478997dac74c5b1e000913edf7af83521dd3eb39598ad",
-    "final_receipt": "7abe671ecabd200b6679f391207e9766af43bfe4538ea97b24f32091709d4339"
+    "final_state_id": "301a8f291b2497dd39490567700264a5236d05d3c7d22709e9dcf782dd8fa13f",
+    "final_receipt": "1922c36d8de321886cf1d82b456305d509ee1eeb71f2f9ded51b413f2563490a"
   },
   "initial_state_id": "6052ca0850d62b93072d573953d958c8d07a146dd9885f659175577e2be4572c",
   "initial_observation": {
@@ -424,8 +431,359 @@
       },
       "observation_hash": "5e8d97bf98a40e47b145d266361d39c715edd8a53f5d1e01f8ab107c917b49d0",
       "receipt": "7abe671ecabd200b6679f391207e9766af43bfe4538ea97b24f32091709d4339"
+    },
+    {
+      "step_index": 7,
+      "action_id": "8eb168ae7b943c286df1eab1bf126074585890c5480d818ea5b6a540a95334f8",
+      "action_definition_id": "return.visit_workshop",
+      "action_parameters": {},
+      "legal_action_set_digest": "88a43b52fd7bc5fa4987e5d60db6e5a5772ea7faaf952b0c3242571be9e082d5",
+      "pre_state_id": "2fdeb4e2fa7748d45f1478997dac74c5b1e000913edf7af83521dd3eb39598ad",
+      "events_hash": "284698fa100d122249057138ff77ee7f4e9c42aad6bcc0060ba390db24908579",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "b70e956c19cff3c86495c376e6f36edb2bcc7862e21f876ae05c731d13cdafe5",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "b70e956c19cff3c86495c376e6f36edb2bcc7862e21f876ae05c731d13cdafe5",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You follow the raised road to Nessa's workshop. Nessa offers two clay and one mesh for plugs or screening; optional work uses tide steps. Plugs unlock Lowsail's three-coin sorting job after the tide; screening saves two stamina loading freight.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You follow the raised road to Nessa's workshop.",
+        "world_time": 8,
+        "upcoming_events": [],
+        "action_set_digest": "39288f8d22f9c25a64d1cffc3408566b9ebe16b47c3a8961e3efac38ebcc71a9",
+        "action_count": 5
+      },
+      "observation_hash": "dc8ecceea291a5cfc1957011509c827e8d6688f76797eb1d326cb15fb29633f2",
+      "receipt": "83e63d5f34bee4786b10212b322b2ab6cb63fff45d9e9c540ecbac80ddec69eb"
+    },
+    {
+      "step_index": 8,
+      "action_id": "fa1d87e3703d06621f9b4b4bd1bad13e699f493e36e3144fc885c770a9ba60cf",
+      "action_definition_id": "fume_yards.take_stock",
+      "action_parameters": {},
+      "legal_action_set_digest": "39288f8d22f9c25a64d1cffc3408566b9ebe16b47c3a8961e3efac38ebcc71a9",
+      "pre_state_id": "b70e956c19cff3c86495c376e6f36edb2bcc7862e21f876ae05c731d13cdafe5",
+      "events_hash": "e384a816e2f3bb48b1eb2d78bc05f17b639d462f1f935ff60b5b591bd5b5e556",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "ffb6db2383c44d7ca9268c488172b21e2e151228e79a271de97aa27a82c4da52",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "ffb6db2383c44d7ca9268c488172b21e2e151228e79a271de97aa27a82c4da52",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "Nessa hands over two clay and one mesh, enough for one product. Two clay and one mesh: plugs unlock three-coin sorting after Lowsail's tide; screening saves two stamina locally.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.clay",
+              "name": "Clay",
+              "count": 2
+            },
+            {
+              "id": "fume_yards.mesh",
+              "name": "Mesh",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Nessa hands over two clay and one mesh, enough for one product.",
+        "world_time": 9,
+        "upcoming_events": [],
+        "action_set_digest": "9743fd3afc098c72b5349fcec46fc4cd7fc0707dfb11a91c1e527851f6c3d4e0",
+        "action_count": 6
+      },
+      "observation_hash": "bae4f06f5b3eaec2e64d8a19cb62085e2d864fdbf370ae9762064e2b6955c50e",
+      "receipt": "9b66be1c4a9408f784efa95dc2269a37024d2fcb3077a2c99ecf5129bf737e7a"
+    },
+    {
+      "step_index": 9,
+      "action_id": "17d741cb3bdf2c231526c61cf2977ded1e2f29bdec76820aa95fba1e944cd703",
+      "action_definition_id": "fume_yards.pack_catch_screen",
+      "action_parameters": {},
+      "legal_action_set_digest": "9743fd3afc098c72b5349fcec46fc4cd7fc0707dfb11a91c1e527851f6c3d4e0",
+      "pre_state_id": "ffb6db2383c44d7ca9268c488172b21e2e151228e79a271de97aa27a82c4da52",
+      "events_hash": "e42cf0658bbfd7cb46929a6327d753db0f958e648df4c52c22adc3223f37b48b",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "cda1db9f34f5e1fd3e3ea27938432b2b148eaa160dc7edde80086185d5e3f637",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "cda1db9f34f5e1fd3e3ea27938432b2b148eaa160dc7edde80086185d5e3f637",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You pack two clay and one mesh into a catch screen. Fit it before loading freight to save two stamina. Fit your catch screen in Nessa's loading tray to save two stamina on Load Freight.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.catch_screen",
+              "name": "Catch Screen",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You pack two clay and one mesh into a catch screen. Fit it before loading freight to save two stamina.",
+        "world_time": 10,
+        "upcoming_events": [],
+        "action_set_digest": "64b6ce21a5d98536a2f6989d54764d3d4acfe4e120067c116e4af41e80675b9b",
+        "action_count": 4
+      },
+      "observation_hash": "57eeb218e10d24e436c0d5d9e9e6d8dc1d2951715511c3491a1de474c4720cd5",
+      "receipt": "9d5ed029154268b209d2a274f5b89fd91798405967e14cf8414af60c85f65e59"
+    },
+    {
+      "step_index": 10,
+      "action_id": "51c147eb6948bbb164f857b9434475f6b6f05e00a2ca0a5b582437d7cf06257f",
+      "action_definition_id": "fume_yards.fit_catch_screen",
+      "action_parameters": {},
+      "legal_action_set_digest": "64b6ce21a5d98536a2f6989d54764d3d4acfe4e120067c116e4af41e80675b9b",
+      "pre_state_id": "cda1db9f34f5e1fd3e3ea27938432b2b148eaa160dc7edde80086185d5e3f637",
+      "events_hash": "a4b71bd0a54ec0519073efe320a08eb240ce0c9cdba80a3f2a24e675c3ef40bc",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "32dd3c9b54cb1e3210cf0f1161b77044352a985fc4d16185b86d12f1dd3dd635",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "32dd3c9b54cb1e3210cf0f1161b77044352a985fc4d16185b86d12f1dd3dd635",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You fit the catch screen into the loading tray. Load Freight now pays two coins without costing stamina. Your screen lines Nessa's tray; Load Freight pays two coins without the usual two-stamina cleanup.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You fit the catch screen into the loading tray. Load Freight now pays two coins without costing stamina.",
+        "world_time": 11,
+        "upcoming_events": [],
+        "action_set_digest": "b3553ae49ddbde169d03a9ee68e645c472072b0e285f82ad0e7f3a3d9eea4fd6",
+        "action_count": 4
+      },
+      "observation_hash": "436c32fd62ee5db1a4647f011ddd1105c3549ee4ed2e9e6f893dec03ab504e9e",
+      "receipt": "4cbe24baad8dd16e55ff95a2303d273030dd450f04931efa3a4127b487e029cd"
+    },
+    {
+      "step_index": 11,
+      "action_id": "5049bd38c8356fac84881916eb830625a4669a511d75324d64bbf9fe6147915c",
+      "action_definition_id": "fume_yards.load_screened_freight",
+      "action_parameters": {},
+      "legal_action_set_digest": "b3553ae49ddbde169d03a9ee68e645c472072b0e285f82ad0e7f3a3d9eea4fd6",
+      "pre_state_id": "32dd3c9b54cb1e3210cf0f1161b77044352a985fc4d16185b86d12f1dd3dd635",
+      "events_hash": "43d2a1ef128734820936e5c21bb1fa581e319c6d96a7b08a8181e639ee982d04",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "c6cb7e2204744bc060bcb965cff37b5617414c06dc82fc646cf5af8df78d2b9d",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "c6cb7e2204744bc060bcb965cff37b5617414c06dc82fc646cf5af8df78d2b9d",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "Your catch screen holds the loose ash, saving two stamina. Nessa pays two coins; this job is finished. Nessa's stock and freight job are spent; your fitted catch screen still lines her loading tray.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 12
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Your catch screen holds the loose ash, saving two stamina. Nessa pays two coins; this job is finished.",
+        "world_time": 12,
+        "upcoming_events": [],
+        "action_set_digest": "0da985797f09dcaf1afd909434f40570d9926391eab53371a780906f555519d3",
+        "action_count": 3
+      },
+      "observation_hash": "e568438c3c982de86e8d1db3c8691bcb0757a72d062e9c2ec0e35c3dc88ea8a7",
+      "receipt": "40ab425233040b1e7cec4eba99da31d7ed82355fa8e05f1405244f7182895e7b"
+    },
+    {
+      "step_index": 12,
+      "action_id": "e81d4bbd6322c5f0c73e188794b0f3cad8d7525e03431cbe6ab1fe289af246db",
+      "action_definition_id": "world.enter_aftermath",
+      "action_parameters": {},
+      "legal_action_set_digest": "0da985797f09dcaf1afd909434f40570d9926391eab53371a780906f555519d3",
+      "pre_state_id": "c6cb7e2204744bc060bcb965cff37b5617414c06dc82fc646cf5af8df78d2b9d",
+      "events_hash": "d4799957b3bd3e6512fead9031e2f931ba12c4e74c2419a4e28c337548210f7a",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "724601b722e7988aa7c9d95589d8eb6fc3361b598a49ce41dd7995668c3bf7f8",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "724601b722e7988aa7c9d95589d8eb6fc3361b598a49ce41dd7995668c3bf7f8",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "You return to Lowsail's changed market. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 12
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You return to Lowsail's changed market.",
+        "world_time": 13,
+        "upcoming_events": [],
+        "action_set_digest": "6045ae28845c3bddcb52c1f50e8f81cf8de7104d53fb131b643095fb462c9c62",
+        "action_count": 6
+      },
+      "observation_hash": "72107a1bf2b8111425c760fcbaddadfac9f59b03f0a717b83dade9964e6d6a40",
+      "receipt": "4d7facac652758d4d0f7bd25cdf5787b6ec2ac1de4850cef2e8ab2d43e65c2f7"
+    },
+    {
+      "step_index": 13,
+      "action_id": "a6ffc1ab9f262705baba7be7d94b65c1142a0c8280f5c3561d043614c6adf475",
+      "action_definition_id": "return.visit_workshop",
+      "action_parameters": {},
+      "legal_action_set_digest": "6045ae28845c3bddcb52c1f50e8f81cf8de7104d53fb131b643095fb462c9c62",
+      "pre_state_id": "724601b722e7988aa7c9d95589d8eb6fc3361b598a49ce41dd7995668c3bf7f8",
+      "events_hash": "db18c2b9d07f5ff28ae97714e3888b60eba92dfc21f5b466a6d02d495b1b6d0a",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "301a8f291b2497dd39490567700264a5236d05d3c7d22709e9dcf782dd8fa13f",
+      "observation": {
+        "build_id": "fc3d2a37078426c2b99f6fb8b3c8cf071a302682197b7cfa1dfc121e29300cf7",
+        "state_id": "301a8f291b2497dd39490567700264a5236d05d3c7d22709e9dcf782dd8fa13f",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You follow the raised road to Nessa's workshop. Nessa's stock and freight job are spent; your fitted catch screen still lines her loading tray.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 12
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You follow the raised road to Nessa's workshop.",
+        "world_time": 14,
+        "upcoming_events": [],
+        "action_set_digest": "be24665a285f1f59f3f1f55c9adc7e549ad2637bc505d877dcfd8092b3b6505f",
+        "action_count": 3
+      },
+      "observation_hash": "41a83c175ee6f7d42feb09bc89794c48e9082c698294b6d8c4b412e405ad7852",
+      "receipt": "1922c36d8de321886cf1d82b456305d509ee1eeb71f2f9ded51b413f2563490a"
     }
   ],
-  "final_state_id": "2fdeb4e2fa7748d45f1478997dac74c5b1e000913edf7af83521dd3eb39598ad",
-  "final_receipt": "7abe671ecabd200b6679f391207e9766af43bfe4538ea97b24f32091709d4339"
+  "final_state_id": "301a8f291b2497dd39490567700264a5236d05d3c7d22709e9dcf782dd8fa13f",
+  "final_receipt": "1922c36d8de321886cf1d82b456305d509ee1eeb71f2f9ded51b413f2563490a"
 }

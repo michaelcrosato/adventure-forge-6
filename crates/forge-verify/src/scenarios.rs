@@ -12,6 +12,10 @@ const SCENARIO_BINDING_FORMAT: &str = "forge-scenario-spec-v1";
 const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
+    "m2-fume-cold-repair",
+    "m2-fume-cold-screen",
+    "m2-fume-unscreened-freight",
+    "m2-fume-late-repair",
     "m0-ilyan",
     "m0-rook",
     "m1-custom-cross-current",
@@ -98,6 +102,14 @@ struct ScenarioNpcInventoryAbsence {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioRecipeExpectation {
+    turn: u64,
+    recipe: &'static str,
+    inputs: &'static [(&'static str, u32)],
+    outputs: &'static [(&'static str, u32)],
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(super) struct ScenarioExpectations {
     final_location: &'static str,
     final_action_definition: &'static str,
@@ -117,6 +129,8 @@ pub(super) struct ScenarioExpectations {
     required_character_inventory: &'static [ScenarioInventoryExpectation],
     required_character_resources: &'static [ScenarioResourceExpectation],
     forbidden_npc_inventory: &'static [ScenarioNpcInventoryAbsence],
+    forbidden_character_inventory: &'static [&'static str],
+    recipe_events: &'static [ScenarioRecipeExpectation],
     required_legal_definitions: &'static [&'static str],
     forbidden_legal_definitions: &'static [&'static str],
 }
@@ -468,6 +482,122 @@ const WRONG_TIDE_KEY_CHARACTER_INVENTORY: &[ScenarioInventoryExpectation] =
 #[cfg(test)]
 const EMPTY_NPC_INVENTORY_ABSENCE: &[ScenarioNpcInventoryAbsence] = &[];
 
+const fn append_steps<const N: usize>(
+    first: &[ScenarioStep],
+    second: &[ScenarioStep],
+) -> [ScenarioStep; N] {
+    assert!(N == first.len() + second.len());
+    let mut result = [action!("wait_tide"); N];
+    let mut i = 0;
+    while i < first.len() {
+        result[i] = first[i];
+        i += 1;
+    }
+    let mut j = 0;
+    while j < second.len() {
+        result[i + j] = second[j];
+        j += 1;
+    }
+    result
+}
+const PILOT_REPAIR_EXTENSION: &[ScenarioStep] = &[
+    action!("return.visit_workshop"),
+    action!("fume_yards.take_stock"),
+    action!("fume_yards.press_repair_plugs"),
+    action!("fume_yards.load_freight"),
+    action!("world.enter_aftermath"),
+    action!("return.patch_stand"),
+    action!("return.sort_dry_goods"),
+    action!("return.visit_workshop"),
+];
+const PILOT_REPAIR_STEPS: [ScenarioStep; 15] =
+    append_steps(HOLD_MARKET_STEPS, PILOT_REPAIR_EXTENSION);
+const PILOT_SCREEN_STEPS: [ScenarioStep; 14] = append_steps(
+    HOLD_MARKET_STEPS,
+    &[
+        action!("return.visit_workshop"),
+        action!("fume_yards.take_stock"),
+        action!("fume_yards.pack_catch_screen"),
+        action!("fume_yards.fit_catch_screen"),
+        action!("fume_yards.load_screened_freight"),
+        action!("world.enter_aftermath"),
+        action!("return.visit_workshop"),
+    ],
+);
+const PILOT_UNSCREENED_STEPS: [ScenarioStep; 12] = append_steps(
+    HOLD_MARKET_STEPS,
+    &[
+        action!("return.visit_workshop"),
+        action!("fume_yards.take_stock"),
+        action!("fume_yards.load_freight"),
+        action!("world.enter_aftermath"),
+        action!("return.visit_workshop"),
+    ],
+);
+const PILOT_LATE_PREFIX: [ScenarioStep; 128] =
+    append_steps(PAID_TOWLINE_RELIEF_STEPS, &[action!("wait_tide"); 117]);
+const PILOT_LATE_STEPS: [ScenarioStep; 136] =
+    append_steps(&PILOT_LATE_PREFIX, PILOT_REPAIR_EXTENSION);
+const PILOT_INPUTS: &[(&str, u32)] = &[("fume_yards.clay", 2), ("fume_yards.mesh", 1)];
+const PILOT_REPAIR_EVENTS: &[ScenarioRecipeExpectation] = &[
+    ScenarioRecipeExpectation {
+        turn: 9,
+        recipe: "fume_yards.press_repair_plugs",
+        inputs: PILOT_INPUTS,
+        outputs: &[("fume_yards.repair_lot", 1)],
+    },
+    ScenarioRecipeExpectation {
+        turn: 12,
+        recipe: "fume_yards.patch_stand",
+        inputs: &[("fume_yards.repair_lot", 1)],
+        outputs: &[],
+    },
+];
+const PILOT_SCREEN_EVENTS: &[ScenarioRecipeExpectation] = &[
+    ScenarioRecipeExpectation {
+        turn: 9,
+        recipe: "fume_yards.pack_catch_screen",
+        inputs: PILOT_INPUTS,
+        outputs: &[("fume_yards.catch_screen", 1)],
+    },
+    ScenarioRecipeExpectation {
+        turn: 10,
+        recipe: "fume_yards.fit_catch_screen",
+        inputs: &[("fume_yards.catch_screen", 1)],
+        outputs: &[],
+    },
+];
+const PILOT_LATE_EVENTS: &[ScenarioRecipeExpectation] = &[
+    ScenarioRecipeExpectation {
+        turn: 130,
+        recipe: "fume_yards.press_repair_plugs",
+        inputs: PILOT_INPUTS,
+        outputs: &[("fume_yards.repair_lot", 1)],
+    },
+    ScenarioRecipeExpectation {
+        turn: 133,
+        recipe: "fume_yards.patch_stand",
+        inputs: &[("fume_yards.repair_lot", 1)],
+        outputs: &[],
+    },
+];
+const PILOT_SPENT_ITEMS: &[&str] = &[
+    "fume_yards.clay",
+    "fume_yards.mesh",
+    "fume_yards.repair_lot",
+    "fume_yards.catch_screen",
+];
+const PILOT_EMPTY_NESSA: &[ScenarioNpcInventoryAbsence] = &[
+    ScenarioNpcInventoryAbsence {
+        npc: "fume_yards.nessa_tern",
+        item: "fume_yards.clay",
+    },
+    ScenarioNpcInventoryAbsence {
+        npc: "fume_yards.nessa_tern",
+        item: "fume_yards.mesh",
+    },
+];
+
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m0-ilyan",
@@ -496,6 +626,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -527,6 +659,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -559,6 +693,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -591,6 +727,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -636,6 +774,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -691,6 +831,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -747,6 +889,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -783,6 +927,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &["floor.open_relief"],
         },
@@ -822,6 +968,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &["floor.open_relief"],
             forbidden_legal_definitions: &[],
         },
@@ -879,6 +1027,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -933,6 +1083,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -989,6 +1141,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1054,6 +1208,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1123,6 +1279,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: &[],
             required_character_resources: &[],
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1185,6 +1343,8 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: TIDE_KEY_CHARACTER_INVENTORY,
             required_character_resources: &[],
             forbidden_npc_inventory: TIDE_KEY_YARA_INVENTORY_ABSENCE,
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1244,8 +1404,351 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_character_inventory: PAID_TOWLINE_CHARACTER_INVENTORY,
             required_character_resources: PAID_TOWLINE_CHARACTER_RESOURCES,
             forbidden_npc_inventory: &[],
+            forbidden_character_inventory: &[],
+            recipe_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
+        },
+    },
+    ScenarioSpec {
+        id: "m2-fume-cold-repair",
+        claim_id: "fume-yards.pilot.cold-repair",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: &PILOT_REPAIR_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "fume_yards.workshop",
+            final_action_definition: "return.visit_workshop",
+            final_observation_contains: "spent",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(15),
+            exclusive_after_action: "",
+            required_world_flags: &[
+                "sluice_outcome_chosen",
+                "flow_locked_market",
+                "ending_council",
+            ],
+            forbidden_world_flags: &[
+                "flow_split",
+                "old_channel_open",
+                "sluice_failure",
+                "surge_missed",
+                "flow_relief",
+                "ending_relief",
+            ],
+            required_location_flags: &[
+                ("fume_yards.workshop", "fume_yards.stock_given"),
+                ("fume_yards.workshop", "fume_yards.freight_loaded"),
+                ("lowsail.return", "fume_yards.stand_patched"),
+                ("lowsail.return", "fume_yards.dry_goods_sorted"),
+            ],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail.levee",
+                "red_sluice.top",
+                "lowsail.return",
+                "fume_yards.workshop",
+            ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
+            required_npc_knowledge: &[ScenarioNpcKnowledgeExpectation {
+                npc: "oren_pell",
+                knowledge_id: "fume_yards.stand_patched",
+                provenance: ScenarioKnowledgeProvenance::Witnessed,
+                turn: 12,
+            }],
+            forbidden_npc_knowledge: &[],
+            required_npc_memories: &[
+                ScenarioNpcMemoryExpectation {
+                    npc: "fume_yards.nessa_tern",
+                    memory_id: "fume_yards.stock_handed_over",
+                    provenance: ScenarioKnowledgeProvenance::Witnessed,
+                    turn: 8,
+                },
+                ScenarioNpcMemoryExpectation {
+                    npc: "oren_pell",
+                    memory_id: "fume_yards.dry_goods_paid",
+                    provenance: ScenarioKnowledgeProvenance::Witnessed,
+                    turn: 13,
+                },
+            ],
+            required_character_inventory: &[],
+            required_character_resources: &[
+                ScenarioResourceExpectation {
+                    resource: "coin",
+                    amount: 15,
+                },
+                ScenarioResourceExpectation {
+                    resource: "stamina",
+                    amount: 1,
+                },
+            ],
+            forbidden_npc_inventory: PILOT_EMPTY_NESSA,
+            forbidden_character_inventory: PILOT_SPENT_ITEMS,
+            recipe_events: PILOT_REPAIR_EVENTS,
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: &[
+                "fume_yards.take_stock",
+                "fume_yards.pack_catch_screen",
+                "fume_yards.fit_catch_screen",
+                "fume_yards.load_freight",
+                "fume_yards.load_screened_freight",
+                "return.patch_stand",
+                "return.sort_dry_goods",
+                "fume_yards.press_repair_plugs",
+            ],
+        },
+    },
+    ScenarioSpec {
+        id: "m2-fume-cold-screen",
+        claim_id: "fume-yards.pilot.cold-screen",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: &PILOT_SCREEN_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "fume_yards.workshop",
+            final_action_definition: "return.visit_workshop",
+            final_observation_contains: "screen",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(14),
+            exclusive_after_action: "",
+            required_world_flags: &[
+                "sluice_outcome_chosen",
+                "flow_locked_market",
+                "ending_council",
+            ],
+            forbidden_world_flags: &[
+                "flow_split",
+                "old_channel_open",
+                "sluice_failure",
+                "surge_missed",
+                "flow_relief",
+                "ending_relief",
+            ],
+            required_location_flags: &[
+                ("fume_yards.workshop", "fume_yards.stock_given"),
+                ("fume_yards.workshop", "fume_yards.freight_loaded"),
+                ("fume_yards.workshop", "fume_yards.screen_fitted"),
+            ],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail.levee",
+                "red_sluice.top",
+                "lowsail.return",
+                "fume_yards.workshop",
+            ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[ScenarioNpcKnowledgeAbsence {
+                npc: "oren_pell",
+                knowledge_id: "fume_yards.stand_patched",
+            }],
+            required_npc_memories: &[ScenarioNpcMemoryExpectation {
+                npc: "fume_yards.nessa_tern",
+                memory_id: "fume_yards.stock_handed_over",
+                provenance: ScenarioKnowledgeProvenance::Witnessed,
+                turn: 8,
+            }],
+            required_character_inventory: &[],
+            required_character_resources: &[
+                ScenarioResourceExpectation {
+                    resource: "coin",
+                    amount: 12,
+                },
+                ScenarioResourceExpectation {
+                    resource: "stamina",
+                    amount: 3,
+                },
+            ],
+            forbidden_npc_inventory: PILOT_EMPTY_NESSA,
+            forbidden_character_inventory: PILOT_SPENT_ITEMS,
+            recipe_events: PILOT_SCREEN_EVENTS,
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: &[
+                "fume_yards.take_stock",
+                "fume_yards.pack_catch_screen",
+                "fume_yards.fit_catch_screen",
+                "fume_yards.load_freight",
+                "fume_yards.load_screened_freight",
+                "return.patch_stand",
+                "return.sort_dry_goods",
+                "fume_yards.press_repair_plugs",
+            ],
+        },
+    },
+    ScenarioSpec {
+        id: "m2-fume-unscreened-freight",
+        claim_id: "fume-yards.pilot.unscreened-freight",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "ilyan",
+        },
+        seed: 71,
+        steps: &PILOT_UNSCREENED_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "fume_yards.workshop",
+            final_action_definition: "return.visit_workshop",
+            final_observation_contains: "Lowsail",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(12),
+            exclusive_after_action: "",
+            required_world_flags: &[
+                "sluice_outcome_chosen",
+                "flow_locked_market",
+                "ending_council",
+            ],
+            forbidden_world_flags: &[
+                "flow_split",
+                "old_channel_open",
+                "sluice_failure",
+                "surge_missed",
+                "flow_relief",
+                "ending_relief",
+            ],
+            required_location_flags: &[
+                ("fume_yards.workshop", "fume_yards.stock_given"),
+                ("fume_yards.workshop", "fume_yards.freight_loaded"),
+            ],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail.levee",
+                "red_sluice.top",
+                "lowsail.return",
+                "fume_yards.workshop",
+            ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
+            required_npc_knowledge: &[],
+            forbidden_npc_knowledge: &[ScenarioNpcKnowledgeAbsence {
+                npc: "oren_pell",
+                knowledge_id: "fume_yards.stand_patched",
+            }],
+            required_npc_memories: &[ScenarioNpcMemoryExpectation {
+                npc: "fume_yards.nessa_tern",
+                memory_id: "fume_yards.stock_handed_over",
+                provenance: ScenarioKnowledgeProvenance::Witnessed,
+                turn: 8,
+            }],
+            required_character_inventory: &[
+                ScenarioInventoryExpectation {
+                    item: "fume_yards.clay",
+                    count: 2,
+                },
+                ScenarioInventoryExpectation {
+                    item: "fume_yards.mesh",
+                    count: 1,
+                },
+            ],
+            required_character_resources: &[
+                ScenarioResourceExpectation {
+                    resource: "coin",
+                    amount: 12,
+                },
+                ScenarioResourceExpectation {
+                    resource: "stamina",
+                    amount: 1,
+                },
+            ],
+            forbidden_npc_inventory: PILOT_EMPTY_NESSA,
+            forbidden_character_inventory: &["fume_yards.repair_lot", "fume_yards.catch_screen"],
+            recipe_events: &[],
+            required_legal_definitions: &["fume_yards.press_repair_plugs"],
+            forbidden_legal_definitions: &[
+                "fume_yards.take_stock",
+                "fume_yards.pack_catch_screen",
+                "fume_yards.fit_catch_screen",
+                "fume_yards.load_freight",
+                "fume_yards.load_screened_freight",
+                "return.patch_stand",
+                "return.sort_dry_goods",
+            ],
+        },
+    },
+    ScenarioSpec {
+        id: "m2-fume-late-repair",
+        claim_id: "fume-yards.pilot.late-repair",
+        start: ScenarioStartSpec::Preset {
+            character_preset_id: "rook",
+        },
+        seed: 71,
+        steps: &PILOT_LATE_STEPS,
+        expectations: ScenarioExpectations {
+            final_location: "fume_yards.workshop",
+            final_action_definition: "return.visit_workshop",
+            final_observation_contains: "spent",
+            forbidden_observation_contains: &[],
+            final_world_time: Some(136),
+            exclusive_after_action: "",
+            required_world_flags: &["sluice_outcome_chosen", "flow_relief", "ending_relief"],
+            forbidden_world_flags: &[
+                "flow_split",
+                "old_channel_open",
+                "sluice_failure",
+                "surge_missed",
+                "flow_locked_market",
+                "ending_council",
+            ],
+            required_location_flags: &[
+                ("fume_yards.workshop", "fume_yards.stock_given"),
+                ("fume_yards.workshop", "fume_yards.freight_loaded"),
+                ("lowsail.return", "fume_yards.stand_patched"),
+                ("lowsail.return", "fume_yards.dry_goods_sorted"),
+            ],
+            required_deeds: &[],
+            required_visited_locations: &[
+                "lowsail.levee",
+                "red_sluice.top",
+                "lowsail.return",
+                "fume_yards.workshop",
+            ],
+            required_npc_locations: AFTERMATH_NPC_LOCATIONS,
+            required_npc_knowledge: &[ScenarioNpcKnowledgeExpectation {
+                npc: "oren_pell",
+                knowledge_id: "fume_yards.stand_patched",
+                provenance: ScenarioKnowledgeProvenance::Witnessed,
+                turn: 133,
+            }],
+            forbidden_npc_knowledge: &[],
+            required_npc_memories: &[
+                ScenarioNpcMemoryExpectation {
+                    npc: "fume_yards.nessa_tern",
+                    memory_id: "fume_yards.stock_handed_over",
+                    provenance: ScenarioKnowledgeProvenance::Witnessed,
+                    turn: 129,
+                },
+                ScenarioNpcMemoryExpectation {
+                    npc: "oren_pell",
+                    memory_id: "fume_yards.dry_goods_paid",
+                    provenance: ScenarioKnowledgeProvenance::Witnessed,
+                    turn: 134,
+                },
+            ],
+            required_character_inventory: &[],
+            required_character_resources: &[
+                ScenarioResourceExpectation {
+                    resource: "coin",
+                    amount: 7,
+                },
+                ScenarioResourceExpectation {
+                    resource: "stamina",
+                    amount: 2,
+                },
+            ],
+            forbidden_npc_inventory: PILOT_EMPTY_NESSA,
+            forbidden_character_inventory: PILOT_SPENT_ITEMS,
+            recipe_events: PILOT_LATE_EVENTS,
+            required_legal_definitions: &[],
+            forbidden_legal_definitions: &[
+                "fume_yards.take_stock",
+                "fume_yards.pack_catch_screen",
+                "fume_yards.fit_catch_screen",
+                "fume_yards.load_freight",
+                "fume_yards.load_screened_freight",
+                "return.patch_stand",
+                "return.sort_dry_goods",
+                "fume_yards.press_repair_plugs",
+            ],
         },
     },
 ];
@@ -1408,6 +1911,14 @@ pub(super) fn validate_session(
         expected.forbidden_npc_inventory,
     )?;
     validate_character_resources(state, expected.required_character_resources)?;
+    for item in expected.forbidden_character_inventory {
+        if state.character.inventory.contains_key(*item) {
+            return Err(VerifyError::new(format!(
+                "scenario still owns consumed or forbidden item {item}"
+            )));
+        }
+    }
+    validate_recipe_events(state, expected.recipe_events)?;
     validate_npc_locations(state, expected.required_npc_locations)?;
 
     let mut visited = BTreeSet::new();
@@ -1468,6 +1979,49 @@ pub(super) fn validate_session(
         expected.required_legal_definitions,
         expected.forbidden_legal_definitions,
     )
+}
+
+fn validate_recipe_events(
+    state: &forge_kernel::GameState,
+    expected: &[ScenarioRecipeExpectation],
+) -> Result<(), VerifyError> {
+    let actual: Vec<_> = state
+        .event_log
+        .iter()
+        .filter_map(|event| match &event.kind {
+            forge_kernel::EventKind::RecipeApplied {
+                recipe,
+                inputs,
+                outputs,
+            } => Some((event.turn, recipe.as_str(), inputs.clone(), outputs.clone())),
+            _ => None,
+        })
+        .collect();
+    let expected: Vec<_> = expected
+        .iter()
+        .map(|event| {
+            (
+                event.turn,
+                event.recipe,
+                event
+                    .inputs
+                    .iter()
+                    .map(|(item, count)| ((*item).to_owned(), *count))
+                    .collect::<BTreeMap<_, _>>(),
+                event
+                    .outputs
+                    .iter()
+                    .map(|(item, count)| ((*item).to_owned(), *count))
+                    .collect::<BTreeMap<_, _>>(),
+            )
+        })
+        .collect();
+    if actual != expected {
+        return Err(VerifyError::new(
+            "scenario recipe events differ from required consumption and production",
+        ));
+    }
+    Ok(())
 }
 
 fn validate_forbidden_actions(
@@ -1837,6 +2391,35 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                 return Err(VerifyError::new(
                     "scenario character resource assertions must name a resource",
                 ));
+            }
+        }
+        for item in spec.expectations.forbidden_character_inventory {
+            if item.trim().is_empty() {
+                return Err(VerifyError::new(
+                    "scenario forbidden inventory assertion must name an item",
+                ));
+            }
+        }
+        let mut previous_turn = None;
+        for expected in spec.expectations.recipe_events {
+            if expected.recipe.trim().is_empty()
+                || expected.inputs.is_empty()
+                || previous_turn.is_some_and(|turn| turn > expected.turn)
+            {
+                return Err(VerifyError::new(
+                    "scenario recipe assertions require ordered turns and named consumed inputs",
+                ));
+            }
+            previous_turn = Some(expected.turn);
+            for quantities in [expected.inputs, expected.outputs] {
+                let mut names = BTreeSet::new();
+                for (item, count) in quantities {
+                    if item.trim().is_empty() || *count == 0 || !names.insert(item) {
+                        return Err(VerifyError::new(
+                            "scenario recipe quantities must be positive and unique",
+                        ));
+                    }
+                }
             }
         }
         for expected in spec.expectations.required_npc_memories {
@@ -2334,5 +2917,96 @@ mod tests {
         changed_expectations.required_npc_memories = &[];
         changed_memory.expectations = changed_expectations;
         assert_ne!(original_binding, binding(&changed_memory).unwrap());
+    }
+    #[test]
+    fn pilot_witnesses_bind_consumption_production_and_forbidden_inventory() {
+        let content = crate::load_content().unwrap();
+        let spec = *get("m2-fume-cold-repair").unwrap();
+        let session = run(&spec, &content).unwrap();
+        let mut altered = spec;
+        const WRONG_RECIPE_EVENTS: &[ScenarioRecipeExpectation] = &[
+            ScenarioRecipeExpectation {
+                turn: 9,
+                recipe: "fume_yards.press_repair_plugs",
+                inputs: &[("fume_yards.clay", 1), ("fume_yards.mesh", 1)],
+                outputs: &[("fume_yards.repair_lot", 1)],
+            },
+            PILOT_REPAIR_EVENTS[1],
+        ];
+        altered.expectations.recipe_events = WRONG_RECIPE_EVENTS;
+        assert_ne!(binding(&spec).unwrap(), binding(&altered).unwrap());
+        assert!(validate_session(&altered, &session, &content).is_err());
+        altered = spec;
+        altered.expectations.forbidden_character_inventory = &["rope"];
+        assert_ne!(binding(&spec).unwrap(), binding(&altered).unwrap());
+        assert!(validate_session(&altered, &session, &content).is_err());
+        let recipe_positions: Vec<_> = session
+            .state()
+            .event_log
+            .iter()
+            .enumerate()
+            .filter_map(|(i, event)| {
+                matches!(event.kind, forge_kernel::EventKind::RecipeApplied { .. }).then_some(i)
+            })
+            .collect();
+        assert_eq!(recipe_positions.len(), 2);
+        for mutation in 0..5 {
+            let mut bad = session.state().clone();
+            match mutation {
+                0 => {
+                    bad.event_log.remove(recipe_positions[0]);
+                }
+                1 => {
+                    bad.event_log[recipe_positions[0]].turn += 1;
+                }
+                2 => {
+                    if let forge_kernel::EventKind::RecipeApplied { inputs, .. } =
+                        &mut bad.event_log[recipe_positions[0]].kind
+                    {
+                        inputs.insert("fume_yards.clay".to_owned(), 1);
+                    }
+                }
+                3 => {
+                    if let forge_kernel::EventKind::RecipeApplied { outputs, .. } =
+                        &mut bad.event_log[recipe_positions[0]].kind
+                    {
+                        outputs.insert("fume_yards.repair_lot".to_owned(), 2);
+                    }
+                }
+                _ => bad
+                    .event_log
+                    .push(bad.event_log[recipe_positions[0]].clone()),
+            }
+            assert!(
+                validate_recipe_events(&bad, PILOT_REPAIR_EVENTS).is_err(),
+                "recipe corruption {mutation} passed"
+            );
+        }
+    }
+
+    #[test]
+    fn pilot_choices_and_late_entry_have_checked_semantic_witnesses() {
+        let content = crate::load_content().unwrap();
+        let screen = run(get("m2-fume-cold-screen").unwrap(), &content).unwrap();
+        let bare = run(get("m2-fume-unscreened-freight").unwrap(), &content).unwrap();
+        assert_eq!(
+            screen.state().character.resources["coin"],
+            bare.state().character.resources["coin"]
+        );
+        assert_eq!(
+            screen.state().character.resources["stamina"],
+            bare.state().character.resources["stamina"] + 2
+        );
+        let late = run(get("m2-fume-late-repair").unwrap(), &content).unwrap();
+        assert!(
+            late.trace().steps[..128]
+                .iter()
+                .all(|step| step.observation.location_id != "fume_yards.workshop")
+        );
+        assert_eq!(
+            late.trace().steps[128].observation.location_id,
+            "fume_yards.workshop"
+        );
+        assert!(late.state().world.flags.contains("ending_relief"));
     }
 }

@@ -362,6 +362,11 @@ pub enum EventKind {
         item: String,
         count: u32,
     },
+    RecipeApplied {
+        recipe: String,
+        inputs: BTreeMap<String, u32>,
+        outputs: BTreeMap<String, u32>,
+    },
     TimeAdvanced {
         ticks: u64,
     },

@@ -1806,14 +1806,15 @@ fn timed_event_fixture_content() -> CompiledContent {
     };
 
     CompiledContent::try_compile(ContentDraft {
-        schema_version: "forge-schema-v7".to_owned(),
-        rules_version: "forge-rules-v5".to_owned(),
+        schema_version: "forge-schema-v8".to_owned(),
+        rules_version: "forge-rules-v6".to_owned(),
         world_id: "timed-fixture".to_owned(),
         contract: ContentContract::Fixture,
         start_location: "room".to_owned(),
         character_presets: Vec::new(),
         character_creation: None,
         supply_labels: SupplyLabels::default(),
+        recipes: Vec::new(),
         locations: vec![LocationDefinition {
             id: "room".to_owned(),
             name: "Room".to_owned(),

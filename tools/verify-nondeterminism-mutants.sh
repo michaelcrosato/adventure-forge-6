@@ -7,6 +7,7 @@ BOUNDARY_PATCH_PATH="$REPO_DIR/tools/mutants/boundary-env.patch"
 HASH_ENTROPY_PATCH_PATH="$REPO_DIR/tools/mutants/hash-entropy-env.patch"
 MEMORY_PROSE_PATCH_PATH="$REPO_DIR/tools/mutants/memory-prose-env.patch"
 MANIFEST_PATCH_PATH="$REPO_DIR/tools/mutants/manifest-env.patch"
+RECIPE_PATCH_PATH="$REPO_DIR/tools/mutants/recipe-env.patch"
 MUTANT_TMP_PREFIX="${TMPDIR:-/tmp}/forge-nondeterminism-mutants."
 MUTANT_WORKSPACE=""
 MUTANT_SELECTORS=(
@@ -21,6 +22,8 @@ MUTANT_SELECTORS=(
     FORGE_MUTANT_REMOTE_MEMORY
     FORGE_MUTANT_PROSE
     FORGE_MUTANT_MANIFEST_INPUT
+    FORGE_MUTANT_RECIPE_CONSUMPTION
+    FORGE_MUTANT_RECIPE_OUTPUT
 )
 MUTANT_UNSET_ARGS=()
 for selector in "${MUTANT_SELECTORS[@]}"; do
@@ -49,7 +52,7 @@ for command in cargo cat cp grep mkdir mktemp mv patch rm sed; do
 done
 [[ -f "$PATCH_PATH" ]] || fail "mutant patch is missing"
 [[ -f "$BOUNDARY_PATCH_PATH" ]] || fail "boundary mutant patch is missing"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH"; do
     [[ -f "$patch_path" ]] || fail "mutation patch is missing: $patch_path"
 done
 
@@ -75,7 +78,7 @@ patch \
     --batch \
     --forward \
     --input="$BOUNDARY_PATCH_PATH" >/dev/null || fail "could not apply the boundary mutant patch"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH"; do
     patch --directory="$MUTANT_WORKSPACE" --strip=1 --batch --forward \
         --input="$patch_path" >/dev/null || fail "could not apply mutation patch: $patch_path"
 done
@@ -126,6 +129,8 @@ run_neutral_test "hash_entropy" "entropy_known_answers_survive_canonical_actions
 run_neutral_test "memory_prose" "remote_npc_memory_survives_movement_save_replay_and_return"
 run_neutral_test "memory_prose" "production_prose_rejects_sentence_over_eighteen_words"
 run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+run_neutral_test "recipes" "production_recipe_consumes_owned_inputs_once"
+run_neutral_test "recipes" "production_recipe_produces_exact_finished_quantity"
 
 # Check actual incremental build sensitivity in this disposable copy. Updating
 # an existing source and adding an unreferenced source must both change the
@@ -246,7 +251,15 @@ assert_mutant_killed \
     "memory_prose" "production_prose_rejects_sentence_over_eighteen_words" \
     'production prose admitted a nineteen-word sentence'
 assert_mutant_killed \
+    "recipe-consumption" "FORGE_MUTANT_RECIPE_CONSUMPTION" \
+    "recipes" "production_recipe_consumes_owned_inputs_once" \
+    'recipe consumption bypassed owned inputs'
+assert_mutant_killed \
+    "recipe-output" "FORGE_MUTANT_RECIPE_OUTPUT" \
+    "recipes" "production_recipe_produces_exact_finished_quantity" \
+    'recipe output duplicated finished goods'
+assert_mutant_killed \
     "manifest-input" "FORGE_MUTANT_MANIFEST_INPUT" \
     "manifest" "generated_manifest_matches_independent_input_digests" \
     'manifest omitted authoritative kernel input'
-echo "PASS mutation corpus: 11/11 killed after 8 neutral controls and 4 incremental manifest probes"
+echo "PASS mutation corpus: 13/13 killed after 10 neutral controls and 4 incremental manifest probes"

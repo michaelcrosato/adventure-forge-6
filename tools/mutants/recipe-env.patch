@@ -1,0 +1,30 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -1138,6 +1138,9 @@
+             // until every subtraction and post-consumption addition succeeds.
+             let mut inventory = state.character.inventory.clone();
+             for (item, count) in &definition.inputs {
++                if std::env::var_os("FORGE_MUTANT_RECIPE_CONSUMPTION").is_some() {
++                    continue;
++                }
+                 let current = inventory.get(item).copied().unwrap_or_default();
+                 let next = current.checked_sub(*count).ok_or_else(|| {
+                     KernelError::InvalidAction(format!(
+@@ -1151,8 +1154,15 @@
+                 }
+             }
+             for (item, count) in &definition.outputs {
++                let added_count = if std::env::var_os("FORGE_MUTANT_RECIPE_OUTPUT").is_some() {
++                    count.checked_mul(2).ok_or_else(|| {
++                        KernelError::InvalidAction("mutant recipe output overflow".to_owned())
++                    })?
++                } else {
++                    *count
++                };
+                 let current = inventory.get(item).copied().unwrap_or_default();
+-                let next = current.checked_add(*count).ok_or_else(|| {
++                let next = current.checked_add(added_count).ok_or_else(|| {
+                     KernelError::InvalidAction(format!(
+                         "character inventory cannot hold {count} more of item {item} for recipe {recipe}"
+                     ))
