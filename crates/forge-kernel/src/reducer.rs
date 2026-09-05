@@ -478,6 +478,8 @@ struct InventoryRange {
 struct InventoryBounds<'a> {
     initial: &'a GameState,
     counts: BTreeMap<(InventoryOwner, String), InventoryRange>,
+    latest_time: Option<u64>,
+    scheduled: BTreeSet<String>,
 }
 
 impl<'a> InventoryBounds<'a> {
@@ -485,6 +487,8 @@ impl<'a> InventoryBounds<'a> {
         Self {
             initial,
             counts: BTreeMap::new(),
+            latest_time: Some(initial.world.time),
+            scheduled: BTreeSet::new(),
         }
     }
 
@@ -538,6 +542,11 @@ impl<'a> InventoryBounds<'a> {
     }
 
     fn merge(&mut self, other: Self) {
+        self.latest_time = match (self.latest_time, other.latest_time) {
+            (Some(left), Some(right)) => Some(left.max(right)),
+            _ => None,
+        };
+        self.scheduled.extend(other.scheduled.iter().cloned());
         let keys: BTreeSet<_> = self
             .counts
             .keys()
@@ -569,6 +578,29 @@ fn inventory_candidate_available(
         if !inventory_effect_available(effect, parameters, content, &mut inventories)? {
             return Ok(false);
         }
+    }
+    if !inventories.scheduled.is_empty() && inventories.latest_time.is_none() {
+        return Ok(false);
+    }
+    let latest_time = inventories.latest_time.unwrap_or(u64::MAX);
+    let pending_recipe = state.world.scheduled_events.iter().any(|scheduled| {
+        scheduled.due_time <= latest_time
+            && content
+                .deferred_event(&scheduled.id)
+                .is_some_and(|event| effects_contain_recipe(&event.effects))
+    });
+    let new_recipe = inventories.scheduled.iter().any(|id| {
+        content.deferred_event(id).is_some_and(|event| {
+            effects_contain_recipe(&event.effects)
+                && state
+                    .world
+                    .time
+                    .checked_add(event.delay)
+                    .is_some_and(|due| due <= latest_time)
+        })
+    });
+    if pending_recipe || new_recipe {
+        return preflight_candidate_available(definition, parameters, state, content);
     }
     Ok(true)
 }
@@ -603,6 +635,26 @@ fn inventory_effect_available(
             }
             Ok(true)
         }
+        Effect::ScheduleEvent { event } => {
+            let template = content.deferred_event(event).ok_or_else(|| {
+                KernelError::InvalidContent(format!("unknown deferred event {event}"))
+            })?;
+            if event_already_used(inventories.initial, &[], event)
+                || !inventories.scheduled.insert(event.clone())
+            {
+                return Ok(false);
+            }
+            Ok(inventories
+                .latest_time
+                .and_then(|time| time.checked_add(template.delay))
+                .is_some())
+        }
+        Effect::AdvanceTime { ticks } => {
+            inventories.latest_time = inventories
+                .latest_time
+                .and_then(|time| time.checked_add(*ticks));
+            Ok(true)
+        }
         Effect::RandomChance {
             success_percent,
             on_success,
@@ -633,9 +685,164 @@ fn inventory_effect_available(
         | Effect::AdjustNpcRelationship { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
-        | Effect::AddCharacterDeed { .. }
-        | Effect::AdvanceTime { .. } => Ok(true),
+        | Effect::AddCharacterDeed { .. } => Ok(true),
     }
+}
+
+fn effects_contain_recipe(effects: &[Effect]) -> bool {
+    effects.iter().any(|effect| match effect {
+        Effect::ApplyRecipe { .. } => true,
+        Effect::RandomChance {
+            success_percent,
+            on_success,
+            on_failure,
+        } => {
+            (*success_percent > 0 && effects_contain_recipe(std::slice::from_ref(on_success)))
+                || (*success_percent < 100
+                    && effects_contain_recipe(std::slice::from_ref(on_failure)))
+        }
+        _ => false,
+    })
+}
+
+fn event_already_used(state: &GameState, staged_events: &[Event], id: &str) -> bool {
+    state
+        .world
+        .scheduled_events
+        .iter()
+        .any(|event| event.id == id)
+        || state
+            .event_log
+            .iter()
+            .chain(staged_events)
+            .any(|event| match &event.kind {
+                EventKind::EventScheduled { event_id, .. }
+                | EventKind::ScheduledEventResolved { event_id, .. } => event_id == id,
+                _ => false,
+            })
+}
+
+/// Timed recipe guards can correlate inventory with flags changed by random
+/// actions. Explore these paths exactly, without drawing or reading entropy.
+/// Equivalent states merge; work vectors grow fallibly and have no path cap.
+fn preflight_candidate_available(
+    definition: &crate::ActionDefinition,
+    parameters: &BTreeMap<String, String>,
+    state: &GameState,
+    content: &CompiledContent,
+) -> Result<bool, KernelError> {
+    let mut paths = Vec::new();
+    push_preflight_state(&mut paths, state.clone())?;
+    if !preflight_effects(&mut paths, &definition.effects, parameters, content)? {
+        return Ok(false);
+    }
+    for mut path in paths {
+        let due_count = path
+            .world
+            .scheduled_events
+            .partition_point(|event| event.due_time <= path.world.time);
+        let mut due = std::mem::take(&mut path.world.scheduled_events);
+        path.world.scheduled_events = due.split_off(due_count);
+        let mut event_paths = Vec::new();
+        push_preflight_state(&mut event_paths, path)?;
+        for scheduled in due {
+            let (condition, effects) = scheduled_program(&scheduled, content)?;
+            let mut next = Vec::new();
+            for event_path in event_paths {
+                if condition.evaluate(&event_path) {
+                    let mut applied = Vec::new();
+                    push_preflight_state(&mut applied, event_path)?;
+                    if !preflight_effects(&mut applied, effects, &BTreeMap::new(), content)? {
+                        return Ok(false);
+                    }
+                    for result in applied {
+                        push_preflight_state(&mut next, result)?;
+                    }
+                } else {
+                    push_preflight_state(&mut next, event_path)?;
+                }
+            }
+            event_paths = next;
+        }
+    }
+    Ok(true)
+}
+
+fn preflight_effects(
+    paths: &mut Vec<GameState>,
+    effects: &[Effect],
+    parameters: &BTreeMap<String, String>,
+    content: &CompiledContent,
+) -> Result<bool, KernelError> {
+    for effect in effects {
+        let mut next = Vec::new();
+        for path in paths.drain(..) {
+            if !preflight_effect(path, effect, parameters, content, &mut next)? {
+                return Ok(false);
+            }
+        }
+        *paths = next;
+    }
+    Ok(true)
+}
+
+fn preflight_effect(
+    mut state: GameState,
+    effect: &Effect,
+    parameters: &BTreeMap<String, String>,
+    content: &CompiledContent,
+    output: &mut Vec<GameState>,
+) -> Result<bool, KernelError> {
+    if let Effect::RandomChance {
+        success_percent,
+        on_success,
+        on_failure,
+    } = effect
+    {
+        // Count required draws without computing their values. Different cursor
+        // counts remain distinct because later exhaustion can affect legality.
+        if state.entropy.cursor >= crate::MAX_ENTROPY_CURSOR {
+            return Ok(false);
+        }
+        state.entropy.cursor += 1;
+        return match success_percent {
+            0 => preflight_effect(state, on_failure, parameters, content, output),
+            100 => preflight_effect(state, on_success, parameters, content, output),
+            _ => {
+                if !preflight_effect(state.clone(), on_success, parameters, content, output)? {
+                    return Ok(false);
+                }
+                preflight_effect(state, on_failure, parameters, content, output)
+            }
+        };
+    }
+    let mut entropy = state.entropy.clone();
+    match apply_effect(
+        &mut state,
+        effect,
+        parameters,
+        content,
+        &mut entropy,
+        &mut Vec::new(),
+        &mut Vec::new(),
+    ) {
+        Ok(()) => {
+            push_preflight_state(output, state)?;
+            Ok(true)
+        }
+        Err(error @ KernelError::ResourceExhausted(_)) => Err(error),
+        Err(_) => Ok(false),
+    }
+}
+
+fn push_preflight_state(paths: &mut Vec<GameState>, state: GameState) -> Result<(), KernelError> {
+    // Emitted events are deliberately omitted: current conditions inspect only
+    // state, and new one-shot identities remain in the staged pending queue.
+    if !paths.contains(&state) {
+        try_reserve(paths, 1, "timed recipe preflight paths")?;
+        paths.push(state);
+    }
+    Ok(())
 }
 
 fn try_reserve<T>(
@@ -704,6 +911,15 @@ pub fn step(
         return Err(KernelError::EntropyMismatch);
     }
     validate_action(state, content, action)?;
+    reduce_validated_action(state, action, content, entropy)
+}
+
+fn reduce_validated_action(
+    state: &GameState,
+    action: &CanonicalAction,
+    content: &CompiledContent,
+    entropy: &EntropyState,
+) -> Result<Transition, KernelError> {
     let definition = content
         .action(&action.definition_id)
         .ok_or_else(|| KernelError::UnknownAction(action.definition_id.clone()))?;
@@ -769,18 +985,8 @@ fn resolve_due_timed_events(
     state.world.scheduled_events = due.split_off(due_count);
     let parameters = BTreeMap::new();
     for scheduled in due {
-        let definition = content.timed_event(&scheduled.id).ok_or_else(|| {
-            KernelError::InvalidState(format!("unknown timed event {}", scheduled.id))
-        })?;
-        if definition.due_time != scheduled.due_time
-            || definition.event_kind != scheduled.event_kind
-        {
-            return Err(KernelError::InvalidState(format!(
-                "timed event {} differs from compiled content",
-                scheduled.id
-            )));
-        }
-        let applied = definition.condition.evaluate(state);
+        let (condition, effects) = scheduled_program(&scheduled, content)?;
+        let applied = condition.evaluate(state);
         events.push(Event {
             turn: state.world.time,
             kind: EventKind::ScheduledEventResolved {
@@ -790,7 +996,7 @@ fn resolve_due_timed_events(
             },
         });
         if applied {
-            for effect in &definition.effects {
+            for effect in effects {
                 apply_effect(
                     state,
                     effect,
@@ -804,6 +1010,27 @@ fn resolve_due_timed_events(
         }
     }
     Ok(())
+}
+
+fn scheduled_program<'a>(
+    scheduled: &crate::ScheduledEvent,
+    content: &'a CompiledContent,
+) -> Result<(&'a crate::Condition, &'a [Effect]), KernelError> {
+    if let Some(definition) = content.timed_event(&scheduled.id) {
+        if definition.due_time == scheduled.due_time
+            && definition.event_kind == scheduled.event_kind
+        {
+            return Ok((&definition.condition, &definition.effects));
+        }
+    } else if let Some(definition) = content.deferred_event(&scheduled.id)
+        && definition.event_kind == scheduled.event_kind
+    {
+        return Ok((&definition.condition, &definition.effects));
+    }
+    Err(KernelError::InvalidState(format!(
+        "timed event {} differs from compiled content",
+        scheduled.id
+    )))
 }
 
 fn resolve_ref(
@@ -1169,6 +1396,52 @@ fn apply_effect(
                 },
             });
         }
+        Effect::ScheduleEvent { event } => {
+            let template = content.deferred_event(event).ok_or_else(|| {
+                KernelError::InvalidAction(format!("unknown deferred event {event}"))
+            })?;
+            if event_already_used(state, events, event) {
+                return Err(KernelError::InvalidAction(format!(
+                    "deferred event {event} was already scheduled or resolved"
+                )));
+            }
+            let due_time = state
+                .world
+                .time
+                .checked_add(template.delay)
+                .ok_or_else(|| {
+                    KernelError::InvalidAction(format!("deferred event {event} due time overflow"))
+                })?;
+            let scheduled = crate::ScheduledEvent {
+                id: event.clone(),
+                due_time,
+                event_kind: template.event_kind.clone(),
+            };
+            let position = state
+                .world
+                .scheduled_events
+                .binary_search_by(|existing| {
+                    existing
+                        .due_time
+                        .cmp(&due_time)
+                        .then_with(|| existing.id.cmp(event))
+                })
+                .unwrap_or_else(|position| position);
+            try_reserve(
+                &mut state.world.scheduled_events,
+                1,
+                "scheduled event queue",
+            )?;
+            state.world.scheduled_events.insert(position, scheduled);
+            events.push(Event {
+                turn,
+                kind: EventKind::EventScheduled {
+                    event_id: event.clone(),
+                    event_kind: template.event_kind.clone(),
+                    due_time,
+                },
+            });
+        }
         Effect::AddCharacterDeed { deed_id } => {
             state.character.deeds.insert(deed_id.clone());
             events.push(Event {
@@ -1274,8 +1547,8 @@ mod tests {
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v8".to_owned(),
-            rules_version: "forge-rules-v6".to_owned(),
+            schema_version: "forge-schema-v9".to_owned(),
+            rules_version: "forge-rules-v7".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -1311,6 +1584,7 @@ mod tests {
                 inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
+            deferred_events: Vec::new(),
             actions,
         }
     }
@@ -1429,6 +1703,160 @@ mod tests {
             .into_iter()
             .map(|action| action.definition_id)
             .collect()
+    }
+
+    fn schedule(id: &str) -> Effect {
+        Effect::ScheduleEvent {
+            event: id.to_owned(),
+        }
+    }
+
+    fn deferred(
+        id: &str,
+        delay: u64,
+        condition: Condition,
+        effects: Vec<Effect>,
+    ) -> crate::DeferredEventDefinition {
+        crate::DeferredEventDefinition {
+            id: id.to_owned(),
+            delay,
+            event_kind: "Work".to_owned(),
+            label: "Work due".to_owned(),
+            result: "The work changes.".to_owned(),
+            condition,
+            effects,
+        }
+    }
+
+    fn record_test_action(state: &GameState, content: &CompiledContent, id: &str) -> Transition {
+        let action = enumerate_legal_actions(state, content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == id)
+            .unwrap_or_else(|| panic!("missing action {id}"));
+        step(state, &action, content, &state.entropy).unwrap()
+    }
+
+    fn batch_content() -> CompiledContent {
+        let active = Condition::WorldFlag {
+            flag: "batch.lit".to_owned(),
+        };
+        let mut wait = simple_action(
+            "wait",
+            Condition::Always,
+            vec![Effect::AdvanceTime { ticks: 1 }],
+        );
+        wait.locations.clear();
+        let mut source = draft(vec![
+            wait,
+            simple_action(
+                "late",
+                Condition::Always,
+                vec![Effect::AdvanceTime { ticks: 130 }],
+            ),
+            simple_action(
+                "ignite",
+                Condition::Always,
+                vec![
+                    recipe_effect("batch.ignite"),
+                    Effect::SetWorldFlag {
+                        flag: "batch.lit".to_owned(),
+                        value: true,
+                    },
+                    schedule("batch.ready"),
+                    schedule("batch.spoil"),
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            simple_action(
+                "draw",
+                Condition::All {
+                    conditions: vec![
+                        active.clone(),
+                        Condition::WorldFlag {
+                            flag: "batch.ready".to_owned(),
+                        },
+                    ],
+                },
+                vec![
+                    recipe_effect("batch.draw"),
+                    Effect::SetWorldFlag {
+                        flag: "batch.lit".to_owned(),
+                        value: false,
+                    },
+                    Effect::SetWorldFlag {
+                        flag: "batch.drawn".to_owned(),
+                        value: true,
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            simple_action(
+                "leave",
+                Condition::Always,
+                vec![
+                    Effect::MoveCharacter {
+                        location: StringRef::Literal("yard".to_owned()),
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            simple_action(
+                "reschedule",
+                Condition::Always,
+                vec![schedule("batch.ready")],
+            ),
+        ]);
+        source.recipes = vec![
+            recipe(
+                "batch.ignite",
+                &[("batch.charge", 1), ("batch.fuel", 1)],
+                &[("batch.claim", 1)],
+            ),
+            recipe("batch.draw", &[("batch.claim", 1)], &[("batch.filter", 1)]),
+            recipe(
+                "batch.spoil",
+                &[("batch.claim", 1)],
+                &[("batch.spoiled", 1)],
+            ),
+        ];
+        source.deferred_events = vec![
+            deferred(
+                "batch.ready",
+                2,
+                active.clone(),
+                vec![Effect::SetWorldFlag {
+                    flag: "batch.ready".to_owned(),
+                    value: true,
+                }],
+            ),
+            deferred(
+                "batch.spoil",
+                5,
+                active,
+                vec![
+                    recipe_effect("batch.spoil"),
+                    Effect::SetWorldFlag {
+                        flag: "batch.lit".to_owned(),
+                        value: false,
+                    },
+                    Effect::SetWorldFlag {
+                        flag: "batch.spoiled".to_owned(),
+                        value: true,
+                    },
+                ],
+            ),
+        ];
+        CompiledContent::try_compile(source).unwrap()
+    }
+
+    fn batch_state(content: &CompiledContent) -> GameState {
+        let mut initial = state(content);
+        initial
+            .character
+            .inventory
+            .extend([("batch.charge".to_owned(), 1), ("batch.fuel".to_owned(), 1)]);
+        initial
     }
 
     fn move_npc_effect(npc: StringRef, location: StringRef) -> Effect {
@@ -3136,6 +3564,715 @@ mod tests {
     }
 
     #[test]
+    fn deferred_schedule_is_relative_late_and_one_shot_after_resolution() {
+        let content = batch_content();
+        let initial = batch_state(&content);
+        assert!(initial.world.scheduled_events.is_empty());
+        let late = record_test_action(&initial, &content, "late").into_state();
+        let lit = record_test_action(&late, &content, "ignite");
+        assert_eq!(lit.state().world.time, 131);
+        assert_eq!(
+            lit.state().world.scheduled_events,
+            vec![
+                crate::ScheduledEvent {
+                    id: "batch.ready".to_owned(),
+                    due_time: 132,
+                    event_kind: "Work".to_owned()
+                },
+                crate::ScheduledEvent {
+                    id: "batch.spoil".to_owned(),
+                    due_time: 135,
+                    event_kind: "Work".to_owned()
+                },
+            ]
+        );
+        let scheduling: Vec<_> = lit
+            .events()
+            .iter()
+            .filter(|event| matches!(event.kind, EventKind::EventScheduled { .. }))
+            .cloned()
+            .collect();
+        assert_eq!(
+            scheduling,
+            vec![
+                Event {
+                    turn: 130,
+                    kind: EventKind::EventScheduled {
+                        event_id: "batch.ready".to_owned(),
+                        event_kind: "Work".to_owned(),
+                        due_time: 132
+                    }
+                },
+                Event {
+                    turn: 130,
+                    kind: EventKind::EventScheduled {
+                        event_id: "batch.spoil".to_owned(),
+                        event_kind: "Work".to_owned(),
+                        due_time: 135
+                    }
+                },
+            ]
+        );
+        assert!(!legal_ids(lit.state(), &content).contains(&"reschedule".to_owned()));
+        let ready = record_test_action(lit.state(), &content, "wait");
+        assert_eq!(ready.state().world.time, 132);
+        assert!(ready.state().world.flags.contains("batch.ready"));
+        assert!(legal_ids(ready.state(), &content).contains(&"draw".to_owned()));
+        assert!(!legal_ids(ready.state(), &content).contains(&"reschedule".to_owned()));
+        let forged = CanonicalAction::new(
+            content.build_id(),
+            ready.state().state_id(),
+            "reschedule",
+            BTreeMap::new(),
+        );
+        let before = ready.state().clone();
+        assert!(matches!(
+            step(ready.state(), &forged, &content, &ready.state().entropy),
+            Err(KernelError::IllegalAction(_))
+        ));
+        assert_eq!(ready.state(), &before);
+        let mut staged = before.clone();
+        let mut entropy = staged.entropy.clone();
+        let mut events = Vec::new();
+        assert!(
+            apply_effect(
+                &mut staged,
+                &schedule("batch.ready"),
+                &BTreeMap::new(),
+                &content,
+                &mut entropy,
+                &mut Vec::new(),
+                &mut events
+            )
+            .is_err()
+        );
+        assert_eq!(staged, before);
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn deferred_draw_first_and_last_windows_and_remote_spoil_consume_owned_claim() {
+        let content = batch_content();
+        let lit = record_test_action(&batch_state(&content), &content, "ignite").into_state();
+        assert!(!legal_ids(&lit, &content).contains(&"draw".to_owned()));
+        for draw_time in [2, 4] {
+            let mut current = lit.clone();
+            while current.world.time < draw_time {
+                current = record_test_action(&current, &content, "wait").into_state();
+            }
+            current = record_test_action(&current, &content, "draw").into_state();
+            while current.world.time < 6 {
+                current = record_test_action(&current, &content, "wait").into_state();
+            }
+            assert_eq!(current.character.inventory["batch.filter"], 1);
+            assert!(!current.character.inventory.contains_key("batch.claim"));
+            assert!(!current.character.inventory.contains_key("batch.spoiled"));
+            assert!(current.world.scheduled_events.is_empty());
+            let spoil: Vec<_> = current.event_log.iter().filter(|event| matches!(&event.kind, EventKind::ScheduledEventResolved { event_id, .. } if event_id == "batch.spoil")).collect();
+            assert_eq!(spoil.len(), 1);
+            assert!(matches!(
+                spoil[0].kind,
+                EventKind::ScheduledEventResolved { applied: false, .. }
+            ));
+        }
+        let mut remote = record_test_action(&lit, &content, "leave").into_state();
+        while remote.world.time < 5 {
+            remote = record_test_action(&remote, &content, "wait").into_state();
+        }
+        assert_eq!(remote.world.current_location, "yard");
+        assert_eq!(remote.character.inventory["batch.spoiled"], 1);
+        assert!(!remote.character.inventory.contains_key("batch.claim"));
+        assert!(!remote.character.inventory.contains_key("batch.filter"));
+        assert!(!legal_ids(&remote, &content).contains(&"draw".to_owned()));
+        assert!(remote.world.scheduled_events.is_empty());
+        assert!(remote.event_log.iter().any(|event| event.turn == 5 && matches!(&event.kind,
+            EventKind::RecipeApplied { recipe, inputs, outputs }
+                if recipe == "batch.spoil" && inputs == &BTreeMap::from([("batch.claim".to_owned(), 1)])
+                    && outputs == &BTreeMap::from([("batch.spoiled".to_owned(), 1)]))));
+    }
+
+    #[test]
+    fn deferred_duplicate_schedule_filter_composes_sequential_and_random_paths() {
+        let random = |percent, success, failure| Effect::RandomChance {
+            success_percent: percent,
+            on_success: Box::new(success),
+            on_failure: Box::new(failure),
+        };
+        let mut source = draft(vec![
+            simple_action(
+                "double",
+                Condition::Always,
+                vec![schedule("work.finish"), schedule("work.finish")],
+            ),
+            simple_action(
+                "maybe-double",
+                Condition::Always,
+                vec![
+                    random(50, schedule("work.finish"), Effect::Noop),
+                    schedule("work.finish"),
+                ],
+            ),
+            simple_action(
+                "single-branch",
+                Condition::Always,
+                vec![random(50, schedule("work.finish"), schedule("work.finish"))],
+            ),
+            simple_action(
+                "zero",
+                Condition::Always,
+                vec![
+                    random(0, schedule("work.finish"), Effect::Noop),
+                    schedule("work.finish"),
+                ],
+            ),
+            simple_action(
+                "hundred",
+                Condition::Always,
+                vec![
+                    random(100, Effect::Noop, schedule("work.finish")),
+                    schedule("work.finish"),
+                ],
+            ),
+        ]);
+        source.deferred_events = vec![deferred(
+            "work.finish",
+            2,
+            Condition::Always,
+            vec![Effect::SetWorldFlag {
+                flag: "done".to_owned(),
+                value: true,
+            }],
+        )];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        for seed in 0..8 {
+            initial.entropy = EntropyState::new(seed);
+            let before = initial.clone();
+            assert_eq!(
+                legal_ids(&initial, &content),
+                vec!["hundred", "single-branch", "zero"]
+            );
+            assert_eq!(initial, before);
+            for action in enumerate_legal_actions(&initial, &content).unwrap() {
+                let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+                assert_eq!(transition.state().world.scheduled_events.len(), 1);
+                assert_eq!(transition.entropy_draws().len(), 1);
+            }
+        }
+        let mut staged = initial.clone();
+        let mut entropy = staged.entropy.clone();
+        let mut events = Vec::new();
+        apply_effect(
+            &mut staged,
+            &schedule("work.finish"),
+            &BTreeMap::new(),
+            &content,
+            &mut entropy,
+            &mut Vec::new(),
+            &mut events,
+        )
+        .unwrap();
+        staged.world.scheduled_events.clear();
+        let before = staged.clone();
+        let before_events = events.clone();
+        assert!(
+            apply_effect(
+                &mut staged,
+                &schedule("work.finish"),
+                &BTreeMap::new(),
+                &content,
+                &mut entropy,
+                &mut Vec::new(),
+                &mut events
+            )
+            .is_err()
+        );
+        assert_eq!(staged, before);
+        assert_eq!(events, before_events);
+    }
+
+    #[test]
+    fn deferred_schedule_overflow_uses_effect_order_and_all_reachable_time_bounds() {
+        let random_time = |percent| Effect::RandomChance {
+            success_percent: percent,
+            on_success: Box::new(Effect::AdvanceTime { ticks: 3 }),
+            on_failure: Box::new(Effect::Noop),
+        };
+        let mut source = draft(vec![
+            simple_action(
+                "late",
+                Condition::Always,
+                vec![Effect::AdvanceTime {
+                    ticks: u64::MAX - 3,
+                }],
+            ),
+            simple_action(
+                "schedule-first",
+                Condition::Always,
+                vec![schedule("work.finish"), Effect::AdvanceTime { ticks: 2 }],
+            ),
+            simple_action(
+                "time-first",
+                Condition::Always,
+                vec![Effect::AdvanceTime { ticks: 2 }, schedule("work.finish")],
+            ),
+            simple_action(
+                "late-overflow",
+                Condition::Always,
+                vec![schedule("work.finish"), Effect::AdvanceTime { ticks: 4 }],
+            ),
+            simple_action(
+                "random-overflow",
+                Condition::Always,
+                vec![random_time(50), schedule("work.finish")],
+            ),
+            simple_action(
+                "zero",
+                Condition::Always,
+                vec![random_time(0), schedule("work.finish")],
+            ),
+        ]);
+        source.deferred_events = vec![deferred(
+            "work.finish",
+            2,
+            Condition::Always,
+            vec![Effect::SetWorldFlag {
+                flag: "done".to_owned(),
+                value: true,
+            }],
+        )];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let late = record_test_action(&state(&content), &content, "late").into_state();
+        let ids = legal_ids(&late, &content);
+        assert!(ids.contains(&"schedule-first".to_owned()));
+        assert!(ids.contains(&"zero".to_owned()));
+        for absent in ["time-first", "late-overflow", "random-overflow"] {
+            assert!(!ids.contains(&absent.to_owned()));
+        }
+        let transition = record_test_action(&late, &content, "schedule-first");
+        assert_eq!(transition.state().world.time, u64::MAX - 1);
+        assert!(transition.state().world.flags.contains("done"));
+        assert!(transition.state().world.scheduled_events.is_empty());
+        assert!(
+            matches!(&transition.events()[0].kind, EventKind::EventScheduled { due_time, .. } if *due_time == u64::MAX - 1)
+        );
+    }
+
+    #[test]
+    fn deferred_and_absolute_events_keep_due_then_id_order_on_one_timeline() {
+        let mut source = draft(vec![
+            simple_action(
+                "ignite",
+                Condition::Always,
+                vec![
+                    schedule("work.ready"),
+                    schedule("work.spoil"),
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            simple_action(
+                "jump",
+                Condition::Always,
+                vec![Effect::AdvanceTime { ticks: 4 }],
+            ),
+        ]);
+        source.recipes = vec![recipe(
+            "work.spoil",
+            &[("work.claim", 1)],
+            &[("work.spoiled", 1)],
+        )];
+        source.deferred_events = vec![
+            deferred(
+                "work.ready",
+                2,
+                Condition::Always,
+                vec![Effect::SetWorldFlag {
+                    flag: "ready".to_owned(),
+                    value: true,
+                }],
+            ),
+            deferred(
+                "work.spoil",
+                5,
+                Condition::Always,
+                vec![recipe_effect("work.spoil")],
+            ),
+        ];
+        source.timed_events = vec![TimedEventDefinition {
+            id: "tide.surge".to_owned(),
+            due_time: 5,
+            event_kind: "Tide".to_owned(),
+            label: "Tide due".to_owned(),
+            result: "The tide rises.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "flooded".to_owned(),
+                value: true,
+            }],
+        }];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        initial
+            .character
+            .inventory
+            .insert("work.claim".to_owned(), 1);
+        initial.world.scheduled_events = vec![crate::ScheduledEvent {
+            id: "tide.surge".to_owned(),
+            due_time: 5,
+            event_kind: "Tide".to_owned(),
+        }];
+        let lit = record_test_action(&initial, &content, "ignite").into_state();
+        let transition = record_test_action(&lit, &content, "jump");
+        let ids: Vec<_> = transition
+            .events()
+            .iter()
+            .filter_map(|event| match &event.kind {
+                EventKind::ScheduledEventResolved { event_id, .. } => Some(event_id.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(ids, vec!["work.ready", "tide.surge", "work.spoil"]);
+        assert!(
+            transition
+                .events()
+                .iter()
+                .filter(|event| matches!(event.kind, EventKind::ScheduledEventResolved { .. }))
+                .all(|event| event.turn == 5)
+        );
+        assert_eq!(transition.state().character.inventory["work.spoiled"], 1);
+        assert!(transition.state().world.flags.contains("flooded"));
+        assert!(transition.state().world.flags.contains("ready"));
+        assert!(transition.state().world.scheduled_events.is_empty());
+    }
+
+    fn guarded_recipe_content(guard: Condition, random_outcome: bool) -> CompiledContent {
+        let random = Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(recipe_effect("work.retire")),
+            on_failure: Box::new(Effect::SetWorldFlag {
+                flag: "retired".to_owned(),
+                value: true,
+            }),
+        };
+        let mut source = draft(vec![
+            simple_action("schedule", Condition::Always, vec![schedule("work.spoil")]),
+            simple_action(
+                "random",
+                Condition::Always,
+                vec![random, Effect::AdvanceTime { ticks: 2 }],
+            ),
+            simple_action(
+                "wait",
+                Condition::Always,
+                vec![Effect::AdvanceTime { ticks: 2 }],
+            ),
+            simple_action(
+                "free-space",
+                Condition::Always,
+                vec![
+                    recipe_effect("work.clear"),
+                    Effect::AdvanceTime { ticks: 2 },
+                ],
+            ),
+        ]);
+        source.recipes = vec![
+            recipe("work.retire", &[("work.claim", 1)], &[("work.safe", 1)]),
+            recipe("work.spoil", &[("work.claim", 1)], &[("work.spoiled", 1)]),
+            recipe("work.clear", &[("work.spoiled", 1)], &[]),
+        ];
+        let event_effect = if random_outcome {
+            Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(recipe_effect("work.spoil")),
+                on_failure: Box::new(recipe_effect("work.retire")),
+            }
+        } else {
+            recipe_effect("work.spoil")
+        };
+        source.deferred_events = vec![deferred("work.spoil", 2, guard, vec![event_effect])];
+        CompiledContent::try_compile(source).unwrap()
+    }
+
+    #[test]
+    fn deferred_recipe_preflight_preserves_guard_inventory_correlations_without_entropy_draws() {
+        let content = guarded_recipe_content(
+            Condition::HasItem {
+                item: "work.claim".to_owned(),
+                count: 1,
+            },
+            false,
+        );
+        let mut initial = state(&content);
+        initial
+            .character
+            .inventory
+            .insert("work.claim".to_owned(), 1);
+        let pending = record_test_action(&initial, &content, "schedule").into_state();
+        let mut outcomes = BTreeSet::new();
+        for seed in 0..16 {
+            let mut current = pending.clone();
+            current.entropy = EntropyState::new(seed);
+            let before = current.clone();
+            let actions = enumerate_legal_actions(&current, &content).unwrap();
+            assert_eq!(current, before);
+            let action = actions
+                .into_iter()
+                .find(|action| action.definition_id == "random")
+                .unwrap();
+            let transition = step(&current, &action, &content, &current.entropy).unwrap();
+            assert_eq!(transition.entropy_draws().len(), 1);
+            assert!(
+                !transition
+                    .state()
+                    .character
+                    .inventory
+                    .contains_key("work.claim")
+            );
+            if transition
+                .state()
+                .character
+                .inventory
+                .contains_key("work.safe")
+            {
+                outcomes.insert("safe");
+            }
+            if transition
+                .state()
+                .character
+                .inventory
+                .contains_key("work.spoiled")
+            {
+                outcomes.insert("spoiled");
+            }
+        }
+        assert_eq!(outcomes, BTreeSet::from(["safe", "spoiled"]));
+        let bad_content = guarded_recipe_content(
+            Condition::Not {
+                condition: Box::new(Condition::WorldFlag {
+                    flag: "retired".to_owned(),
+                }),
+            },
+            false,
+        );
+        let mut bad = state(&bad_content);
+        bad.character.inventory.insert("work.claim".to_owned(), 1);
+        bad = record_test_action(&bad, &bad_content, "schedule").into_state();
+        for seed in 0..8 {
+            bad.entropy = EntropyState::new(seed);
+            assert!(!legal_ids(&bad, &bad_content).contains(&"random".to_owned()));
+        }
+    }
+
+    #[test]
+    fn deferred_recipe_preflight_checks_timed_random_branches_and_post_action_capacity() {
+        for random_outcome in [false, true] {
+            let content = guarded_recipe_content(
+                Condition::HasItem {
+                    item: "work.claim".to_owned(),
+                    count: 1,
+                },
+                random_outcome,
+            );
+            let mut initial = state(&content);
+            initial
+                .character
+                .inventory
+                .insert("work.claim".to_owned(), 1);
+            initial
+                .character
+                .inventory
+                .insert("work.spoiled".to_owned(), u32::MAX);
+            let pending = record_test_action(&initial, &content, "schedule").into_state();
+            let before = pending.clone();
+            assert!(!legal_ids(&pending, &content).contains(&"wait".to_owned()));
+            assert_eq!(pending, before);
+            let transition = record_test_action(&pending, &content, "free-space");
+            assert!(
+                !transition
+                    .state()
+                    .character
+                    .inventory
+                    .contains_key("work.claim")
+            );
+            assert!(transition.state().character.inventory["work.spoiled"] >= u32::MAX - 1);
+            assert!(transition.state().world.scheduled_events.is_empty());
+        }
+    }
+
+    #[test]
+    fn deferred_due_guard_observes_earlier_event_changes() {
+        let mut source = draft(vec![simple_action(
+            "cross",
+            Condition::Always,
+            vec![schedule("work.spoil"), Effect::AdvanceTime { ticks: 2 }],
+        )]);
+        source.recipes = vec![recipe(
+            "work.spoil",
+            &[("work.claim", 1)],
+            &[("work.spoiled", 1)],
+        )];
+        source.deferred_events = vec![deferred(
+            "work.spoil",
+            2,
+            Condition::Not {
+                condition: Box::new(Condition::WorldFlag {
+                    flag: "retired".to_owned(),
+                }),
+            },
+            vec![recipe_effect("work.spoil")],
+        )];
+        source.timed_events = vec![TimedEventDefinition {
+            id: "absolute.retire".to_owned(),
+            due_time: 2,
+            event_kind: "Work".to_owned(),
+            label: "Retire work".to_owned(),
+            result: "The work stops.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "retired".to_owned(),
+                value: true,
+            }],
+        }];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        initial.world.scheduled_events = vec![crate::ScheduledEvent {
+            id: "absolute.retire".to_owned(),
+            due_time: 2,
+            event_kind: "Work".to_owned(),
+        }];
+        let transition = record_test_action(&initial, &content, "cross");
+        assert!(
+            !transition
+                .state()
+                .character
+                .inventory
+                .contains_key("work.spoiled")
+        );
+        let resolutions: Vec<_> = transition
+            .events()
+            .iter()
+            .filter_map(|event| match &event.kind {
+                EventKind::ScheduledEventResolved {
+                    event_id, applied, ..
+                } => Some((event_id.as_str(), *applied)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            resolutions,
+            vec![("absolute.retire", true), ("work.spoil", false)]
+        );
+    }
+
+    #[test]
+    fn deferred_recipe_late_failure_rolls_back_transition_schedule_stock_and_entropy() {
+        let content = guarded_recipe_content(
+            Condition::Not {
+                condition: Box::new(Condition::WorldFlag {
+                    flag: "retired".to_owned(),
+                }),
+            },
+            false,
+        );
+        let mut initial = state(&content);
+        initial
+            .character
+            .inventory
+            .insert("work.claim".to_owned(), 1);
+        initial = record_test_action(&initial, &content, "schedule").into_state();
+        // The public catalog already rejects this uncertain program. Exercise
+        // its immutable reduction directly to prove failure stays transactional.
+        let mut failures = 0;
+        for seed in 0..16 {
+            initial.entropy = EntropyState::new(seed);
+            let before = initial.clone();
+            let action = CanonicalAction::new(
+                content.build_id(),
+                initial.state_id(),
+                "random",
+                BTreeMap::new(),
+            );
+            assert!(matches!(
+                step(&initial, &action, &content, &initial.entropy),
+                Err(KernelError::IllegalAction(_))
+            ));
+            if let Err(error) =
+                reduce_validated_action(&initial, &action, &content, &initial.entropy)
+            {
+                assert!(
+                    matches!(error, KernelError::InvalidAction(message) if message.contains("lacks 1 of item work.claim"))
+                );
+                failures += 1;
+            }
+            assert_eq!(initial, before);
+        }
+        assert!(failures > 0);
+    }
+
+    #[test]
+    fn deferred_schedule_catalog_pages_preserve_more_than_256_canonical_candidates() {
+        let mut action = simple_action(
+            "schedule",
+            Condition::Always,
+            vec![
+                transfer_effect(StringRef::Parameter("source".to_owned()), "work.token", 1),
+                schedule("work.finish"),
+            ],
+        );
+        action.parameters = vec![crate::ParameterSpec {
+            name: "source".to_owned(),
+            domain: ParameterDomain::NpcsAtCurrentLocation,
+        }];
+        let mut source = draft(vec![action]);
+        source.deferred_events = vec![deferred(
+            "work.finish",
+            2,
+            Condition::Always,
+            vec![Effect::SetWorldFlag {
+                flag: "done".to_owned(),
+                value: true,
+            }],
+        )];
+        for index in 0..300 {
+            source.npcs.push(NpcDefinition {
+                id: format!("worker-{index:03}"),
+                name: "Worker".to_owned(),
+                location: "gate".to_owned(),
+                goals: BTreeSet::new(),
+                values: BTreeSet::new(),
+                tags: BTreeSet::new(),
+                inventory: BTreeMap::from([("work.token".to_owned(), 1)]),
+            });
+        }
+        let content = CompiledContent::try_compile(source).unwrap();
+        let initial = state(&content);
+        let actions = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(actions.len(), 300);
+        let digest = legal_action_digest(&actions).unwrap();
+        let mut ids = Vec::new();
+        for offset in (0..300).step_by(17) {
+            let page = content.action_page(&initial, offset, 17).unwrap();
+            assert_eq!(page.total, 300);
+            assert_eq!(page.digest, digest);
+            ids.extend(page.actions.into_iter().map(|view| view.action_id));
+        }
+        assert_eq!(
+            ids,
+            actions
+                .iter()
+                .map(|action| action.action_id.clone())
+                .collect::<Vec<_>>()
+        );
+        let transition = step(&initial, &actions[299], &content, &initial.entropy).unwrap();
+        assert_eq!(transition.state().world.scheduled_events.len(), 1);
+        assert!(
+            enumerate_legal_actions(transition.state(), &content)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
     fn parameter_domains_are_complete_and_semantically_sorted() {
         let action = ActionDefinition {
             id: "move-and-greet".to_owned(),
@@ -3296,8 +4433,8 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v8".to_owned(),
-            rules_version: "forge-rules-v6".to_owned(),
+            schema_version: "forge-schema-v9".to_owned(),
+            rules_version: "forge-rules-v7".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -3316,6 +4453,7 @@ mod tests {
                 inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
+            deferred_events: Vec::new(),
             actions: vec![stress],
         })
         .unwrap();

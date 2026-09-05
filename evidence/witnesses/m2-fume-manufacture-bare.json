@@ -1,8 +1,8 @@
 {
   "format_version": "forge-evidence-witness-v3",
   "verifier_id": "1098f187201bbb0ffcf39e90cba5e17257252947c6258e367fa509a44132a5ba",
-  "scenario_id": "m2-fume-cold-repair",
-  "scenario_binding": "6f1197c9f78249bf11860ff092422585d8a84b16bea5bb89f40664f9d3e3748d",
+  "scenario_id": "m2-fume-manufacture-bare",
+  "scenario_binding": "3fa87569d38964a8de40d6f0c68c5830f029c2162013c4877932191c9b513b19",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
     "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
@@ -21,15 +21,18 @@
       "8a591e6af451f7fe68110d99bd5d254dc5926b215e263457ae100cb5c50d86bc",
       "f0580e5cc92f475d67d0496094d329fb8409f460e3cedabaef6d5e596234a3ae",
       "3a9b3e1f73356514b783ffcc888e34f6107bc9d34396eb119686d4ad3b871eb6",
-      "22c78110c0a8f2dceff44b8947df769530282464c3dae8096cd3a352e17b0857",
-      "7bd4ad67d45b4cb126b24fd2178f32440517caefb8e5105c366f336ac3f6beda",
-      "7fd2d6855f32c7e36ce69766b4db3da3b00d3f24d9ac6716766ce71436f91d25",
-      "c188b454c54b7f63d66794bc68fe48c5ff055c101ae2652d2c47b825ecf8bfed",
-      "2258f180282ea8e827036fc85d25339e22b08706ed86da620b8c95e318918d46",
-      "be144050d4c9856b850e0dc39b3ee324e602ecbfb1860734910edafc5b1b91df"
+      "1bf63c53b845f3a02ec3f85c4c2e486e77add9795e9d292a52de8eba49afeedd",
+      "f828da78d5d37062a0f2c2d2a6990554ef24e6aa04e02641c1705849b00438d9",
+      "88519d551a5abd07fb699c87275d9429c3f2407db3d0d2f82517332d7c8fc383",
+      "a090055f78ffb37139a0ca4c6a4f63ab0798098dc53286d28b05b4d8b4bec6e8",
+      "762b0cba7223667cdea07a62b8b301e661dbf58e1335f74c963655e0b1814748",
+      "173f8e8be90ad36897ade7147b919f03c15bb7cd57733bcde6a45049a3d8d46d",
+      "9c2b897821147b712c5e4bed0ee5beefc50e9f3bc2b6298e1dcd9c2ed85082f2",
+      "edf641dca4776d291b6d0f874c9ce023f6582010e1328ad1a387be9efd5d5106",
+      "7a4c49017a79a61f1614a5823e53d562dbcb09fce1630c09df7268bb3aad581b"
     ],
-    "final_state_id": "61ac2d3d65f4b5dbc234072707aee27017e8c256bf9771cf775978753f323041",
-    "final_receipt": "4ab36db3623b0edba9e715b87003ba1008ddacc02dadec22766a8c580172d783"
+    "final_state_id": "22b6d87d4c4cc5da9f997dae3856ca2486d029bff693b44f1355f7e5300de3ea",
+    "final_receipt": "2c36c406ce62fb50a63b1738ef9197d63704490f2912a1ec4ac65d7c30b97b27"
   },
   "initial_state_id": "997c836a42752a129f27859d6992610f372111b5411add0da6eb3a880ee37fdc",
   "initial_observation": {
@@ -541,22 +544,24 @@
     },
     {
       "step_index": 9,
-      "action_id": "22c78110c0a8f2dceff44b8947df769530282464c3dae8096cd3a352e17b0857",
-      "action_definition_id": "fume_yards.press_repair_plugs",
-      "action_parameters": {},
+      "action_id": "1bf63c53b845f3a02ec3f85c4c2e486e77add9795e9d292a52de8eba49afeedd",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.kiln_bay"
+      },
       "legal_action_set_digest": "71a502b5a1eb1e67537d7819a6486ad57f99274b635bd6679396fd6e154d2c3b",
       "pre_state_id": "636308ca0a8907c9e36150ddaba66e032e6759d1aff11c0cdd9a3008730f86ca",
-      "events_hash": "0c3836402ef3148e24f2a5ed26ec06332a78a72fd5da7d934e9526db8e595b8f",
+      "events_hash": "3f56fc63e7d17d78150bc4654a3ef46c9a127046d3451745732f680b90f84ab7",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "497ccd4890c60c45d25e91468a8d7195ed716d8c20c300147ae026dd75481f3d",
+      "post_state_id": "5d19509377787123d81e9c8d433f33650ff8964731c4ef6efdd73576523060b5",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "497ccd4890c60c45d25e91468a8d7195ed716d8c20c300147ae026dd75481f3d",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You press two clay and one mesh into repair plugs. Patch Stand at Lowsail unlocks three-coin sorting after the tide. Nessa's stock is spent; Patch Stand at Lowsail unlocks three-coin sorting after the tide.",
+        "state_id": "5d19509377787123d81e9c8d433f33650ff8964731c4ef6efdd73576523060b5",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You move along the connected path. Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
         "supplies": {
           "resources": [
             {
@@ -572,8 +577,13 @@
           ],
           "items": [
             {
-              "id": "fume_yards.repair_lot",
-              "name": "Repair Plugs",
+              "id": "fume_yards.clay",
+              "name": "Clay",
+              "count": 2
+            },
+            {
+              "id": "fume_yards.mesh",
+              "name": "Mesh",
               "count": 1
             },
             {
@@ -583,50 +593,60 @@
             }
           ]
         },
-        "result": "You press two clay and one mesh into repair plugs. Patch Stand at Lowsail unlocks three-coin sorting after the tide.",
+        "result": "You move along the connected path.",
         "world_time": 10,
         "upcoming_events": [],
-        "action_set_digest": "7a396948fbc96d775050decaa9be0774be9f7b28610f3ca1d3dfe7cd755b7cb3",
-        "action_count": 5
+        "action_set_digest": "9eda64c062d959b72dc5c23985de7f83b948f1ae0bad246b1d59d533fe2f3a69",
+        "action_count": 6
       },
-      "observation_hash": "bdc982562dd2a9aa1b2b1df0998f5b760cf01a3cfa9493cd2903c9846b1c0145",
-      "receipt": "871d1856e28a833f083d744ce45cd05ede7aff2f0d61741493234ff433a91d47"
+      "observation_hash": "bd12950bdb060ecaa8e7c8179a461d4c8e3a140079018082402db8bbb9562b3d",
+      "receipt": "bb5ff687df717b81de5ec68f5e15f92cd3c131569dd0127f93deb72c0a9c892d"
     },
     {
       "step_index": 10,
-      "action_id": "7bd4ad67d45b4cb126b24fd2178f32440517caefb8e5105c366f336ac3f6beda",
-      "action_definition_id": "fume_yards.load_freight",
+      "action_id": "f828da78d5d37062a0f2c2d2a6990554ef24e6aa04e02641c1705849b00438d9",
+      "action_definition_id": "fume_yards.take_cask",
       "action_parameters": {},
-      "legal_action_set_digest": "7a396948fbc96d775050decaa9be0774be9f7b28610f3ca1d3dfe7cd755b7cb3",
-      "pre_state_id": "497ccd4890c60c45d25e91468a8d7195ed716d8c20c300147ae026dd75481f3d",
-      "events_hash": "17a1eb12d3eed23262a6c81227bc85e1802016744483f9a0d00d890bc571f875",
+      "legal_action_set_digest": "9eda64c062d959b72dc5c23985de7f83b948f1ae0bad246b1d59d533fe2f3a69",
+      "pre_state_id": "5d19509377787123d81e9c8d433f33650ff8964731c4ef6efdd73576523060b5",
+      "events_hash": "002e80b34d555d40df867082093819a5bc322a9147e73932bbc601026ffd309f",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "f0ecabc9966ce8b7c554330add6c82ee20e6789a8dce4fbc0525b0f9f336a12a",
+      "post_state_id": "0c05fc6e94d2b2f76db017565bb59ce547f39aa7956a23b379d12d96473b4eaa",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "f0ecabc9966ce8b7c554330add6c82ee20e6789a8dce4fbc0525b0f9f336a12a",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished. Nessa's stock is spent; Patch Stand at Lowsail unlocks three-coin sorting after the tide.",
+        "state_id": "0c05fc6e94d2b2f76db017565bb59ce547f39aa7956a23b379d12d96473b4eaa",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "Pera hands over her only water cask. Fit Wet Screen consumes it to protect this firing. Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
               "name": "Stamina",
-              "amount": 1
+              "amount": 3
             }
           ],
           "items": [
             {
-              "id": "fume_yards.repair_lot",
-              "name": "Repair Plugs",
+              "id": "fume_yards.clay",
+              "name": "Clay",
+              "count": 2
+            },
+            {
+              "id": "fume_yards.mesh",
+              "name": "Mesh",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.water_cask",
+              "name": "Water Cask",
               "count": 1
             },
             {
@@ -636,50 +656,65 @@
             }
           ]
         },
-        "result": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished.",
+        "result": "Pera hands over her only water cask. Fit Wet Screen consumes it to protect this firing.",
         "world_time": 11,
         "upcoming_events": [],
-        "action_set_digest": "5b99a4a255310b750bbc4741430d0ce56948bdbd7414a51f2d7d8b6a120b6a9e",
-        "action_count": 4
+        "action_set_digest": "e31af2c4f18e506b6cfb65b0081da9190e98a06cf4658096e67276fe9a6e7bf6",
+        "action_count": 6
       },
-      "observation_hash": "59b896f38242b3b8a3b7382f78e713bcadb140a461909e83df94b41216c14ad3",
-      "receipt": "a322528f653bd097c2f832a6707ab87c1280fae124a1d899ad5225f355965731"
+      "observation_hash": "fa9528bf2a766a824a0ae5d70a01af2edc72a5351f3ab26c72bb7807ee4a95d3",
+      "receipt": "a1537bf872ed5dff4883fb1ed0e0e22d11ecc04124eefac178ef5bead0784424"
     },
     {
       "step_index": 11,
-      "action_id": "7fd2d6855f32c7e36ce69766b4db3da3b00d3f24d9ac6716766ce71436f91d25",
-      "action_definition_id": "world.enter_aftermath",
+      "action_id": "88519d551a5abd07fb699c87275d9429c3f2407db3d0d2f82517332d7c8fc383",
+      "action_definition_id": "fume_yards.take_fuel",
       "action_parameters": {},
-      "legal_action_set_digest": "5b99a4a255310b750bbc4741430d0ce56948bdbd7414a51f2d7d8b6a120b6a9e",
-      "pre_state_id": "f0ecabc9966ce8b7c554330add6c82ee20e6789a8dce4fbc0525b0f9f336a12a",
-      "events_hash": "c247b54e4355011dcb6f6aa0f1619e69fce82db03489020fcae41a9bfbd91800",
+      "legal_action_set_digest": "e31af2c4f18e506b6cfb65b0081da9190e98a06cf4658096e67276fe9a6e7bf6",
+      "pre_state_id": "0c05fc6e94d2b2f76db017565bb59ce547f39aa7956a23b379d12d96473b4eaa",
+      "events_hash": "717037f208a70235ef8f44e2c67d0a479b4d72c397924010be334a54d5104706",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "0e8ad5f62f55aac1fea37cc431b7bf47b6ce8a49b0f763bbe9517b22176a0fd5",
+      "post_state_id": "c88addc0716d2a345a7c4c5ffe3358c5f1d4b1b54d1189d37d966913c29c1a9a",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "0e8ad5f62f55aac1fea37cc431b7bf47b6ce8a49b0f763bbe9517b22176a0fd5",
-        "location_id": "lowsail.return",
-        "title": "Lowsail Return",
-        "text": "You return to Lowsail's changed market. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
+        "state_id": "c88addc0716d2a345a7c4c5ffe3358c5f1d4b1b54d1189d37d966913c29c1a9a",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "Brann hands over one fuel. Fired batches become ready after two steps and spoil after five. Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
               "name": "Stamina",
-              "amount": 1
+              "amount": 3
             }
           ],
           "items": [
             {
-              "id": "fume_yards.repair_lot",
-              "name": "Repair Plugs",
+              "id": "fume_yards.clay",
+              "name": "Clay",
+              "count": 2
+            },
+            {
+              "id": "fume_yards.fuel",
+              "name": "Fuel",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.mesh",
+              "name": "Mesh",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.water_cask",
+              "name": "Water Cask",
               "count": 1
             },
             {
@@ -689,47 +724,62 @@
             }
           ]
         },
-        "result": "You return to Lowsail's changed market.",
+        "result": "Brann hands over one fuel. Fired batches become ready after two steps and spoil after five.",
         "world_time": 12,
         "upcoming_events": [],
-        "action_set_digest": "35aa1265c6649ab0855be1de772b279999805ca1498e25b1ee85c47d44ca9e43",
-        "action_count": 7
+        "action_set_digest": "1acedce6ccfe3eb4f61a1ad063946654b8815b8d61798471581c9847fd50947e",
+        "action_count": 5
       },
-      "observation_hash": "bb860a9fea53e590f84de8d2c24c73decbcd1bef8b946e89ffd08c4bcc4d12c1",
-      "receipt": "6c6512e93c0e93903d398a6847391b568d83fb9d0d47823b202c0799d0cc695b"
+      "observation_hash": "2f11dd48b88c4b3b0aad089dd09621003a037a45a0032c73a064f2e4c300a36c",
+      "receipt": "64ba3957a71c7316759fe51158a2cb891bbc046f2f809afd83d5176001b06b34"
     },
     {
       "step_index": 12,
-      "action_id": "c188b454c54b7f63d66794bc68fe48c5ff055c101ae2652d2c47b825ecf8bfed",
-      "action_definition_id": "return.patch_stand",
+      "action_id": "a090055f78ffb37139a0ca4c6a4f63ab0798098dc53286d28b05b4d8b4bec6e8",
+      "action_definition_id": "fume_yards.prepare_charge",
       "action_parameters": {},
-      "legal_action_set_digest": "35aa1265c6649ab0855be1de772b279999805ca1498e25b1ee85c47d44ca9e43",
-      "pre_state_id": "0e8ad5f62f55aac1fea37cc431b7bf47b6ce8a49b0f763bbe9517b22176a0fd5",
-      "events_hash": "57ae8ecde8df9d3f2f1207b65f8bc6f8794476b82e21fbeb8b7f4b3f64648ca3",
+      "legal_action_set_digest": "1acedce6ccfe3eb4f61a1ad063946654b8815b8d61798471581c9847fd50947e",
+      "pre_state_id": "c88addc0716d2a345a7c4c5ffe3358c5f1d4b1b54d1189d37d966913c29c1a9a",
+      "events_hash": "b822efaae1d3065a81d3825ce5169c9e4e8d616eb9d543f74f1ceab674948506",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "743a19657c6d0ce9bb1101a39e7292ab4eae617b633eb06b925e5288b3c82a7f",
+      "post_state_id": "c5d01f742ae18fa841a0dcbfe8f77ed1b35e0781275d7aeabf1e6863b632e465",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "743a19657c6d0ce9bb1101a39e7292ab4eae617b633eb06b925e5288b3c82a7f",
-        "location_id": "lowsail.return",
-        "title": "Lowsail Return",
-        "text": "You use the repair plugs on Oren's raised sorting stand. Sort Dry Goods now pays three coins once. Oren's patched stand awaits dry goods in dry Lowsail; the upland works still lack water.",
+        "state_id": "c5d01f742ae18fa841a0dcbfe8f77ed1b35e0781275d7aeabf1e6863b632e465",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You prepare two clay and one mesh for firing. Reclaim Charge can still turn it into repair plugs. Ignite spends charge and fuel; its step counts toward readiness at two and spoilage at five.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
               "name": "Stamina",
-              "amount": 1
+              "amount": 3
             }
           ],
           "items": [
+            {
+              "id": "fume_yards.fuel",
+              "name": "Fuel",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.prepared_charge",
+              "name": "Charge",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.water_cask",
+              "name": "Water Cask",
+              "count": 1
+            },
             {
               "id": "rope",
               "name": "Rope",
@@ -737,47 +787,57 @@
             }
           ]
         },
-        "result": "You use the repair plugs on Oren's raised sorting stand. Sort Dry Goods now pays three coins once.",
+        "result": "You prepare two clay and one mesh for firing. Reclaim Charge can still turn it into repair plugs.",
         "world_time": 13,
         "upcoming_events": [],
-        "action_set_digest": "32238aab6708ba648f1d7f62245108b6bff72e375edab78c7c7e9b19342752d7",
-        "action_count": 7
+        "action_set_digest": "d91f43cd26fcf8836ae4ae3e09b66e32a48b24a311864cfa3cf45c42a887905a",
+        "action_count": 5
       },
-      "observation_hash": "38965567465731b6d0236fc60080d4857f16419fee5398aec11cebfa957ed302",
-      "receipt": "8f5182f0958917909793e556fa704d867ccd3a3bf8df9686d814fea9b202e848"
+      "observation_hash": "4b5b88f3d393fbcfcf316e2bca62c0d4f2d6872a56a188f77c891f1e4b9906b3",
+      "receipt": "dbf2c1e6e9224d54ae95596a4caa56afbdf0abd1dedcad9d7faf774040dd22f1"
     },
     {
       "step_index": 13,
-      "action_id": "2258f180282ea8e827036fc85d25339e22b08706ed86da620b8c95e318918d46",
-      "action_definition_id": "return.sort_dry_goods",
+      "action_id": "762b0cba7223667cdea07a62b8b301e661dbf58e1335f74c963655e0b1814748",
+      "action_definition_id": "fume_yards.fit_wet_screen",
       "action_parameters": {},
-      "legal_action_set_digest": "32238aab6708ba648f1d7f62245108b6bff72e375edab78c7c7e9b19342752d7",
-      "pre_state_id": "743a19657c6d0ce9bb1101a39e7292ab4eae617b633eb06b925e5288b3c82a7f",
-      "events_hash": "6056f8117704b49f8ce8a7f7fed809d29531c0f64daecadefc94a4f695824957",
+      "legal_action_set_digest": "d91f43cd26fcf8836ae4ae3e09b66e32a48b24a311864cfa3cf45c42a887905a",
+      "pre_state_id": "c5d01f742ae18fa841a0dcbfe8f77ed1b35e0781275d7aeabf1e6863b632e465",
+      "events_hash": "5bc54220c095ab7402db3ae11e217ffbda94c60a0db66eaf9aa38f214eee3364",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "a0ee68519d7a3397a3efae80108a96329f831f638bdd17cdbdda02372a772faa",
+      "post_state_id": "72d3cc3bbd6b2d32d133e32c30be1973bcf382fa2b6a12cc12b1a88eca35e9d0",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "a0ee68519d7a3397a3efae80108a96329f831f638bdd17cdbdda02372a772faa",
-        "location_id": "lowsail.return",
-        "title": "Lowsail Return",
-        "text": "You sort dry goods on the patched stand. Oren pays three coins; the sorting job is finished. Oren's patched stand holds sorted goods in dry Lowsail; the upland works still lack water.",
+        "state_id": "72d3cc3bbd6b2d32d133e32c30be1973bcf382fa2b6a12cc12b1a88eca35e9d0",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You spend the water cask wetting the kiln screen. This protects one firing; the water cannot serve Lowsail. Ignite spends charge and fuel; its step counts toward readiness at two and spoilage at five.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 15
+              "amount": 10
             },
             {
               "id": "stamina",
               "name": "Stamina",
-              "amount": 1
+              "amount": 3
             }
           ],
           "items": [
+            {
+              "id": "fume_yards.fuel",
+              "name": "Fuel",
+              "count": 1
+            },
+            {
+              "id": "fume_yards.prepared_charge",
+              "name": "Charge",
+              "count": 1
+            },
             {
               "id": "rope",
               "name": "Rope",
@@ -785,39 +845,212 @@
             }
           ]
         },
-        "result": "You sort dry goods on the patched stand. Oren pays three coins; the sorting job is finished.",
+        "result": "You spend the water cask wetting the kiln screen. This protects one firing; the water cannot serve Lowsail.",
         "world_time": 14,
         "upcoming_events": [],
-        "action_set_digest": "05e446248963be43b4d1bcd19e6a1f9b95ca8d2107bc35d5317b07698eb2cf31",
-        "action_count": 6
+        "action_set_digest": "759fb25a4f627de6ba3157c1e7e7fb632c9e2f5501ee7df6a6e3b5dd5205057b",
+        "action_count": 5
       },
-      "observation_hash": "5884d3c1c1313dbfa242f080c20aa2e1db40814418780fc52b9f478fdf2c0ef9",
-      "receipt": "d89d3d1039e3aaa36ccd4cbecdb3472aa7718296e3e96f716ad2885ea6c1ce67"
+      "observation_hash": "5de9f88fe4c2e7db95ba742c59f5debdda40a02b9980f23fcab9033351c928a6",
+      "receipt": "d1b466b2c8a6e927ccb13e5e3726423bd9518dbb2b52c89aef13e4b40b1df731"
     },
     {
       "step_index": 14,
-      "action_id": "be144050d4c9856b850e0dc39b3ee324e602ecbfb1860734910edafc5b1b91df",
-      "action_definition_id": "return.visit_workshop",
+      "action_id": "173f8e8be90ad36897ade7147b919f03c15bb7cd57733bcde6a45049a3d8d46d",
+      "action_definition_id": "fume_yards.ignite_batch",
       "action_parameters": {},
-      "legal_action_set_digest": "05e446248963be43b4d1bcd19e6a1f9b95ca8d2107bc35d5317b07698eb2cf31",
-      "pre_state_id": "a0ee68519d7a3397a3efae80108a96329f831f638bdd17cdbdda02372a772faa",
-      "events_hash": "46647e9eb4aa9fa5bcee07188575ad39adc3b4a7e5aa577ecfee3d56429dcf5d",
+      "legal_action_set_digest": "759fb25a4f627de6ba3157c1e7e7fb632c9e2f5501ee7df6a6e3b5dd5205057b",
+      "pre_state_id": "72d3cc3bbd6b2d32d133e32c30be1973bcf382fa2b6a12cc12b1a88eca35e9d0",
+      "events_hash": "9a3e67b20e739013eda607b12ebccb09bed8139650070a245c41bb57f68d4042",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "61ac2d3d65f4b5dbc234072707aee27017e8c256bf9771cf775978753f323041",
+      "post_state_id": "ae7baf0e460edbdb01936fc5ebae817e59b1b4776111fbf6f26ff77edc33d985",
       "observation": {
         "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "61ac2d3d65f4b5dbc234072707aee27017e8c256bf9771cf775978753f323041",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You follow the raised road to Nessa's workshop. Nessa's clay, mesh, and freight job are spent; your workshop work remains finished.",
+        "state_id": "ae7baf0e460edbdb01936fc5ebae817e59b1b4776111fbf6f26ff77edc33d985",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You light the batch; it becomes ready next step and spoils after four more. Bank to preserve the three-coin freight commission. Wait for the filter, or bank to save freight; spoilage loses the filter and three-coin commission.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 15
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.batch_claim",
+              "name": "Batch Claim",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You light the batch; it becomes ready next step and spoils after four more. Bank to preserve the three-coin freight commission.",
+        "world_time": 15,
+        "upcoming_events": [
+          {
+            "label": "Batch ready",
+            "remaining_ticks": 1
+          },
+          {
+            "label": "Batch spoilage",
+            "remaining_ticks": 4
+          }
+        ],
+        "action_set_digest": "79c85bb42fd46fd16b0a19a5d975d653bca1b80b3f6f264c73aac552c0b3e621",
+        "action_count": 4
+      },
+      "observation_hash": "d7d2eea992a818ce9d2559f0f2b96693e45ff04f206a848d38a25341dcb3cc5c",
+      "receipt": "9d745a75567cc5f17b2775714ae62ae16455569880e97af8dbf18c15575b700d"
+    },
+    {
+      "step_index": 15,
+      "action_id": "9c2b897821147b712c5e4bed0ee5beefc50e9f3bc2b6298e1dcd9c2ed85082f2",
+      "action_definition_id": "wait_tide",
+      "action_parameters": {},
+      "legal_action_set_digest": "79c85bb42fd46fd16b0a19a5d975d653bca1b80b3f6f264c73aac552c0b3e621",
+      "pre_state_id": "ae7baf0e460edbdb01936fc5ebae817e59b1b4776111fbf6f26ff77edc33d985",
+      "events_hash": "6a1d73767d6ad194771a0944019287ec3cc0969f417d3bfc2bd26d1143a8ce32",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "a7b11f2d872a0bc2493bdaf2682a98704a8c937ff368b3fa32c1f214343a00b9",
+      "observation": {
+        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
+        "state_id": "a7b11f2d872a0bc2493bdaf2682a98704a8c937ff368b3fa32c1f214343a00b9",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "The tide shifts one step. Batch ready. Draw your filter or bank to save freight; spoilage loses the filter and three-coin commission.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.batch_claim",
+              "name": "Batch Claim",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "The tide shifts one step. Batch ready.",
+        "world_time": 16,
+        "upcoming_events": [
+          {
+            "label": "Batch spoilage",
+            "remaining_ticks": 3
+          }
+        ],
+        "action_set_digest": "c53a7ff97acd0ef4685ad5fb6600f47d76233663bb8951dd744bd9a020d437f8",
+        "action_count": 5
+      },
+      "observation_hash": "cf9e88953883d5c9c337a52707d4e5a6219f011d18f03048817cb3317e8fd58c",
+      "receipt": "3bf3e80837322bb398c8ceda1a9641a7e904d4cff39dbe01727b27b9409f8b1e"
+    },
+    {
+      "step_index": 16,
+      "action_id": "edf641dca4776d291b6d0f874c9ce023f6582010e1328ad1a387be9efd5d5106",
+      "action_definition_id": "fume_yards.draw_filter",
+      "action_parameters": {},
+      "legal_action_set_digest": "c53a7ff97acd0ef4685ad5fb6600f47d76233663bb8951dd744bd9a020d437f8",
+      "pre_state_id": "a7b11f2d872a0bc2493bdaf2682a98704a8c937ff368b3fa32c1f214343a00b9",
+      "events_hash": "6f876f7d8dfa3973c7990a3becfd8661cce7eb7b8d5f30228597eaf7d6870332",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "5608b590c464792eba0def7e90e9c1693e9039a0ff8557da6ad629fcea213a13",
+      "observation": {
+        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
+        "state_id": "5608b590c464792eba0def7e90e9c1693e9039a0ff8557da6ad629fcea213a13",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You draw one fired filter. Fit it here to save two stamina, or sell it to Oren for four coins. Fit your filter here: loading saves two stamina; Oren at Lowsail pays four coins instead.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You draw one fired filter. Fit it here to save two stamina, or sell it to Oren for four coins.",
+        "world_time": 17,
+        "upcoming_events": [],
+        "action_set_digest": "129328a0ca30cf5583d82d7182d3f4aa091f3cb3ed7dec0f050999083eb00445",
+        "action_count": 5
+      },
+      "observation_hash": "bd6bbc4aa0952a329d0629fdf890ce70529750d0bcc838a16bdaf1c945b8ca4a",
+      "receipt": "3924ff4473ed7c2e66f50a3a117df880899f5d498a581834a567eb91ac423484"
+    },
+    {
+      "step_index": 17,
+      "action_id": "7a4c49017a79a61f1614a5823e53d562dbcb09fce1630c09df7268bb3aad581b",
+      "action_definition_id": "fume_yards.load_kiln_freight",
+      "action_parameters": {},
+      "legal_action_set_digest": "129328a0ca30cf5583d82d7182d3f4aa091f3cb3ed7dec0f050999083eb00445",
+      "pre_state_id": "5608b590c464792eba0def7e90e9c1693e9039a0ff8557da6ad629fcea213a13",
+      "events_hash": "860f346ee8942ba3ac19595f2c8a95ae416d861a008514da15d3a890f492e90a",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "22b6d87d4c4cc5da9f997dae3856ca2486d029bff693b44f1355f7e5300de3ea",
+      "observation": {
+        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
+        "state_id": "22b6d87d4c4cc5da9f997dae3856ca2486d029bff693b44f1355f7e5300de3ea",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You load kiln freight and clear dust, spending two stamina. Brann pays three coins; his only freight job is finished. Brann's kiln freight is finished; sell your remaining filter to Oren at Lowsail for four coins.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 13
             },
             {
               "id": "stamina",
@@ -827,22 +1060,27 @@
           ],
           "items": [
             {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
               "id": "rope",
               "name": "Rope",
               "count": 1
             }
           ]
         },
-        "result": "You follow the raised road to Nessa's workshop.",
-        "world_time": 15,
+        "result": "You load kiln freight and clear dust, spending two stamina. Brann pays three coins; his only freight job is finished.",
+        "world_time": 18,
         "upcoming_events": [],
-        "action_set_digest": "8b140307499624c9c2209cc94d4472515bc0a34687960ff8b5541614a79c1434",
-        "action_count": 4
+        "action_set_digest": "99ee8d2823de80f71bb622323e40f14d77612e66d3795cc4c300a7f0c61bbcac",
+        "action_count": 3
       },
-      "observation_hash": "f11c94857f4025fcb9119a192575ac802d0f7cc1cd69539e5fc8d2a4df8aa0c2",
-      "receipt": "4ab36db3623b0edba9e715b87003ba1008ddacc02dadec22766a8c580172d783"
+      "observation_hash": "d9b25c6c445db571f303cd47d5d56f6115596d51039c58cdc3b861724987a26a",
+      "receipt": "2c36c406ce62fb50a63b1738ef9197d63704490f2912a1ec4ac65d7c30b97b27"
     }
   ],
-  "final_state_id": "61ac2d3d65f4b5dbc234072707aee27017e8c256bf9771cf775978753f323041",
-  "final_receipt": "4ab36db3623b0edba9e715b87003ba1008ddacc02dadec22766a8c580172d783"
+  "final_state_id": "22b6d87d4c4cc5da9f997dae3856ca2486d029bff693b44f1355f7e5300de3ea",
+  "final_receipt": "2c36c406ce62fb50a63b1738ef9197d63704490f2912a1ec4ac65d7c30b97b27"
 }

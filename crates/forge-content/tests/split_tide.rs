@@ -179,10 +179,11 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.contract(), ContentContract::Production);
     assert_eq!(content.start_location(), "lowsail_market");
     assert_eq!(content.world_id(), "veyra-basin");
-    assert_eq!(content.locations().count(), 7);
-    assert_eq!(content.npcs().count(), 6);
-    assert_eq!(content.actions().count(), 60);
-    assert_eq!(content.recipes().len(), 4);
+    assert_eq!(content.locations().count(), 8);
+    assert_eq!(content.npcs().count(), 8);
+    assert_eq!(content.actions().count(), 73);
+    assert_eq!(content.recipes().len(), 13);
+    assert_eq!(content.deferred_events().count(), 2);
     assert_eq!(content.character_presets().count(), 2);
     let creation = content.character_creation().expect("custom creation");
     assert_eq!(creation.slots.len(), 6);

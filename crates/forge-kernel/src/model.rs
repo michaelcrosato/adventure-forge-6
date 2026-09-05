@@ -375,6 +375,11 @@ pub enum EventKind {
         event_kind: String,
         applied: bool,
     },
+    EventScheduled {
+        event_id: String,
+        event_kind: String,
+        due_time: u64,
+    },
     RandomDraw {
         algorithm: String,
         cursor: u64,

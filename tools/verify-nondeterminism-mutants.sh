@@ -8,6 +8,7 @@ HASH_ENTROPY_PATCH_PATH="$REPO_DIR/tools/mutants/hash-entropy-env.patch"
 MEMORY_PROSE_PATCH_PATH="$REPO_DIR/tools/mutants/memory-prose-env.patch"
 MANIFEST_PATCH_PATH="$REPO_DIR/tools/mutants/manifest-env.patch"
 RECIPE_PATCH_PATH="$REPO_DIR/tools/mutants/recipe-env.patch"
+DEFERRED_PATCH_PATH="$REPO_DIR/tools/mutants/deferred-env.patch"
 MUTANT_TMP_PREFIX="${TMPDIR:-/tmp}/forge-nondeterminism-mutants."
 MUTANT_WORKSPACE=""
 MUTANT_SELECTORS=(
@@ -24,6 +25,8 @@ MUTANT_SELECTORS=(
     FORGE_MUTANT_MANIFEST_INPUT
     FORGE_MUTANT_RECIPE_CONSUMPTION
     FORGE_MUTANT_RECIPE_OUTPUT
+    FORGE_MUTANT_DEFERRED_ABSOLUTE_TIME
+    FORGE_MUTANT_DEFERRED_REMOTE_PAUSE
 )
 MUTANT_UNSET_ARGS=()
 for selector in "${MUTANT_SELECTORS[@]}"; do
@@ -52,7 +55,7 @@ for command in cargo cat cp grep mkdir mktemp mv patch rm sed; do
 done
 [[ -f "$PATCH_PATH" ]] || fail "mutant patch is missing"
 [[ -f "$BOUNDARY_PATCH_PATH" ]] || fail "boundary mutant patch is missing"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH"; do
     [[ -f "$patch_path" ]] || fail "mutation patch is missing: $patch_path"
 done
 
@@ -78,7 +81,7 @@ patch \
     --batch \
     --forward \
     --input="$BOUNDARY_PATCH_PATH" >/dev/null || fail "could not apply the boundary mutant patch"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH"; do
     patch --directory="$MUTANT_WORKSPACE" --strip=1 --batch --forward \
         --input="$patch_path" >/dev/null || fail "could not apply mutation patch: $patch_path"
 done
@@ -95,9 +98,14 @@ export CARGO_INCREMENTAL=0
 MUTANT_VERIFIER="$MUTANT_TARGET/debug/forge-verify"
 [[ -x "$MUTANT_VERIFIER" ]] || fail "mutated verifier binary was not built"
 
-# Regenerate the crawl fixture with the mutated source and every selector
-# absent. This neutralizes build/verifier identity changes as a reason for
-# later failures, so only the activated behavior change can kill a mutant.
+# Regenerate the crawl and its separately checked canonical seed witness
+# with the patched source and every selector absent. Both carry build-bound
+# lineage. This neutralizes identity drift so only activated behavior can
+# kill a mutant; the clean-process test retains its exact seed assertions.
+BASELINE_HOLD="$MUTANT_WORKSPACE/evidence/witnesses/m1-outcome-hold-market.json.next"
+env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" emit m1-outcome-hold-market >"$BASELINE_HOLD"
+env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" check "$BASELINE_HOLD" >/dev/null
+mv -f -- "$BASELINE_HOLD" "$MUTANT_WORKSPACE/evidence/witnesses/m1-outcome-hold-market.json"
 BASELINE_REPORT="$MUTANT_WORKSPACE/evidence/crawls/split-tide.json.next"
 env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" crawl >"$BASELINE_REPORT"
 mv -f -- "$BASELINE_REPORT" "$MUTANT_WORKSPACE/evidence/crawls/split-tide.json"
@@ -131,6 +139,8 @@ run_neutral_test "memory_prose" "production_prose_rejects_sentence_over_eighteen
 run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
 run_neutral_test "recipes" "production_recipe_consumes_owned_inputs_once"
 run_neutral_test "recipes" "production_recipe_produces_exact_finished_quantity"
+run_neutral_test "deferred_events" "production_deferred_deadlines_use_ignition_world_time"
+run_neutral_test "deferred_events" "production_deferred_spoil_consumes_claim_away_from_kiln"
 
 # Check actual incremental build sensitivity in this disposable copy. Updating
 # an existing source and adding an unreferenced source must both change the
@@ -259,7 +269,15 @@ assert_mutant_killed \
     "recipes" "production_recipe_produces_exact_finished_quantity" \
     'recipe output duplicated finished goods'
 assert_mutant_killed \
+    "deferred-relative-time" "FORGE_MUTANT_DEFERRED_ABSOLUTE_TIME" \
+    "deferred_events" "production_deferred_deadlines_use_ignition_world_time" \
+    'deferred deadlines ignored ignition world time'
+assert_mutant_killed \
+    "deferred-remote-time" "FORGE_MUTANT_DEFERRED_REMOTE_PAUSE" \
+    "deferred_events" "production_deferred_spoil_consumes_claim_away_from_kiln" \
+    'deferred batch paused outside its kiln'
+assert_mutant_killed \
     "manifest-input" "FORGE_MUTANT_MANIFEST_INPUT" \
     "manifest" "generated_manifest_matches_independent_input_digests" \
     'manifest omitted authoritative kernel input'
-echo "PASS mutation corpus: 13/13 killed after 10 neutral controls and 4 incremental manifest probes"
+echo "PASS mutation corpus: 15/15 killed after 12 neutral controls and 4 incremental manifest probes"

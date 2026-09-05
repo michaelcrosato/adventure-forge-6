@@ -77,12 +77,35 @@ pub(super) const PILOT_ACTIONS: &[&str] = &[
     "return.sort_dry_goods",
     "return.visit_workshop",
 ];
+pub(super) const BATCHWORKS_ACTIONS: &[&str] = &[
+    "fume_yards.take_fuel",
+    "fume_yards.take_cask",
+    "fume_yards.prepare_charge",
+    "fume_yards.fit_wet_screen",
+    "fume_yards.ignite_batch",
+    "fume_yards.draw_filter",
+    "fume_yards.bank_kiln",
+    "fume_yards.reclaim_charge",
+    "fume_yards.fit_dust_filter",
+    "fume_yards.load_kiln_freight",
+    "fume_yards.load_filtered_kiln_freight",
+    "fume_yards.inspect_spoiled_batch",
+    "return.sell_filter",
+];
+
+pub(super) const BATCHWORKS_BUDGET: CrawlBudget = CrawlBudget {
+    max_depth: 20,
+    max_expanded_states: 128,
+    max_discovered_frontiers: 768,
+    max_action_executions: 2048,
+    catalog_page_size: 7,
+};
 
 fn ids(values: &[&str]) -> BTreeSet<String> {
     values.iter().map(|id| (*id).to_owned()).collect()
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 pub struct SplitTideProjection {
     pub required_definitions: BTreeSet<String>,
     pub covered_definitions: BTreeSet<String>,
@@ -90,11 +113,25 @@ pub struct SplitTideProjection {
     pub reached_locations: BTreeSet<String>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
-pub struct ProductionCrawlReport {
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+pub struct RegressionCrawlReport {
     #[serde(flatten)]
     pub crawl: CrawlReport,
     pub split_tide_projection: SplitTideProjection,
+}
+
+#[derive(Debug, Serialize, PartialEq, Eq)]
+/// Combined coverage from independent crawls. The legacy regression keeps
+/// its original ceilings; batch work has its own explicit depth and work
+/// budget. Neither component claims exhaustive reachable-state coverage.
+pub struct ProductionCrawlReport {
+    pub build_id: String,
+    pub verifier_id: String,
+    pub advertised_definitions: BTreeSet<String>,
+    pub covered_definitions: BTreeSet<String>,
+    pub reached_locations: BTreeSet<String>,
+    pub regression: RegressionCrawlReport,
+    pub batchworks: CrawlReport,
 }
 
 impl ProductionCrawlReport {
@@ -107,7 +144,7 @@ impl ProductionCrawlReport {
 
 pub(super) fn preserve_split_tide(
     crawl: CrawlReport,
-) -> Result<ProductionCrawlReport, VerifyError> {
+) -> Result<RegressionCrawlReport, VerifyError> {
     let required_definitions = ids(SPLIT_TIDE_ACTIONS);
     let required_locations = ids(SPLIT_TIDE_LOCATIONS);
     let covered_definitions = crawl
@@ -125,7 +162,7 @@ pub(super) fn preserve_split_tide(
             "production crawl lost Split Tide regression coverage",
         ));
     }
-    Ok(ProductionCrawlReport {
+    Ok(RegressionCrawlReport {
         crawl,
         split_tide_projection: SplitTideProjection {
             required_definitions,
@@ -136,17 +173,107 @@ pub(super) fn preserve_split_tide(
     })
 }
 
-pub(super) fn crawl_pilot(content: &CompiledContent) -> Result<CrawlReport, VerifyError> {
-    let required = ids(PILOT_ACTIONS);
+fn regression_definitions() -> BTreeSet<String> {
+    ids(SPLIT_TIDE_ACTIONS)
+        .union(&ids(PILOT_ACTIONS))
+        .cloned()
+        .collect()
+}
+
+fn validate_expansion_catalog(content: &CompiledContent) -> Result<BTreeSet<String>, VerifyError> {
     let authored = content
         .actions()
         .map(|(id, _)| id.clone())
         .collect::<BTreeSet<_>>();
-    if authored != ids(SPLIT_TIDE_ACTIONS).union(&required).cloned().collect() {
+    if authored
+        != regression_definitions()
+            .union(&ids(BATCHWORKS_ACTIONS))
+            .cloned()
+            .collect()
+    {
         return Err(VerifyError::new(
-            "optional crawl action contract contains unreviewed additions or omissions",
+            "expansion crawl action contract contains unreviewed additions or omissions",
         ));
     }
+    Ok(authored)
+}
+
+pub(super) fn crawl_regression(
+    content: &CompiledContent,
+    budget: CrawlBudget,
+) -> Result<RegressionCrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    preserve_split_tide(crate::crawler::crawl_targets(
+        content,
+        budget,
+        regression_definitions(),
+    )?)
+}
+
+pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlReport, VerifyError> {
+    let regression = crawl_regression(content, CrawlBudget::default())?;
+    let batchworks = crawl_batchworks(content)?;
+    combine_crawls(content, regression, batchworks)
+}
+
+fn combine_crawls(
+    content: &CompiledContent,
+    regression: RegressionCrawlReport,
+    batchworks: CrawlReport,
+) -> Result<ProductionCrawlReport, VerifyError> {
+    let advertised_definitions = validate_expansion_catalog(content)?;
+    for report in [&regression.crawl, &batchworks] {
+        if report.build_id != content.build_id()
+            || report.verifier_id != crate::VERIFIER_ID
+            || report.advertised_definitions != advertised_definitions
+            || !report.is_complete()
+        {
+            return Err(VerifyError::new(
+                "combined crawl has inconsistent identity or coverage",
+            ));
+        }
+    }
+    if regression.crawl.required_definitions != regression_definitions()
+        || regression.crawl.budget != CrawlBudget::default()
+        || batchworks.required_definitions != ids(BATCHWORKS_ACTIONS)
+        || batchworks.budget != BATCHWORKS_BUDGET
+    {
+        return Err(VerifyError::new(
+            "combined crawl component scope or budget differs from contract",
+        ));
+    }
+    let covered_definitions = regression
+        .crawl
+        .covered_definitions
+        .union(&batchworks.covered_definitions)
+        .cloned()
+        .collect();
+    let reached_locations = regression
+        .crawl
+        .reached_locations
+        .union(&batchworks.reached_locations)
+        .cloned()
+        .collect();
+    let locations: BTreeSet<_> = content.locations().map(|(id, _)| id.clone()).collect();
+    if covered_definitions != advertised_definitions || reached_locations != locations {
+        return Err(VerifyError::new(
+            "combined crawl omitted an authored definition or location",
+        ));
+    }
+    Ok(ProductionCrawlReport {
+        build_id: content.build_id().to_owned(),
+        verifier_id: crate::VERIFIER_ID.to_owned(),
+        advertised_definitions,
+        covered_definitions,
+        reached_locations,
+        regression,
+        batchworks,
+    })
+}
+
+pub(super) fn crawl_pilot(content: &CompiledContent) -> Result<CrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    let required = ids(PILOT_ACTIONS);
     // Independent optional coverage budget, fixed before running the pilot.
     // Thirteen steps reach the quickest resolved-tide craft/delivery path.
     let budget = CrawlBudget {
@@ -177,9 +304,141 @@ pub(super) fn crawl_pilot(content: &CompiledContent) -> Result<CrawlReport, Veri
     Ok(report)
 }
 
+pub(super) fn crawl_batchworks(content: &CompiledContent) -> Result<CrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    // This separately budgeted extension includes the reviewed seven-action
+    // aftermath prefix and both ordinary presets. Catalog execution is whole.
+    let report = crate::crawler::crawl_targets_with_scenarios(
+        content,
+        BATCHWORKS_BUDGET,
+        ids(BATCHWORKS_ACTIONS),
+        &["m1-outcome-hold-market"],
+    )?;
+    if ![
+        "fume_yards.kiln_bay",
+        "fume_yards.workshop",
+        "lowsail.return",
+    ]
+    .iter()
+    .all(|id| report.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "batchworks crawl missed a consequence location",
+        ));
+    }
+    Ok(report)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const SOURCE: &str = include_str!("../../../content/split-tide.json");
+
+    #[test]
+    fn batchworks_crawl_covers_all_thirteen_targets_with_its_separate_fixed_budget() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let report = crawl_batchworks(&content).unwrap();
+        assert_eq!(report.budget, BATCHWORKS_BUDGET);
+        assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
+        assert_eq!(report.required_definitions.len(), 13);
+        assert_eq!(report.advertised_definitions.len(), 73);
+        assert!(report.is_complete());
+        assert_eq!(report.starting_sessions.len(), 3);
+        assert_eq!(
+            report
+                .starting_sessions
+                .iter()
+                .map(|start| start.depth)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 7]
+        );
+        assert!(report.expanded_states <= 128);
+        assert!(report.discovered_frontiers <= 768);
+        assert!(report.successful_actions <= 2048);
+        eprintln!(
+            "batchworks: {} states, {} frontiers, {} actions",
+            report.expanded_states, report.discovered_frontiers, report.successful_actions
+        );
+    }
+
+    fn declared_report(
+        content: &CompiledContent,
+        required: BTreeSet<String>,
+        budget: CrawlBudget,
+    ) -> CrawlReport {
+        CrawlReport {
+            verifier_id: crate::VERIFIER_ID.to_owned(),
+            build_id: content.build_id().to_owned(),
+            budget,
+            expanded_states: 0,
+            discovered_frontiers: 0,
+            successful_actions: 0,
+            max_legal_actions: 0,
+            reached_locations: content.locations().map(|(id, _)| id.clone()).collect(),
+            covered_definitions: required.clone(),
+            required_definitions: required,
+            advertised_definitions: content.actions().map(|(id, _)| id.clone()).collect(),
+            starting_sessions: Vec::new(),
+            execution_receipt: "test aggregation only".to_owned(),
+        }
+    }
+
+    #[test]
+    fn combined_scope_rejects_missing_coverage_identity_and_budget_substitution() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let regression = preserve_split_tide(declared_report(
+            &content,
+            regression_definitions(),
+            CrawlBudget::default(),
+        ))
+        .unwrap();
+        let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
+        let combined = combine_crawls(&content, regression.clone(), batchworks.clone()).unwrap();
+        assert_eq!(combined.advertised_definitions.len(), 73);
+        assert_eq!(
+            combined.covered_definitions,
+            combined.advertised_definitions
+        );
+        assert_eq!(combined.reached_locations.len(), 8);
+        for mutation in 0..6 {
+            let mut changed = batchworks.clone();
+            match mutation {
+                0 => {
+                    changed.covered_definitions.remove("return.sell_filter");
+                }
+                1 => changed.build_id.push('x'),
+                2 => changed.verifier_id.push('x'),
+                3 => {
+                    changed.required_definitions.remove("return.sell_filter");
+                }
+                4 => changed.budget.max_depth += 1,
+                _ => {
+                    changed.advertised_definitions.remove("return.sell_filter");
+                }
+            }
+            assert!(combine_crawls(&content, regression.clone(), changed).is_err());
+        }
+        let mut missing_location = regression.clone();
+        missing_location
+            .crawl
+            .reached_locations
+            .remove("fume_yards.kiln_bay");
+        let mut missing_location_batch = batchworks.clone();
+        missing_location_batch
+            .reached_locations
+            .remove("fume_yards.kiln_bay");
+        assert!(combine_crawls(&content, missing_location, missing_location_batch).is_err());
+        let mut omitted = regression;
+        omitted.crawl.covered_definitions.remove("top.split_flow");
+        assert!(combine_crawls(&content, omitted, batchworks).is_err());
+        let mut unreviewed = forge_content::parse(SOURCE).unwrap();
+        let mut action = unreviewed.actions[0].clone();
+        action.id = "test.unreviewed".to_owned();
+        unreviewed.actions.push(action);
+        let changed = forge_content::compile_production(unreviewed).unwrap();
+        assert!(validate_expansion_catalog(&changed).is_err());
+    }
 
     #[test]
     fn legacy_projection_rejects_a_missing_old_action_or_location() {

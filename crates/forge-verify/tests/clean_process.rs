@@ -23,6 +23,22 @@ fn scale_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/scale/synthetic-ring-500.json")
 }
 
+fn pilot_definitions() -> std::collections::BTreeSet<&'static str> {
+    [
+        "fume_yards.take_stock",
+        "fume_yards.press_repair_plugs",
+        "fume_yards.pack_catch_screen",
+        "fume_yards.fit_catch_screen",
+        "fume_yards.load_freight",
+        "fume_yards.load_screened_freight",
+        "return.patch_stand",
+        "return.sort_dry_goods",
+        "return.visit_workshop",
+    ]
+    .into_iter()
+    .collect()
+}
+
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
     let expected_files: Vec<_> = scenario_ids()
@@ -71,7 +87,11 @@ fn clean_process_outputs_match_each_other_and_checked_witnesses() {
 fn clean_process_crawls_match_each_other_and_checked_report() {
     let first = verifier(&["crawl"]);
     let second = verifier(&["crawl"]);
-    assert!(first.status.success(), "first crawl failed");
+    assert!(
+        first.status.success(),
+        "first crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
     assert!(second.status.success(), "second crawl failed");
     assert_eq!(first.stdout, second.stdout, "clean-process crawls diverged");
 
@@ -84,12 +104,88 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         report["covered_definitions"],
         report["advertised_definitions"]
     );
-    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 7);
-    let core = &report["split_tide_projection"];
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        73
+    );
+    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 8);
+    let regression = &report["regression"];
+    let batchworks = &report["batchworks"];
+    assert_eq!(
+        regression["required_definitions"].as_array().unwrap().len(),
+        60
+    );
+    for component in [regression, batchworks] {
+        assert_eq!(component["build_id"], report["build_id"]);
+        assert_eq!(component["verifier_id"], report["verifier_id"]);
+        assert_eq!(
+            component["advertised_definitions"],
+            report["advertised_definitions"]
+        );
+        let covered = component["covered_definitions"].as_array().unwrap();
+        assert!(
+            component["required_definitions"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|id| covered.contains(id))
+        );
+    }
+    let union = |field: &str| {
+        [regression, batchworks]
+            .into_iter()
+            .flat_map(|component| component[field].as_array().unwrap())
+            .map(|value| value.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    let declared = |field: &str| {
+        report[field]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>()
+    };
+    assert_eq!(
+        union("covered_definitions"),
+        declared("covered_definitions")
+    );
+    assert_eq!(
+        union("required_definitions"),
+        declared("advertised_definitions")
+    );
+    assert_eq!(union("reached_locations"), declared("reached_locations"));
+    assert_eq!(regression["budget"]["max_depth"], 13);
+    assert_eq!(regression["budget"]["max_expanded_states"], 4096);
+    assert_eq!(regression["budget"]["max_discovered_frontiers"], 65536);
+    assert_eq!(regression["budget"]["max_action_executions"], 65536);
+    assert_eq!(regression["budget"]["catalog_page_size"], 7);
+    let starts = regression["starting_sessions"].as_array().unwrap();
+    assert_eq!(starts.len(), 2, "old regression starts remain unseeded");
+    for (index, preset) in ["ilyan", "rook"].iter().enumerate() {
+        assert_eq!(starts[index]["label"], format!("preset:{preset}"));
+        assert_eq!(starts[index]["depth"], 0);
+    }
+    assert_batchworks_scope(batchworks);
+    let core = &regression["split_tide_projection"];
     assert_eq!(core["required_definitions"], core["covered_definitions"]);
     assert_eq!(core["required_locations"], core["reached_locations"]);
     assert_eq!(core["required_definitions"].as_array().unwrap().len(), 51);
     assert_eq!(core["required_locations"].as_array().unwrap().len(), 6);
+    let core_and_pilot = core["required_definitions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .chain(pilot_definitions())
+        .collect::<std::collections::BTreeSet<_>>();
+    let old_required = regression["required_definitions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|value| value.as_str().unwrap())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(old_required, core_and_pilot);
 }
 
 #[test]
@@ -150,15 +246,27 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     let required = report["required_definitions"].as_array().unwrap();
     let covered = report["covered_definitions"].as_array().unwrap();
     assert_eq!(required.len(), 9);
+    assert_eq!(
+        required
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>(),
+        pilot_definitions()
+    );
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        60
+        73
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
     assert_eq!(report["budget"]["max_discovered_frontiers"], 512);
     assert_eq!(report["budget"]["max_action_executions"], 1024);
+    assert_eq!(report["budget"]["catalog_page_size"], 7);
+    assert_aftermath_starts(&report);
+}
+
+fn assert_aftermath_starts(report: &serde_json::Value) {
     let starts = report["starting_sessions"].as_array().unwrap();
     assert_eq!(starts.len(), 3);
     for (index, preset) in ["ilyan", "rook"].iter().enumerate() {
@@ -178,4 +286,46 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert_eq!(starts[2]["start"], starts[0]["start"]);
     assert_eq!(starts[2]["final_receipt"], hold["final_receipt"]);
     assert_eq!(starts[2]["state_id"], hold["final_state_id"]);
+}
+
+fn assert_batchworks_scope(report: &serde_json::Value) {
+    let required = report["required_definitions"].as_array().unwrap();
+    let covered = report["covered_definitions"].as_array().unwrap();
+    assert_eq!(required.len(), 13);
+    assert!(required.iter().all(|id| covered.contains(id)));
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        73
+    );
+    assert_eq!(report["budget"]["max_depth"], 20);
+    assert_eq!(report["budget"]["max_expanded_states"], 128);
+    assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
+    assert_eq!(report["budget"]["max_action_executions"], 2048);
+    assert_eq!(report["budget"]["catalog_page_size"], 7);
+    assert_aftermath_starts(report);
+}
+
+#[test]
+fn clean_process_batchworks_crawls_match_checked_report() {
+    let first = verifier(&["crawl-batchworks"]);
+    let second = verifier(&["crawl-batchworks"]);
+    assert!(
+        first.status.success(),
+        "first batchworks crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(second.status.success(), "second batchworks crawl failed");
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process batchworks crawls diverged"
+    );
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../evidence/crawls/fume-yards-batchworks.json");
+    assert_eq!(
+        first.stdout,
+        std::fs::read(path).expect("checked batchworks report exists"),
+        "checked batchworks report is stale"
+    );
+    let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_batchworks_scope(&report);
 }

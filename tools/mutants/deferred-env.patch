@@ -1,0 +1,33 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -985,6 +985,17 @@
+     state.world.scheduled_events = due.split_off(due_count);
+     let parameters = BTreeMap::new();
+     for scheduled in due {
++        if std::env::var_os("FORGE_MUTANT_DEFERRED_REMOTE_PAUSE").is_some()
++            && content.deferred_event(&scheduled.id).is_some()
++            && state.world.current_location != "fume_yards.kiln_bay"
++        {
++            let position = state.world.scheduled_events.binary_search_by(|existing| {
++                existing.due_time.cmp(&scheduled.due_time)
++                    .then_with(|| existing.id.cmp(&scheduled.id))
++            }).unwrap_or_else(|position| position);
++            state.world.scheduled_events.insert(position, scheduled);
++            continue;
++        }
+         let (condition, effects) = scheduled_program(&scheduled, content)?;
+         let applied = condition.evaluate(state);
+         events.push(Event {
+@@ -1412,6 +1423,11 @@
+                 .ok_or_else(|| {
+                     KernelError::InvalidAction(format!("deferred event {event} due time overflow"))
+                 })?;
++            let due_time = if std::env::var_os("FORGE_MUTANT_DEFERRED_ABSOLUTE_TIME").is_some() {
++                template.delay
++            } else {
++                due_time
++            };
+             let scheduled = crate::ScheduledEvent {
+                 id: event.clone(),
+                 due_time,

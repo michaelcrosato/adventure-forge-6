@@ -1,6 +1,6 @@
 {
-  "schema_version": "forge-schema-v8",
-  "rules_version": "forge-rules-v6",
+  "schema_version": "forge-schema-v9",
+  "rules_version": "forge-rules-v7",
   "world_id": "veyra-basin",
   "contract": "production",
   "start_location": "lowsail_market",
@@ -12,7 +12,13 @@
       "fume_yards.clay": "Clay",
       "fume_yards.mesh": "Mesh",
       "fume_yards.repair_lot": "Repair Plugs",
-      "fume_yards.catch_screen": "Catch Screen"
+      "fume_yards.catch_screen": "Catch Screen",
+      "fume_yards.fuel": "Fuel",
+      "fume_yards.water_cask": "Water Cask",
+      "fume_yards.prepared_charge": "Charge",
+      "fume_yards.batch_claim": "Batch Claim",
+      "fume_yards.filter": "Filter",
+      "fume_yards.spoiled_charge": "Rejects"
     },
     "resources": {
       "coin": "Coin",
@@ -51,6 +57,83 @@
       "id": "fume_yards.patch_stand",
       "inputs": {
         "fume_yards.repair_lot": 1
+      },
+      "outputs": {}
+    },
+    {
+      "id": "fume_yards.prepare_charge",
+      "inputs": {
+        "fume_yards.clay": 2,
+        "fume_yards.mesh": 1
+      },
+      "outputs": {
+        "fume_yards.prepared_charge": 1
+      }
+    },
+    {
+      "id": "fume_yards.fit_wet_screen",
+      "inputs": {
+        "fume_yards.water_cask": 1
+      },
+      "outputs": {}
+    },
+    {
+      "id": "fume_yards.ignite_batch",
+      "inputs": {
+        "fume_yards.prepared_charge": 1,
+        "fume_yards.fuel": 1
+      },
+      "outputs": {
+        "fume_yards.batch_claim": 1
+      }
+    },
+    {
+      "id": "fume_yards.draw_filter",
+      "inputs": {
+        "fume_yards.batch_claim": 1
+      },
+      "outputs": {
+        "fume_yards.filter": 1
+      }
+    },
+    {
+      "id": "fume_yards.spoil_batch",
+      "inputs": {
+        "fume_yards.batch_claim": 1
+      },
+      "outputs": {
+        "fume_yards.spoiled_charge": 1
+      }
+    },
+    {
+      "id": "fume_yards.bank_batch",
+      "inputs": {
+        "fume_yards.batch_claim": 1
+      },
+      "outputs": {
+        "fume_yards.spoiled_charge": 1
+      }
+    },
+    {
+      "id": "fume_yards.reclaim_charge",
+      "inputs": {
+        "fume_yards.prepared_charge": 1
+      },
+      "outputs": {
+        "fume_yards.repair_lot": 1
+      }
+    },
+    {
+      "id": "fume_yards.fit_dust_filter",
+      "inputs": {
+        "fume_yards.filter": 1
+      },
+      "outputs": {}
+    },
+    {
+      "id": "fume_yards.sell_filter",
+      "inputs": {
+        "fume_yards.filter": 1
       },
       "outputs": {}
     }
@@ -840,6 +923,134 @@
             ]
           },
           "text": "Oren's patched stand holds sorted goods above flooded stalls; the old market crossing remains lost."
+        },
+        {
+          "id": "fume_yards_sale_stable_market",
+          "priority": 320,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "lowsail.return",
+                    "flag": "market_stable"
+                  },
+                  {
+                    "kind": "world_flag",
+                    "flag": "flow_split"
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter beside calm water; both shores still receive a share."
+        },
+        {
+          "id": "fume_yards_sale_upland_dry",
+          "priority": 320,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "upland_dry"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter in dry Lowsail; the upland works still lack water."
+        },
+        {
+          "id": "fume_yards_sale_moved_market",
+          "priority": 320,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_moved"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter uphill, beside families carrying stock from the empty stalls."
+        },
+        {
+          "id": "fume_yards_sale_free_ferry",
+          "priority": 320,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "ferry_free"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter beside the open channel; the ferry toll remains undecided."
+        },
+        {
+          "id": "fume_yards_sale_ferry_launched",
+          "priority": 330,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "world_flag",
+                "flag": "ending_freedom"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter beside the free ferry carrying people between both shores."
+        },
+        {
+          "id": "fume_yards_sale_flooded_market",
+          "priority": 320,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_flooded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.filter_sold"
+              }
+            ]
+          },
+          "text": "Oren remembers buying your filter above flooded stalls; the old market crossing remains lost."
         }
       ],
       "exits": ["lowsail.docks", "red_sluice.top"],
@@ -1028,7 +1239,292 @@
         }
       ],
       "exits": [
-        "lowsail.levee"
+        "lowsail.levee",
+        "fume_yards.kiln_bay"
+      ],
+      "terminal": false
+    },
+    {
+      "id": "fume_yards.kiln_bay",
+      "name": "Fume Yards Kiln Bay",
+      "description": "Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
+      "description_variants": [
+        {
+          "id": "filtered_job_done",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_freight_loaded"
+              }
+            ]
+          },
+          "text": "Brann's kiln freight is finished; your installed dust filter remains in its housing."
+        },
+        {
+          "id": "filter_export_only",
+          "priority": 115,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.filter",
+                "count": 1
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_freight_loaded"
+              }
+            ]
+          },
+          "text": "Brann's kiln freight is finished; sell your remaining filter to Oren at Lowsail for four coins."
+        },
+        {
+          "id": "job_done",
+          "priority": 110,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.kiln_freight_loaded"
+          },
+          "text": "Brann's kiln freight is finished; the spent firebox remains closed."
+        },
+        {
+          "id": "dust_filter_fitted",
+          "priority": 100,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.dust_filter_fitted"
+          },
+          "text": "Your dust filter lines Brann's housing; loading kiln freight pays three coins without costing stamina."
+        },
+        {
+          "id": "filter_owned",
+          "priority": 95,
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.filter",
+            "count": 1
+          },
+          "text": "Fit your filter here: loading saves two stamina; Oren at Lowsail pays four coins instead."
+        },
+        {
+          "id": "ready",
+          "priority": 90,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.batch_active"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.batch_claim",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_ready"
+              }
+            ]
+          },
+          "text": "Draw your filter or bank to save freight; spoilage loses the filter and three-coin commission."
+        },
+        {
+          "id": "heating",
+          "priority": 85,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_active"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.batch_claim",
+                "count": 1
+              }
+            ]
+          },
+          "text": "Wait for the filter, or bank to save freight; spoilage loses the filter and three-coin commission."
+        },
+        {
+          "id": "banked",
+          "priority": 80,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.kiln_banked"
+          },
+          "text": "Your batch was banked; Brann's remaining kiln freight pays three coins and costs two stamina."
+        },
+        {
+          "id": "spoiled",
+          "priority": 80,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.batch_spoiled"
+          },
+          "text": "The batch spoiled and damaged the freight; its three-coin commission is lost."
+        },
+        {
+          "id": "reclaimed",
+          "priority": 80,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.kiln_reclaimed"
+          },
+          "text": "You reclaimed the unfired charge into repair plugs; fuel remains unspent and firing is closed."
+        },
+        {
+          "id": "prepared",
+          "priority": 60,
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.prepared_charge",
+            "count": 1
+          },
+          "text": "Ignite spends charge and fuel; its step counts toward readiness at two and spoilage at five."
+        },
+        {
+          "id": "reclaimed_plugs_owned",
+          "priority": 130,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_reclaimed"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.repair_lot",
+                "count": 1
+              }
+            ]
+          },
+          "text": "Use your reclaimed plugs at Lowsail after the tide; Patch Stand unlocks three-coin sorting."
+        },
+        {
+          "id": "cold_stock_spent",
+          "priority": 55,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "any",
+                  "conditions": [
+                    {
+                      "kind": "not",
+                      "condition": {
+                        "kind": "location_flag",
+                        "location": "fume_yards.workshop",
+                        "flag": "fume_yards.stock_given"
+                      }
+                    },
+                    {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.clay",
+                          "count": 2
+                        },
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.mesh",
+                          "count": 1
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "has_item",
+                      "item": "fume_yards.prepared_charge",
+                      "count": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              }
+            ]
+          },
+          "text": "Your clay and mesh went into cold goods; this kiln has no remaining charge."
+        },
+        {
+          "id": "filter_exported",
+          "priority": 105,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_drawn"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.filter",
+                  "count": 1
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.dust_filter_fitted"
+                }
+              }
+            ]
+          },
+          "text": "Your filter left the kiln; Brann's remaining freight pays three coins and costs two stamina."
+        }
+      ],
+      "exits": [
+        "fume_yards.workshop"
       ],
       "terminal": false
     }
@@ -1094,6 +1590,46 @@
       "tags": [
         "craftsperson",
         "freight_commissioner"
+      ]
+    },
+    {
+      "id": "fume_yards.brann_coil",
+      "name": "Brann Coil",
+      "location": "fume_yards.kiln_bay",
+      "inventory": {
+        "fume_yards.fuel": 1
+      },
+      "goals": [
+        "fume_yards.control_firing",
+        "fume_yards.finish_kiln_freight"
+      ],
+      "values": [
+        "safety",
+        "fair_pay"
+      ],
+      "tags": [
+        "foreman",
+        "kiln_supervisor"
+      ]
+    },
+    {
+      "id": "fume_yards.pera_senn",
+      "name": "Pera Senn",
+      "location": "fume_yards.kiln_bay",
+      "inventory": {
+        "fume_yards.water_cask": 1
+      },
+      "goals": [
+        "fume_yards.protect_carters",
+        "fume_yards.keep_water_accounted"
+      ],
+      "values": [
+        "care",
+        "honesty"
+      ],
+      "tags": [
+        "carter",
+        "water_custodian"
       ]
     }
   ],
@@ -2278,7 +2814,9 @@
       "label": "Return to Lowsail",
       "category": "Travel",
       "result": "You return to Lowsail's changed market.",
-      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top", "fume_yards.workshop"],
+      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top", "fume_yards.workshop",
+        "fume_yards.kiln_bay"
+      ],
       "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
       "effects": [
         {"kind": "move_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "location": {"kind": "literal", "value": "lowsail.return"}},
@@ -3165,6 +3703,1409 @@
       "parameters": [],
       "meaningful": true,
       "movement": false
+    },
+    {
+      "id": "fume_yards.take_fuel",
+      "label": "Take Fuel",
+      "category": "Supplies",
+      "result": "Brann hands over one fuel. Fired batches become ready after two steps and spoil after five.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.fuel_taken"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.workshop",
+                  "flag": "fume_yards.stock_given"
+                }
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.clay",
+                    "count": 2
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.mesh",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "item": "fume_yards.fuel",
+          "count": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.fuel_taken",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.fuel_handed_over",
+          "subject": "Brann handed the player his sole fuel lot.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.take_cask",
+      "label": "Take Water Cask",
+      "category": "Supplies",
+      "result": "Pera hands over her only water cask. Fit Wet Screen consumes it to protect this firing.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.cask_taken"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.wet_screen_fitted"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.workshop",
+                  "flag": "fume_yards.stock_given"
+                }
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.clay",
+                    "count": 2
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.mesh",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "item": "fume_yards.water_cask",
+          "count": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.cask_taken",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.cask_handed_over",
+          "subject": "Pera handed the player her sole water cask.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.prepare_charge",
+      "label": "Prepare Charge",
+      "category": "Craft",
+      "result": "You prepare two clay and one mesh for firing. Reclaim Charge can still turn it into repair plugs.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.clay",
+            "count": 2
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.mesh",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.charge_prepared"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.prepare_charge"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.charge_prepared",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.charge_prepared",
+          "subject": "Brann watched the player prepare one kiln charge.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.fit_wet_screen",
+      "label": "Fit Wet Screen",
+      "category": "Craft",
+      "result": "You spend the water cask wetting the kiln screen. This protects one firing; the water cannot serve Lowsail.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.water_cask",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.wet_screen_fitted"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.workshop",
+                  "flag": "fume_yards.stock_given"
+                }
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.clay",
+                    "count": 2
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.mesh",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.fit_wet_screen"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.wet_screen_fitted",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.wet_screen_fitted",
+          "subject": "Brann watched the player wet the kiln screen.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.water_spent",
+          "subject": "Pera watched her cask water become kiln screening.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.ignite_batch",
+      "label": "Ignite Batch",
+      "category": "Craft",
+      "result": "You light the batch; it becomes ready next step and spoils after four more. Bank to preserve the three-coin freight commission.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.prepared_charge",
+            "count": 1
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.fuel",
+            "count": 1
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.wet_screen_fitted"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.ignite_batch"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_ignited",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_active",
+          "value": true
+        },
+        {
+          "kind": "schedule_event",
+          "event": "fume_yards.batch_ready"
+        },
+        {
+          "kind": "schedule_event",
+          "event": "fume_yards.batch_spoil"
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.batch_ignited",
+          "subject": "Brann supervised the player lighting one batch.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.draw_filter",
+      "label": "Draw Filter",
+      "category": "Craft",
+      "result": "You draw one fired filter. Fit it here to save two stamina, or sell it to Oren for four coins.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_active"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.batch_claim",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.batch_ready"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.draw_filter"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_active",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_ready",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_drawn",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.filter_drawn",
+          "subject": "Brann watched the player draw the fired filter.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.bank_kiln",
+      "label": "Bank Kiln (lose batch)",
+      "category": "Craft",
+      "result": "You bank the firebox and lose the loaded batch. Banking preserves the three-coin freight commission; no fuel returns.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_active"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.batch_claim",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.bank_batch"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_active",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_ready",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_banked",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.kiln_banked",
+          "subject": "Brann watched the player bank and lose the loaded batch.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.reclaim_charge",
+      "label": "Reclaim Charge",
+      "category": "Craft",
+      "result": "You reclaim the unfired charge into repair plugs and close the kiln. Fuel stays unspent; Patch Stand enables three-coin sorting.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.prepared_charge",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.reclaim_charge"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_reclaimed",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.charge_reclaimed",
+          "subject": "Brann watched the player reclaim the unfired charge.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.fit_dust_filter",
+      "label": "Fit Dust Filter",
+      "category": "Craft",
+      "result": "You fit the filter into Brann's dust housing. Loading kiln freight now pays three coins without costing stamina.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.filter",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.dust_filter_fitted"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.fit_dust_filter"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.dust_filter_fitted",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.dust_filter_fitted",
+          "subject": "Brann watched the player fit the dust filter.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.load_kiln_freight",
+      "label": "Load Kiln Freight (+3 coin, -2 stamina)",
+      "category": "Work",
+      "result": "You load kiln freight and clear dust, spending two stamina. Brann pays three coins; his only freight job is finished.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_drawn"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_spoiled"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_banked"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_reclaimed"
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.dust_filter_fitted"
+            }
+          },
+          {
+            "kind": "resource_at_least",
+            "resource": "stamina",
+            "amount": 2
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.freight_spoiled"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "stamina",
+          "amount": -2
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.kiln_freight_paid",
+          "subject": "Brann paid the player three coins for loading kiln freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.load_filtered_kiln_freight",
+      "label": "Load Kiln Freight (+3 coin)",
+      "category": "Work",
+      "result": "Your installed filter catches the loading dust. Brann pays three coins; his only freight job is finished.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_drawn"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_spoiled"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_banked"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.kiln_reclaimed"
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.freight_spoiled"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.kiln_freight_paid",
+          "subject": "Brann paid the player three coins for loading kiln freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.inspect_spoiled_batch",
+      "label": "Inspect Spoiled Batch",
+      "category": "Inspect",
+      "result": "Brann checks the spoiled batch and damaged freight beside you. The filter and three-coin freight commission are lost.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.batch_spoiled"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "npc_knows",
+              "npc": "fume_yards.brann_coil",
+              "knowledge_id": "fume_yards.batch_spoiled"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "knowledge_id": "fume_yards.batch_spoiled",
+          "subject": "Brann inspected the spoiled batch with the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.spoil_inspected",
+          "subject": "Brann inspected the spoiled batch with the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.sell_filter",
+      "label": "Sell Filter (+4 coin)",
+      "category": "Trade",
+      "result": "Oren buys your filter for four coins. The sale does not install a dust or water filter.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "world_flag",
+            "flag": "sluice_outcome_chosen"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.filter",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.filter_sold"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.sell_filter"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 4
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.filter_sold",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.filter_bought",
+          "subject": "Oren bought one fired filter from the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    }
+  ],
+  "deferred_events": [
+    {
+      "id": "fume_yards.batch_ready",
+      "delay": 2,
+      "event_kind": "production",
+      "label": "Batch ready",
+      "result": "Batch ready.",
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.batch_active"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.batch_claim",
+            "count": 1
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_ready",
+          "value": true
+        }
+      ]
+    },
+    {
+      "id": "fume_yards.batch_spoil",
+      "delay": 5,
+      "event_kind": "production",
+      "label": "Batch spoilage",
+      "result": "Batch spoiled.",
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.batch_active"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.batch_claim",
+            "count": 1
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.spoil_batch"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_active",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_ready",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.batch_spoiled",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.freight_spoiled",
+          "value": true
+        }
+      ]
     }
   ]
 }

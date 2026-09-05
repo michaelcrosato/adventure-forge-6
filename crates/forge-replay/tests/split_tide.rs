@@ -1806,8 +1806,8 @@ fn timed_event_fixture_content() -> CompiledContent {
     };
 
     CompiledContent::try_compile(ContentDraft {
-        schema_version: "forge-schema-v8".to_owned(),
-        rules_version: "forge-rules-v6".to_owned(),
+        schema_version: "forge-schema-v9".to_owned(),
+        rules_version: "forge-rules-v7".to_owned(),
         world_id: "timed-fixture".to_owned(),
         contract: ContentContract::Fixture,
         start_location: "room".to_owned(),
@@ -1825,6 +1825,7 @@ fn timed_event_fixture_content() -> CompiledContent {
         }],
         npcs: Vec::new(),
         // Deliberately shuffled: equal-time events must be ordered by ID.
+        deferred_events: Vec::new(),
         timed_events: vec![
             event(
                 "c.after",

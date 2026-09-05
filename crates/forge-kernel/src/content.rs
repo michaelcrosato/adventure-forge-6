@@ -149,6 +149,29 @@ pub struct TimedEventDefinition {
     pub effects: Vec<Effect>,
 }
 
+/// A one-shot event template. Only a canonical ScheduleEvent effect places
+/// it on the shared timeline, relative to that effect's world time.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct DeferredEventDefinition {
+    pub id: String,
+    pub delay: u64,
+    pub event_kind: String,
+    pub label: String,
+    pub result: String,
+    #[serde(default)]
+    pub condition: Condition,
+    #[serde(default)]
+    pub effects: Vec<Effect>,
+}
+
+struct EventPresentation<'a> {
+    event_kind: &'a str,
+    label: &'a str,
+    result: &'a str,
+    condition: &'a Condition,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct TimedEventView {
@@ -301,6 +324,8 @@ pub struct ContentDraft {
     pub npcs: Vec<NpcDefinition>,
     #[serde(default)]
     pub timed_events: Vec<TimedEventDefinition>,
+    #[serde(default)]
+    pub deferred_events: Vec<DeferredEventDefinition>,
     #[serde(default)]
     pub recipes: Vec<RecipeDefinition>,
     #[serde(default)]
@@ -678,6 +703,9 @@ pub enum Effect {
     ApplyRecipe {
         recipe: String,
     },
+    ScheduleEvent {
+        event: String,
+    },
     AddCharacterDeed {
         deed_id: String,
     },
@@ -713,6 +741,7 @@ impl Effect {
             | Self::TeachNpc { .. }
             | Self::TransferNpcItemToCharacter { .. }
             | Self::ApplyRecipe { .. }
+            | Self::ScheduleEvent { .. }
             | Self::AddCharacterDeed { .. }
             | Self::AdvanceTime { .. } => true,
         }
@@ -753,6 +782,7 @@ fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
         | Effect::ApplyRecipe { .. }
+        | Effect::ScheduleEvent { .. }
         | Effect::AddCharacterDeed { .. } => Some(ActionTimeCost {
             minimum_ticks: 0,
             maximum_ticks: 0,
@@ -788,6 +818,7 @@ struct ContentIdentity<'a> {
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
     timed_events: &'a BTreeMap<String, TimedEventDefinition>,
+    deferred_events: &'a BTreeMap<String, DeferredEventDefinition>,
     recipes: &'a BTreeMap<String, RecipeDefinition>,
     actions: &'a BTreeMap<String, ActionDefinition>,
 }
@@ -807,6 +838,7 @@ pub struct CompiledContent {
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
     timed_events: BTreeMap<String, TimedEventDefinition>,
+    deferred_events: BTreeMap<String, DeferredEventDefinition>,
     recipes: BTreeMap<String, RecipeDefinition>,
     actions: BTreeMap<String, ActionDefinition>,
     build_id: String,
@@ -868,6 +900,11 @@ impl CompiledContent {
             .into_iter()
             .map(|recipe| (recipe.id.clone(), recipe))
             .collect::<BTreeMap<_, _>>();
+        let deferred_events = draft
+            .deferred_events
+            .into_iter()
+            .map(|event| (event.id.clone(), event))
+            .collect::<BTreeMap<_, _>>();
         let actions = draft
             .actions
             .into_iter()
@@ -903,6 +940,7 @@ impl CompiledContent {
             locations: &locations,
             npcs: &npcs,
             timed_events: &timed_events,
+            deferred_events: &deferred_events,
             recipes: &recipes,
             actions: &actions,
         };
@@ -918,6 +956,7 @@ impl CompiledContent {
             locations,
             npcs,
             timed_events,
+            deferred_events,
             recipes,
             actions,
             build_id,
@@ -1006,6 +1045,28 @@ impl CompiledContent {
         self.timed_events.get(id)
     }
 
+    pub fn deferred_event(&self, id: &str) -> Option<&DeferredEventDefinition> {
+        self.deferred_events.get(id)
+    }
+
+    fn event_presentation(&self, id: &str) -> Option<EventPresentation<'_>> {
+        if let Some(event) = self.timed_event(id) {
+            Some(EventPresentation {
+                event_kind: &event.event_kind,
+                label: &event.label,
+                result: &event.result,
+                condition: &event.condition,
+            })
+        } else {
+            self.deferred_event(id).map(|event| EventPresentation {
+                event_kind: &event.event_kind,
+                label: &event.label,
+                result: &event.result,
+                condition: &event.condition,
+            })
+        }
+    }
+
     pub fn recipe(&self, id: &str) -> Option<&RecipeDefinition> {
         self.recipes.get(id)
     }
@@ -1028,6 +1089,10 @@ impl CompiledContent {
 
     pub fn timed_events(&self) -> impl Iterator<Item = (&String, &TimedEventDefinition)> {
         self.timed_events.iter()
+    }
+
+    pub fn deferred_events(&self) -> impl Iterator<Item = (&String, &DeferredEventDefinition)> {
+        self.deferred_events.iter()
     }
 
     pub fn has_location(&self, id: &str) -> bool {
@@ -1078,6 +1143,7 @@ impl CompiledContent {
             locations: &self.locations,
             npcs: &self.npcs,
             timed_events: &self.timed_events,
+            deferred_events: &self.deferred_events,
             recipes: &self.recipes,
             actions: &self.actions,
         };
@@ -1372,15 +1438,15 @@ impl CompiledContent {
                 applied: true,
             } = &event.kind
             {
-                let timed = self.timed_event(event_id).ok_or_else(|| {
+                let timed = self.event_presentation(event_id).ok_or_else(|| {
                     single_validation_error("transition resolved an unknown timed event")
                 })?;
-                if timed.event_kind != *event_kind {
+                if timed.event_kind != event_kind.as_str() {
                     return Err(single_validation_error(
                         "transition timed-event kind does not match compiled content",
                     ));
                 }
-                result_parts.push(timed.result.clone());
+                result_parts.push(timed.result.to_owned());
             }
         }
         self.observe_with_result(transition.state(), Some(result_parts.join(" ")))
@@ -1536,10 +1602,10 @@ impl CompiledContent {
             .scheduled_events
             .iter()
             .filter_map(|scheduled| {
-                self.timed_event(&scheduled.id)
+                self.event_presentation(&scheduled.id)
                     .filter(|definition| definition.condition.evaluate(state))
                     .map(|definition| TimedEventView {
-                        label: definition.label.clone(),
+                        label: definition.label.to_owned(),
                         remaining_ticks: scheduled.due_time.saturating_sub(state.world.time),
                     })
             })
@@ -1723,68 +1789,7 @@ impl CompiledContent {
                 }
             }
         }
-        let mut expected_scheduled = self
-            .timed_events
-            .values()
-            .filter(|definition| definition.due_time > state.world.time)
-            .map(|definition| ScheduledEvent {
-                id: definition.id.clone(),
-                due_time: definition.due_time,
-                event_kind: definition.event_kind.clone(),
-            })
-            .collect::<Vec<_>>();
-        expected_scheduled.sort_by(|left, right| {
-            left.due_time
-                .cmp(&right.due_time)
-                .then_with(|| left.id.cmp(&right.id))
-        });
-        if state.world.scheduled_events != expected_scheduled {
-            errors.push("state pending timed events differ from compiled content and world time");
-        }
-        for event in &state.event_log {
-            if let EventKind::ScheduledEventResolved {
-                event_id,
-                event_kind,
-                ..
-            } = &event.kind
-            {
-                match self.timed_event(event_id) {
-                    Some(definition)
-                        if definition.event_kind == *event_kind
-                            && event.turn >= definition.due_time
-                            && event.turn <= state.world.time => {}
-                    Some(_) => errors.push(format!(
-                        "resolved timed event {event_id} has invalid kind or turn"
-                    )),
-                    None => errors.push(format!(
-                        "event log references unknown timed event {event_id}"
-                    )),
-                }
-            }
-        }
-        for definition in self
-            .timed_events
-            .values()
-            .filter(|definition| definition.due_time <= state.world.time)
-        {
-            let resolutions = state
-                .event_log
-                .iter()
-                .filter(|event| {
-                    matches!(
-                        &event.kind,
-                        EventKind::ScheduledEventResolved { event_id, .. }
-                            if event_id == &definition.id
-                    )
-                })
-                .count();
-            if resolutions != 1 {
-                errors.push(format!(
-                    "timed event {} has {resolutions} resolutions; expected exactly one",
-                    definition.id
-                ));
-            }
-        }
+        self.validate_event_schedule(state, &mut errors);
         for (item, count) in &state.character.inventory {
             if item.trim().is_empty() || *count == 0 {
                 errors.push("character has an invalid inventory entry");
@@ -1808,6 +1813,132 @@ impl CompiledContent {
             Ok(())
         } else {
             Err(errors)
+        }
+    }
+
+    fn validate_event_schedule(&self, state: &GameState, errors: &mut ContentValidationError) {
+        // This ledger proves structural scheduling consistency. Canonical
+        // replay establishes which actions actually scheduled each template.
+        let mut pending = self
+            .timed_events
+            .values()
+            .map(|event| {
+                (
+                    event.id.clone(),
+                    ScheduledEvent {
+                        id: event.id.clone(),
+                        due_time: event.due_time,
+                        event_kind: event.event_kind.clone(),
+                    },
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+        let mut scheduled_ids = pending.keys().cloned().collect::<BTreeSet<_>>();
+        let mut previous_turn = None;
+        for (index, event) in state.event_log.iter().enumerate() {
+            if !matches!(
+                event.kind,
+                EventKind::EventScheduled { .. } | EventKind::ScheduledEventResolved { .. }
+            ) {
+                continue;
+            }
+            if previous_turn.is_some_and(|turn| event.turn < turn) {
+                errors.push(format!(
+                    "scheduler event {index} has a turn before prior scheduler history"
+                ));
+            }
+            previous_turn = Some(event.turn);
+            if event.turn > state.world.time {
+                errors.push(format!(
+                    "scheduler event {index} has future turn {} at world time {}",
+                    event.turn, state.world.time
+                ));
+                continue;
+            }
+            match &event.kind {
+                EventKind::EventScheduled {
+                    event_id,
+                    event_kind,
+                    due_time,
+                } => {
+                    let Some(definition) = self.deferred_event(event_id) else {
+                        errors.push(format!(
+                            "scheduler event {index} references unknown deferred event {event_id}"
+                        ));
+                        continue;
+                    };
+                    if event_kind != &definition.event_kind
+                        || event.turn.checked_add(definition.delay) != Some(*due_time)
+                    {
+                        errors.push(format!(
+                            "scheduled event {event_id} has invalid kind or relative due time"
+                        ));
+                        continue;
+                    }
+                    if !scheduled_ids.insert(event_id.clone()) {
+                        errors.push(format!(
+                            "deferred event {event_id} was scheduled more than once"
+                        ));
+                        continue;
+                    }
+                    pending.insert(
+                        event_id.clone(),
+                        ScheduledEvent {
+                            id: event_id.clone(),
+                            due_time: *due_time,
+                            event_kind: event_kind.clone(),
+                        },
+                    );
+                }
+                EventKind::ScheduledEventResolved {
+                    event_id,
+                    event_kind,
+                    ..
+                } => {
+                    let Some(scheduled) = pending.get(event_id) else {
+                        errors.push(format!("resolved timed event {event_id} is unknown, unscheduled, or already resolved"));
+                        continue;
+                    };
+                    if event_kind != &scheduled.event_kind || event.turn < scheduled.due_time {
+                        errors.push(format!(
+                            "resolved timed event {event_id} has invalid kind or turn"
+                        ));
+                        continue;
+                    }
+                    let first = pending.values().min_by(|left, right| {
+                        left.due_time
+                            .cmp(&right.due_time)
+                            .then_with(|| left.id.cmp(&right.id))
+                    });
+                    if first.is_some_and(|first| first.id != *event_id) {
+                        errors.push(format!(
+                            "resolved timed event {event_id} is out of due-time/id order"
+                        ));
+                    }
+                    pending.remove(event_id);
+                }
+                _ => unreachable!("only scheduling events reach schedule admission"),
+            }
+        }
+        for scheduled in pending
+            .values()
+            .filter(|event| event.due_time <= state.world.time)
+        {
+            errors.push(format!(
+                "timed event {} has 0 resolutions; expected exactly one",
+                scheduled.id
+            ));
+        }
+        let mut expected = pending.into_values().collect::<Vec<_>>();
+        expected.sort_by(|left, right| {
+            left.due_time
+                .cmp(&right.due_time)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+        if state.world.scheduled_events != expected {
+            errors.push(
+                "state pending timed events differ from compiled content and scheduling history",
+            );
         }
     }
 
@@ -2356,10 +2487,22 @@ fn validate_draft(
         );
     }
 
-    if draft.timed_events.len() > MAX_TIMED_EVENTS {
-        errors.push(format!("content exceeds {MAX_TIMED_EVENTS} timed events"));
+    if draft
+        .timed_events
+        .len()
+        .saturating_add(draft.deferred_events.len())
+        > MAX_TIMED_EVENTS
+    {
+        errors.push(format!(
+            "content exceeds {MAX_TIMED_EVENTS} absolute and deferred events"
+        ));
     }
     let mut timed_event_ids = BTreeSet::new();
+    let deferred_event_ids = draft
+        .deferred_events
+        .iter()
+        .map(|event| &event.id)
+        .collect::<BTreeSet<_>>();
     for event in &draft.timed_events {
         validate_timed_event(event, &location_ids, &npc_ids, &mut errors);
         validate_recipe_effects(
@@ -2370,14 +2513,75 @@ fn validate_draft(
             &mut errors,
             0,
         );
+        validate_schedule_effects(
+            &event.effects,
+            &event.id,
+            &deferred_event_ids,
+            false,
+            &mut errors,
+            0,
+        );
         if !timed_event_ids.insert(&event.id) {
             errors.push(format!("duplicate timed event id {}", event.id));
+        }
+    }
+    for event in &draft.deferred_events {
+        if !valid_namespaced_id(&event.id) {
+            errors.push(format!(
+                "deferred event {} has an invalid namespaced id",
+                event.id
+            ));
+        }
+        // Reuse the closed event-program checks, with the positive relative
+        // delay taking the absolute event's positive-time validation slot.
+        validate_timed_event(
+            &TimedEventDefinition {
+                id: event.id.clone(),
+                due_time: event.delay,
+                event_kind: event.event_kind.clone(),
+                label: event.label.clone(),
+                result: event.result.clone(),
+                condition: event.condition.clone(),
+                effects: event.effects.clone(),
+            },
+            &location_ids,
+            &npc_ids,
+            &mut errors,
+        );
+        if event.delay == 0 {
+            errors.push(format!(
+                "deferred event {} must have a positive delay",
+                event.id
+            ));
+        }
+        validate_recipe_effects(&event.effects, &event.id, &recipe_ids, true, &mut errors, 0);
+        validate_schedule_effects(
+            &event.effects,
+            &event.id,
+            &deferred_event_ids,
+            false,
+            &mut errors,
+            0,
+        );
+        if !timed_event_ids.insert(&event.id) {
+            errors.push(format!("duplicate shared event id {}", event.id));
+        }
+        if production {
+            validate_deferred_recipe_guards(event, &draft.recipes, &mut errors);
         }
     }
 
     let mut action_ids = BTreeSet::new();
     for action in &draft.actions {
         validate_action(action, &location_ids, &npc_ids, production, &mut errors);
+        validate_schedule_effects(
+            &action.effects,
+            &action.id,
+            &deferred_event_ids,
+            true,
+            &mut errors,
+            0,
+        );
         validate_recipe_effects(
             &action.effects,
             &action.id,
@@ -2484,6 +2688,7 @@ fn collect_effect_supply_ids(
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::ApplyRecipe { .. }
+        | Effect::ScheduleEvent { .. }
         | Effect::AddCharacterDeed { .. }
         | Effect::AdvanceTime { .. } => {}
     }
@@ -2520,6 +2725,11 @@ fn potential_supply_ids(draft: &ContentDraft) -> (BTreeSet<String>, BTreeSet<Str
             collect_effect_supply_ids(effect, &mut resources, &mut items);
         }
     }
+    for event in &draft.deferred_events {
+        for effect in &event.effects {
+            collect_effect_supply_ids(effect, &mut resources, &mut items);
+        }
+    }
     (resources, items)
 }
 
@@ -2544,18 +2754,7 @@ fn potential_supply_summary_words(draft: &ContentDraft) -> usize {
     let item_words = if items.is_empty() {
         0
     } else {
-        1 + items
-            .iter()
-            .map(|id| {
-                word_count(
-                    draft
-                        .supply_labels
-                        .items
-                        .get(id)
-                        .map_or(id.as_str(), String::as_str),
-                ) + 1
-            })
-            .sum::<usize>()
+        1 + crate::supply_budget::potential_item_words(draft, &items)
     };
     resource_words.saturating_add(item_words)
 }
@@ -2576,6 +2775,14 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
         .map(|event| (event.due_time, word_count(&event.result)))
         .collect();
     timed_words.sort_unstable();
+    // Relative templates may be scheduled at different times and coincide
+    // with one another or any absolute deadline. Count all of them for every
+    // advancing action; positive delays exclude zero-time resolutions.
+    let deferred_words = draft
+        .deferred_events
+        .iter()
+        .map(|event| word_count(&event.result))
+        .sum::<usize>();
     let mut event_budget_by_ticks = BTreeMap::new();
     let supply_words = if draft.contract == ContentContract::Production {
         potential_supply_summary_words(draft)
@@ -2595,7 +2802,15 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
         let time_cost = action_time_cost(&action.effects).expect("validated action time cost");
         let event_words = *event_budget_by_ticks
             .entry(time_cost.maximum_ticks)
-            .or_insert_with(|| maximum_event_words(&timed_words, time_cost.maximum_ticks));
+            .or_insert_with(|| {
+                maximum_event_words(&timed_words, time_cost.maximum_ticks).saturating_add(
+                    if time_cost.maximum_ticks > 0 {
+                        deferred_words
+                    } else {
+                        0
+                    },
+                )
+            });
         let result = if action.result.trim().is_empty() {
             DEFAULT_ACTION_RESULT
         } else {
@@ -3359,6 +3574,7 @@ fn effect_advances_time(effect: &Effect) -> bool {
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
         | Effect::ApplyRecipe { .. }
+        | Effect::ScheduleEvent { .. }
         | Effect::AddCharacterDeed { .. } => false,
     }
 }
@@ -3632,9 +3848,195 @@ fn validate_effects(
                     allow_inventory_transfers,
                 );
             }
-            Effect::ApplyRecipe { .. } | Effect::AdvanceTime { .. } | Effect::Noop => {}
+            Effect::ScheduleEvent { .. }
+            | Effect::ApplyRecipe { .. }
+            | Effect::AdvanceTime { .. }
+            | Effect::Noop => {}
         }
     }
+}
+
+fn validate_schedule_effects(
+    effects: &[Effect],
+    owner: &str,
+    deferred_ids: &BTreeSet<&String>,
+    allow_scheduling: bool,
+    errors: &mut ContentValidationError,
+    depth: usize,
+) {
+    if depth > 64 {
+        return;
+    }
+    for effect in effects {
+        match effect {
+            Effect::ScheduleEvent { event } => {
+                if !deferred_ids.contains(event) {
+                    errors.push(format!(
+                        "action {owner} references unknown deferred event {event}"
+                    ));
+                }
+                if !allow_scheduling {
+                    errors.push(format!(
+                        "event program {owner} cannot schedule another event"
+                    ));
+                }
+            }
+            Effect::RandomChance {
+                on_success,
+                on_failure,
+                ..
+            } => {
+                for branch in [on_success, on_failure] {
+                    validate_schedule_effects(
+                        std::slice::from_ref(branch),
+                        owner,
+                        deferred_ids,
+                        allow_scheduling,
+                        errors,
+                        depth + 1,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn guaranteed_inventory(condition: &Condition, depth: usize) -> BTreeMap<String, u32> {
+    if depth > 64 {
+        return BTreeMap::new();
+    }
+    match condition {
+        Condition::HasItem { item, count } => BTreeMap::from([(item.clone(), *count)]),
+        Condition::All { conditions } => {
+            let mut guaranteed = BTreeMap::<String, u32>::new();
+            for condition in conditions {
+                for (item, count) in guaranteed_inventory(condition, depth + 1) {
+                    guaranteed
+                        .entry(item)
+                        .and_modify(|held| *held = (*held).max(count))
+                        .or_insert(count);
+                }
+            }
+            guaranteed
+        }
+        Condition::Any { conditions } => {
+            let Some(first) = conditions.first() else {
+                return BTreeMap::new();
+            };
+            conditions[1..].iter().fold(
+                guaranteed_inventory(first, depth + 1),
+                |left, condition| {
+                    inventory_guarantee_intersection(
+                        left,
+                        guaranteed_inventory(condition, depth + 1),
+                    )
+                },
+            )
+        }
+        _ => BTreeMap::new(),
+    }
+}
+
+fn inventory_guarantee_intersection(
+    left: BTreeMap<String, u32>,
+    right: BTreeMap<String, u32>,
+) -> BTreeMap<String, u32> {
+    left.into_iter()
+        .filter_map(|(item, count)| right.get(&item).map(|other| (item, count.min(*other))))
+        .collect()
+}
+
+fn validate_deferred_recipe_guards(
+    event: &DeferredEventDefinition,
+    recipes: &[RecipeDefinition],
+    errors: &mut ContentValidationError,
+) {
+    let guaranteed = guaranteed_inventory(&event.condition, 0);
+    deferred_inventory_after(&event.effects, guaranteed, &event.id, recipes, errors, 0);
+}
+
+fn deferred_inventory_after(
+    effects: &[Effect],
+    mut guaranteed: BTreeMap<String, u32>,
+    owner: &str,
+    recipes: &[RecipeDefinition],
+    errors: &mut ContentValidationError,
+    depth: usize,
+) -> BTreeMap<String, u32> {
+    if depth > 64 {
+        return guaranteed;
+    }
+    for effect in effects {
+        match effect {
+            Effect::ApplyRecipe { recipe } => {
+                let Some(recipe) = recipes.iter().find(|definition| definition.id == *recipe)
+                else {
+                    continue;
+                };
+                for (item, required) in &recipe.inputs {
+                    let held = guaranteed.get(item).copied().unwrap_or_default();
+                    let Some(remaining) = held.checked_sub(*required) else {
+                        errors.push(format!("deferred event {owner} applies recipe {} without guaranteed stock of {item}", recipe.id));
+                        continue;
+                    };
+                    guaranteed.insert(item.clone(), remaining);
+                }
+                for (item, count) in &recipe.outputs {
+                    let held = guaranteed.get(item).copied().unwrap_or_default();
+                    if let Some(next) = held.checked_add(*count) {
+                        guaranteed.insert(item.clone(), next);
+                    } else {
+                        errors.push(format!("deferred event {owner} guaranteed recipe output exceeds inventory capacity for {item}"));
+                    }
+                }
+            }
+            Effect::RandomChance {
+                success_percent,
+                on_success,
+                on_failure,
+            } => {
+                guaranteed = match success_percent {
+                    0 => deferred_inventory_after(
+                        std::slice::from_ref(on_failure),
+                        guaranteed,
+                        owner,
+                        recipes,
+                        errors,
+                        depth + 1,
+                    ),
+                    100 => deferred_inventory_after(
+                        std::slice::from_ref(on_success),
+                        guaranteed,
+                        owner,
+                        recipes,
+                        errors,
+                        depth + 1,
+                    ),
+                    _ => inventory_guarantee_intersection(
+                        deferred_inventory_after(
+                            std::slice::from_ref(on_success),
+                            guaranteed.clone(),
+                            owner,
+                            recipes,
+                            errors,
+                            depth + 1,
+                        ),
+                        deferred_inventory_after(
+                            std::slice::from_ref(on_failure),
+                            guaranteed,
+                            owner,
+                            recipes,
+                            errors,
+                            depth + 1,
+                        ),
+                    ),
+                };
+            }
+            _ => {}
+        }
+    }
+    guaranteed
 }
 
 fn validate_recipe_effects(
@@ -3839,6 +4241,7 @@ fn guaranteed_npc_knowledge_after_effects(
             | Effect::AddNpcMemory { .. }
             | Effect::TransferNpcItemToCharacter { .. }
             | Effect::ApplyRecipe { .. }
+            | Effect::ScheduleEvent { .. }
             | Effect::AddCharacterDeed { .. }
             | Effect::AdvanceTime { .. } => {}
         }
@@ -4285,6 +4688,7 @@ mod tests {
                 inventory: BTreeMap::new(),
             }],
             timed_events: Vec::new(),
+            deferred_events: Vec::new(),
             recipes: Vec::new(),
             actions,
         }
@@ -4880,6 +5284,518 @@ mod tests {
         assert!(content.timed_event("move-npc-event").is_some());
     }
 
+    fn deferred(id: &str, delay: u64) -> DeferredEventDefinition {
+        DeferredEventDefinition {
+            id: id.to_owned(),
+            delay,
+            event_kind: "batch".to_owned(),
+            label: "Batch ready".to_owned(),
+            result: "Your batch is ready.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "test.ready".to_owned(),
+                value: true,
+            }],
+        }
+    }
+
+    #[test]
+    fn deferred_templates_bind_identity_without_seeding_genesis() {
+        let mut source = production_draft(vec![action(
+            "schedule",
+            Condition::Always,
+            vec![Effect::ScheduleEvent {
+                event: "test.ready".to_owned(),
+            }],
+        )]);
+        source.deferred_events = vec![deferred("test.ready", 2), deferred("test.spoil", 5)];
+        let content = compile(source.clone()).unwrap();
+        let initial = content.new_game("hero", 9).unwrap();
+        assert!(initial.world.scheduled_events.is_empty());
+        assert!(initial.event_log.is_empty());
+        assert!(
+            content
+                .observe(&initial)
+                .unwrap()
+                .upcoming_events
+                .is_empty()
+        );
+        assert_eq!(content.deferred_event("test.ready").unwrap().delay, 2);
+        assert_eq!(content.deferred_events().count(), 2);
+        assert!(content.has_valid_build_id());
+        source.deferred_events.reverse();
+        assert_eq!(
+            compile(source.clone()).unwrap().build_id(),
+            content.build_id()
+        );
+        for index in 0..5 {
+            let mut changed = source.clone();
+            match index {
+                0 => changed.deferred_events[0].delay = 6,
+                1 => changed.deferred_events[0].event_kind = "spoil".to_owned(),
+                2 => changed.deferred_events[0].label = "Batch spoiled".to_owned(),
+                3 => changed.deferred_events[0].result = "Your batch has spoiled.".to_owned(),
+                _ => {
+                    changed.deferred_events[0].effects = vec![Effect::SetWorldFlag {
+                        flag: "test.spoiled".to_owned(),
+                        value: true,
+                    }]
+                }
+            }
+            assert_ne!(compile(changed).unwrap().build_id(), content.build_id());
+        }
+    }
+
+    #[test]
+    fn deferred_schema_rejects_zero_delay_duplicates_unknown_and_recursive_schedules() {
+        let mut source = draft(Vec::new());
+        source.deferred_events = vec![deferred("test.ready", 2)];
+        for id in ["", "plain", "test..bad", "test.Bad"] {
+            let mut invalid = source.clone();
+            invalid.deferred_events[0].id = id.to_owned();
+            assert!(
+                compile(invalid)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("invalid namespaced id")
+            );
+        }
+        let mut zero = source.clone();
+        zero.deferred_events[0].delay = 0;
+        assert!(
+            compile(zero)
+                .unwrap_err()
+                .to_string()
+                .contains("positive delay")
+        );
+        let mut duplicate = source.clone();
+        duplicate.deferred_events.push(deferred("test.ready", 3));
+        assert!(
+            compile(duplicate)
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate shared event id")
+        );
+        let mut shared = source.clone();
+        shared.timed_events.push(TimedEventDefinition {
+            id: "test.ready".to_owned(),
+            due_time: 3,
+            event_kind: "batch".to_owned(),
+            label: "Ready".to_owned(),
+            result: "The batch is ready.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "test.ready".to_owned(),
+                value: true,
+            }],
+        });
+        assert!(
+            compile(shared.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate shared event id")
+        );
+        shared.deferred_events.clear();
+        shared.actions.push(action(
+            "schedule-absolute",
+            Condition::Always,
+            vec![Effect::ScheduleEvent {
+                event: "test.ready".to_owned(),
+            }],
+        ));
+        assert!(
+            compile(shared)
+                .unwrap_err()
+                .to_string()
+                .contains("unknown deferred event")
+        );
+        source.actions.push(action(
+            "schedule-unknown",
+            Condition::Always,
+            vec![Effect::ScheduleEvent {
+                event: "test.unknown".to_owned(),
+            }],
+        ));
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("unknown deferred event")
+        );
+        source.actions.clear();
+        for nested in [false, true] {
+            let schedule = Effect::ScheduleEvent {
+                event: "test.ready".to_owned(),
+            };
+            let effect = if nested {
+                Effect::RandomChance {
+                    success_percent: 0,
+                    on_success: Box::new(schedule),
+                    on_failure: Box::new(Effect::Noop),
+                }
+            } else {
+                schedule
+            };
+            let mut recursive = source.clone();
+            recursive.deferred_events[0].effects = vec![effect.clone()];
+            assert!(
+                compile(recursive)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("cannot schedule another event")
+            );
+            let mut absolute = source.clone();
+            absolute.timed_events.push(TimedEventDefinition {
+                id: "old-absolute-fixture".to_owned(),
+                due_time: 1,
+                event_kind: "deadline".to_owned(),
+                label: "Deadline".to_owned(),
+                result: "The deadline arrives.".to_owned(),
+                condition: Condition::Always,
+                effects: vec![effect],
+            });
+            assert!(
+                compile(absolute)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("cannot schedule another event")
+            );
+        }
+        source.deferred_events[0].effects = vec![Effect::RandomChance {
+            success_percent: 0,
+            on_success: Box::new(Effect::AdvanceTime { ticks: 1 }),
+            on_failure: Box::new(Effect::Noop),
+        }];
+        assert!(
+            compile(source)
+                .unwrap_err()
+                .to_string()
+                .contains("cannot advance time while resolving")
+        );
+    }
+
+    #[test]
+    fn deferred_recipes_require_production_stock_guards_and_preserve_reference_checks() {
+        let press = Effect::ApplyRecipe {
+            recipe: "test.press".to_owned(),
+        };
+        let install = Effect::ApplyRecipe {
+            recipe: "test.install".to_owned(),
+        };
+        let mut source = production_draft(Vec::new());
+        source.recipes = vec![
+            repair_recipe(),
+            recipe("test.install", &[("test.repair", 1)], &[]),
+        ];
+        source.deferred_events = vec![deferred("test.work", 2)];
+        source.deferred_events[0].effects = vec![press.clone(), install.clone()];
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("without guaranteed stock")
+        );
+        let guards = Condition::All {
+            conditions: vec![
+                Condition::HasItem {
+                    item: "test.clay".to_owned(),
+                    count: 2,
+                },
+                Condition::HasItem {
+                    item: "test.mesh".to_owned(),
+                    count: 1,
+                },
+            ],
+        };
+        source.deferred_events[0].condition = guards.clone();
+        compile(source.clone()).expect("guarded inputs and sequential produced stock are valid");
+        source.deferred_events[0].condition = Condition::Any {
+            conditions: vec![
+                guards.clone(),
+                Condition::HasItem {
+                    item: "test.clay".to_owned(),
+                    count: 2,
+                },
+            ],
+        };
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("without guaranteed stock of test.mesh")
+        );
+        source.deferred_events[0].condition = guards;
+        source.deferred_events[0].effects = vec![
+            Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(press.clone()),
+                on_failure: Box::new(Effect::Noop),
+            },
+            install,
+        ];
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("without guaranteed stock of test.repair")
+        );
+        source.deferred_events[0].condition = Condition::Always;
+        source.deferred_events[0].effects = vec![Effect::RandomChance {
+            success_percent: 0,
+            on_success: Box::new(press),
+            on_failure: Box::new(Effect::SetWorldFlag {
+                flag: "test.idle".to_owned(),
+                value: true,
+            }),
+        }];
+        compile(source.clone()).expect("unreachable recipe branches need no stock guarantee");
+        source.deferred_events[0].effects = vec![Effect::TransferNpcItemToCharacter {
+            npc: StringRef::Literal("sava".to_owned()),
+            item: "test.clay".to_owned(),
+            count: 1,
+        }];
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("cannot transfer NPC inventory in a timed event")
+        );
+        source.deferred_events[0].effects = vec![Effect::MoveNpc {
+            npc: StringRef::Parameter("target".to_owned()),
+            location: StringRef::Literal("yard".to_owned()),
+        }];
+        assert!(
+            compile(source.clone()).is_err(),
+            "event programs cannot invent parameter bindings"
+        );
+        source.deferred_events[0].effects = vec![Effect::TeachNpc {
+            npc: StringRef::Literal("sava".to_owned()),
+            knowledge_id: "test.fact".to_owned(),
+            subject: "The gate broke.".to_owned(),
+            provenance: KnowledgeProvenance::Told {
+                by: "sava".to_owned(),
+            },
+        }];
+        assert!(
+            compile(source)
+                .unwrap_err()
+                .to_string()
+                .contains("without guaranteed source possession")
+        );
+    }
+
+    fn schedule_record(turn: u64, id: &str, due_time: u64) -> Event {
+        Event {
+            turn,
+            kind: EventKind::EventScheduled {
+                event_id: id.to_owned(),
+                event_kind: "batch".to_owned(),
+                due_time,
+            },
+        }
+    }
+
+    fn resolution_record(turn: u64, id: &str) -> Event {
+        Event {
+            turn,
+            kind: EventKind::ScheduledEventResolved {
+                event_id: id.to_owned(),
+                event_kind: "batch".to_owned(),
+                applied: false,
+            },
+        }
+    }
+
+    fn deferred_schedule_content() -> CompiledContent {
+        let mut source = production_draft(Vec::new());
+        source.deferred_events = vec![deferred("test.ready", 2), deferred("test.spoil", 5)];
+        compile(source).unwrap()
+    }
+
+    fn late_pending_schedule(content: &CompiledContent) -> GameState {
+        let mut state = content.new_game("hero", 9).unwrap();
+        state.world.time = 130;
+        state
+            .event_log
+            .push(schedule_record(130, "test.ready", 132));
+        state.world.scheduled_events.push(ScheduledEvent {
+            id: "test.ready".to_owned(),
+            event_kind: "batch".to_owned(),
+            due_time: 132,
+        });
+        state
+    }
+
+    #[test]
+    fn deferred_schedule_admission_accepts_exact_late_queue_and_single_resolution() {
+        let content = deferred_schedule_content();
+        let mut state = content.new_game("hero", 9).unwrap();
+        state.world.time = 128;
+        content
+            .validate_state(&state)
+            .expect("unstarted templates are absent even after long play");
+        let mut state = late_pending_schedule(&content);
+        content.validate_state(&state).unwrap();
+        let upcoming = content.observe(&state).unwrap().upcoming_events;
+        assert_eq!(
+            upcoming,
+            vec![TimedEventView {
+                label: "Batch ready".to_owned(),
+                remaining_ticks: 2
+            }]
+        );
+        state.world.time = 132;
+        state.event_log.push(resolution_record(132, "test.ready"));
+        state.world.scheduled_events.clear();
+        content
+            .validate_state(&state)
+            .expect("the schedule ledger retires an unapplied resolution; replay checks its guard");
+        assert!(content.observe(&state).unwrap().upcoming_events.is_empty());
+    }
+
+    #[test]
+    fn deferred_schedule_admission_rejects_corrupt_pending_and_history() {
+        let content = deferred_schedule_content();
+        let valid = late_pending_schedule(&content);
+        let mut cases = Vec::new();
+        let mut unscheduled = valid.clone();
+        unscheduled.event_log.clear();
+        cases.push((unscheduled, "pending timed events differ"));
+        let mut missing = valid.clone();
+        missing.world.scheduled_events.clear();
+        cases.push((missing, "pending timed events differ"));
+        let mut duplicate_pending = valid.clone();
+        duplicate_pending
+            .world
+            .scheduled_events
+            .push(duplicate_pending.world.scheduled_events[0].clone());
+        cases.push((duplicate_pending, "pending timed events differ"));
+        let mut wrong_due = valid.clone();
+        wrong_due.world.scheduled_events[0].due_time = 133;
+        cases.push((wrong_due, "pending timed events differ"));
+        let mut wrong_record = valid.clone();
+        wrong_record.event_log[0] = schedule_record(130, "test.ready", 133);
+        wrong_record.world.scheduled_events[0].due_time = 133;
+        cases.push((wrong_record, "invalid kind or relative due time"));
+        let mut wrong_kind = valid.clone();
+        let EventKind::EventScheduled { event_kind, .. } = &mut wrong_kind.event_log[0].kind else {
+            unreachable!()
+        };
+        *event_kind = "forged".to_owned();
+        cases.push((wrong_kind, "invalid kind or relative due time"));
+        let mut unknown = valid.clone();
+        unknown.event_log[0] = schedule_record(130, "test.unknown", 132);
+        cases.push((unknown, "unknown deferred event"));
+        let mut future = valid.clone();
+        future.event_log[0] = schedule_record(131, "test.ready", 133);
+        cases.push((future, "future turn"));
+        let mut overdue = valid.clone();
+        overdue.world.time = 132;
+        cases.push((overdue, "0 resolutions"));
+        let mut early = valid.clone();
+        early.world.time = 131;
+        early.world.scheduled_events.clear();
+        early.event_log.push(resolution_record(131, "test.ready"));
+        cases.push((early, "invalid kind or turn"));
+        let mut uninitiated = content.new_game("hero", 9).unwrap();
+        uninitiated
+            .event_log
+            .push(resolution_record(0, "test.ready"));
+        cases.push((uninitiated, "unscheduled"));
+        let mut repeated = valid.clone();
+        repeated
+            .event_log
+            .push(schedule_record(130, "test.ready", 132));
+        cases.push((repeated, "scheduled more than once"));
+        let mut resolved = valid.clone();
+        resolved.world.time = 132;
+        resolved.world.scheduled_events.clear();
+        resolved
+            .event_log
+            .push(resolution_record(132, "test.ready"));
+        let mut double_resolution = resolved.clone();
+        double_resolution
+            .event_log
+            .push(resolution_record(132, "test.ready"));
+        cases.push((double_resolution, "already resolved"));
+        let mut rescheduled = resolved.clone();
+        rescheduled
+            .event_log
+            .push(schedule_record(132, "test.ready", 134));
+        cases.push((rescheduled, "scheduled more than once"));
+        let mut backwards = resolved;
+        backwards
+            .event_log
+            .push(schedule_record(131, "test.spoil", 136));
+        backwards.world.scheduled_events.push(ScheduledEvent {
+            id: "test.spoil".to_owned(),
+            event_kind: "batch".to_owned(),
+            due_time: 136,
+        });
+        cases.push((backwards, "before prior scheduler history"));
+        let mut overflow = content.new_game("hero", 9).unwrap();
+        overflow.world.time = u64::MAX;
+        overflow
+            .event_log
+            .push(schedule_record(u64::MAX, "test.ready", 1));
+        cases.push((overflow, "invalid kind or relative due time"));
+        for (state, marker) in cases {
+            let error = content.validate_state(&state).unwrap_err().to_string();
+            assert!(error.contains(marker), "{error} must contain {marker}");
+        }
+    }
+
+    #[test]
+    fn mixed_schedule_admission_requires_global_due_time_and_id_order() {
+        let mut source = production_draft(Vec::new());
+        source.deferred_events = vec![deferred("test.a", 2), deferred("test.b", 2)];
+        source.timed_events = vec![TimedEventDefinition {
+            id: "test.c".to_owned(),
+            due_time: 2,
+            event_kind: "batch".to_owned(),
+            label: "Tide".to_owned(),
+            result: "The tide arrives.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::SetWorldFlag {
+                flag: "test.tide".to_owned(),
+                value: true,
+            }],
+        }];
+        let content = compile(source).unwrap();
+        let mut state = content.new_game("hero", 9).unwrap();
+        state.world.time = 2;
+        state.world.scheduled_events.clear();
+        state.event_log = vec![
+            schedule_record(0, "test.b", 2),
+            schedule_record(0, "test.a", 2),
+            resolution_record(2, "test.a"),
+            resolution_record(2, "test.b"),
+            resolution_record(2, "test.c"),
+        ];
+        content
+            .validate_state(&state)
+            .expect("absolute and deferred IDs share one sorted due queue");
+        state.event_log.swap(2, 3);
+        assert!(
+            content
+                .validate_state(&state)
+                .unwrap_err()
+                .to_string()
+                .contains("out of due-time/id order")
+        );
+        let mut schedule_absolute = content.new_game("hero", 9).unwrap();
+        schedule_absolute
+            .event_log
+            .push(schedule_record(0, "test.c", 2));
+        assert!(
+            content
+                .validate_state(&schedule_absolute)
+                .unwrap_err()
+                .to_string()
+                .contains("unknown deferred event")
+        );
+    }
+
     #[test]
     fn timed_events_validate_closed_effects_and_compile_into_identity() {
         let mut source = draft(vec![action(
@@ -5335,6 +6251,41 @@ mod tests {
         assert!(compile(observation_budget_draft(2, &[(1, 2), (2, 2)])).is_err());
         assert!(compile(observation_budget_draft(1, &[(2, 2), (2, 2)])).is_err());
         assert!(compile(observation_budget_draft(0, &[(2, 60), (2, 60)])).is_ok());
+    }
+
+    #[test]
+    fn deferred_results_budget_arbitrary_alignment_and_all_adjusted_supply_keys() {
+        let mut source = observation_budget_draft(1, &[(1, 1)]);
+        let mut first = deferred("test.first", 2);
+        first.result = budget_text(2);
+        let mut second = deferred("test.second", 100);
+        second.result = budget_text(1);
+        source.deferred_events = vec![first, second];
+        assert!(
+            compile(source.clone())
+                .unwrap_err()
+                .to_string()
+                .contains("combined routine observation"),
+            "different scheduling times can align distinct delays with the absolute event"
+        );
+        source.deferred_events.pop();
+        compile(source.clone()).expect("combined 99-word boundary stays legal");
+        source.actions[0].effects = vec![Effect::AdvanceTime { ticks: 0 }];
+        source.deferred_events[0].result = budget_text(60);
+        compile(source.clone()).expect("positive delays cannot resolve during a zero-time action");
+        source.deferred_events[0].effects = vec![Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(Effect::AdjustResource {
+                resource: "test.water".to_owned(),
+                amount: 1,
+            }),
+            on_failure: Box::new(Effect::Noop),
+        }];
+        let (resources, _) = potential_supply_ids(&source);
+        assert!(
+            resources.contains("test.water"),
+            "deferred resource outputs must enter supply budgets"
+        );
     }
 
     #[test]

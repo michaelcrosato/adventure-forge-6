@@ -1,7 +1,7 @@
 diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
 --- a/crates/forge-kernel/src/reducer.rs
 +++ b/crates/forge-kernel/src/reducer.rs
-@@ -698,7 +698,14 @@ pub fn step(
+@@ -910,6 +910,13 @@ pub fn step(
      if entropy != &state.entropy {
          return Err(KernelError::EntropyMismatch);
      }
@@ -14,9 +14,8 @@ diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reduce
 +    } else {
 +        validate_action(state, content, action)?;
 +    }
-     let definition = content
-         .action(&action.definition_id)
-         .ok_or_else(|| KernelError::UnknownAction(action.definition_id.clone()))?;
+     reduce_validated_action(state, action, content, entropy)
+ }
 diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/content.rs
 --- a/crates/forge-kernel/src/content.rs
 +++ b/crates/forge-kernel/src/content.rs

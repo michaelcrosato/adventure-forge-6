@@ -131,8 +131,8 @@ mod tests {
     #[test]
     fn generated_manifest_carries_only_repository_trusted_abi() {
         let manifest = BuildManifest::generated();
-        assert_eq!(manifest.schema_abi_version(), "forge-schema-v8");
-        assert_eq!(manifest.rules_abi_version(), "forge-rules-v6");
+        assert_eq!(manifest.schema_abi_version(), "forge-schema-v9");
+        assert_eq!(manifest.rules_abi_version(), "forge-rules-v7");
         assert_eq!(manifest.entropy_algorithm(), "splitmix64-v1");
         assert_eq!(
             manifest.entropy_algorithm(),

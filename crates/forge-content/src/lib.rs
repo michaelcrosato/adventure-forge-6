@@ -7,9 +7,9 @@
 pub use forge_kernel::{
     ActionDefinition, ActionPage, ActionTimeCost, ActionView, CharacterCreationChoice,
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
-    CharacterSelection, Condition, ContentContract, ContentDraft, Effect, LocationDefinition,
-    NpcDefinition, Observation, ParameterDomain, ParameterSpec, RecipeDefinition, StringRef,
-    TextVariant, TimedEventDefinition, TimedEventView,
+    CharacterSelection, Condition, ContentContract, ContentDraft, DeferredEventDefinition, Effect,
+    LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec,
+    RecipeDefinition, StringRef, TextVariant, TimedEventDefinition, TimedEventView,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -97,6 +97,7 @@ mod tests {
             locations: Vec::new(),
             npcs: Vec::new(),
             timed_events: Vec::new(),
+            deferred_events: Vec::new(),
             recipes: Vec::new(),
             actions: Vec::new(),
         };
@@ -110,14 +111,14 @@ mod tests {
     #[test]
     fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
         let duplicate_top_level = r#"{
-            "schema_version":"forge-schema-v8",
+            "schema_version":"forge-schema-v9",
             "schema_version":"shadow"
         }"#;
         assert!(parse(duplicate_top_level).is_err());
 
         let duplicate_nested_map = r#"{
-            "schema_version":"forge-schema-v8",
-            "rules_version":"forge-rules-v6",
+            "schema_version":"forge-schema-v9",
+            "rules_version":"forge-rules-v7",
             "world_id":"world",
             "character_creation":{
                 "base":{"resources":{"coin":1,"coin":2}},
@@ -139,14 +140,51 @@ mod tests {
             r#"[{"id":"test.press","inputs":{"test.clay":4294967296},"outputs":{}}]"#,
         ] {
             let input = format!(
-                r#"{{"schema_version":"forge-schema-v8","rules_version":"forge-rules-v6","world_id":"test.world","recipes":{recipes}}}"#
+                r#"{{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","recipes":{recipes}}}"#
             );
             assert!(
                 parse(&input).is_err(),
                 "malformed recipe must fail parsing: {recipes}"
             );
         }
-        let source = parse(r#"{"schema_version":"forge-schema-v8","rules_version":"forge-rules-v6","world_id":"test.world"}"#).unwrap();
+        let source = parse(r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world"}"#).unwrap();
         assert!(source.recipes.is_empty());
+        assert!(source.deferred_events.is_empty());
+    }
+
+    #[test]
+    fn deferred_parser_rejects_ambiguous_fields_and_noninteger_delay() {
+        let valid_template = r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","deferred_events":[{"id":"test.ready","delay":2,"event_kind":"batch","label":"Ready","result":"Ready."}]}"#;
+        let parsed = parse(valid_template).unwrap();
+        assert_eq!(parsed.deferred_events[0].condition, Condition::Always);
+        assert!(parsed.deferred_events[0].effects.is_empty());
+        for event in [
+            r#"{"id":"test.ready","delay":2,"delay":3,"event_kind":"batch","label":"Ready","result":"Ready."}"#,
+            r#"{"id":"test.ready","delay":2,"due_time":3,"event_kind":"batch","label":"Ready","result":"Ready."}"#,
+            r#"{"id":"test.ready","delay":-1,"event_kind":"batch","label":"Ready","result":"Ready."}"#,
+            r#"{"id":"test.ready","delay":1.5,"event_kind":"batch","label":"Ready","result":"Ready."}"#,
+            r#"{"id":"test.ready","delay":18446744073709551616,"event_kind":"batch","label":"Ready","result":"Ready."}"#,
+            r#"{"id":"test.ready","event_kind":"batch","label":"Ready","result":"Ready."}"#,
+        ] {
+            let source = format!(
+                r#"{{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","deferred_events":[{event}]}}"#
+            );
+            assert!(
+                parse(&source).is_err(),
+                "malformed deferred template must fail: {event}"
+            );
+        }
+        let invalid_effect = r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","actions":[{"id":"test.schedule","label":"Schedule","meaningful":true,"movement":false,"effects":[{"kind":"schedule_event","event":"test.ready","delay":2}]}]}"#;
+        let valid_effect = invalid_effect.replace(",\"delay\":2", "");
+        assert_eq!(
+            parse(&valid_effect).unwrap().actions[0].effects,
+            vec![Effect::ScheduleEvent {
+                event: "test.ready".to_owned()
+            }]
+        );
+        assert!(
+            parse(invalid_effect).is_err(),
+            "delay belongs only to the template"
+        );
     }
 }

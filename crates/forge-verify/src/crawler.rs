@@ -162,6 +162,8 @@ type FrontierScore = (
     usize,
     Reverse<usize>,
     usize,
+    Reverse<u64>,
+    usize,
     usize,
     Reverse<usize>,
     usize,
@@ -419,7 +421,17 @@ pub(super) fn crawl_targets_with_scenarios(
                 .covered_definitions
                 .insert(action.definition_id.clone());
 
-            if frontier.depth >= budget.max_depth || frontier.used_actions.contains(&shape) {
+            let advances_deferred_timer = definition.category == "Time"
+                && next_state.world.time > frontier.state.world.time
+                && frontier
+                    .state
+                    .world
+                    .scheduled_events
+                    .iter()
+                    .any(|event| content.deferred_event(&event.id).is_some());
+            if frontier.depth >= budget.max_depth
+                || (frontier.used_actions.contains(&shape) && !advances_deferred_timer)
+            {
                 continue;
             }
             let mut used_actions = frontier.used_actions.clone();
@@ -508,10 +520,13 @@ fn frontier_score(
     // frontier queue.
     let immediate_targets = immediate_movement_targets(&frontier.state, content)?;
     let npc_arrivals = immediate_npc_arrival_projections(&frontier.state, content)?;
+    let deferred_flags = pending_deferred_flag_projections(&frontier.state, content)?;
     let mut uncovered_here = 0usize;
     let mut ready_one_move = 0usize;
     let mut ready_uncovered = 0usize;
     let mut nearest_ready_target = usize::MAX;
+    let mut deferred_ready = 0usize;
+    let mut nearest_deferred_ready = u64::MAX;
     let mut total_progress = 0usize;
     let mut best_partial = (0usize, Reverse(usize::MAX));
     for (definition_id, definition) in content.actions() {
@@ -521,6 +536,15 @@ fn frontier_score(
             continue;
         }
         let ready = definition.condition.evaluate(&frontier.state);
+        if !ready {
+            for (remaining, projection) in &deferred_flags {
+                if definition.condition.evaluate(projection) {
+                    deferred_ready += 1;
+                    nearest_deferred_ready = nearest_deferred_ready.min(*remaining);
+                    break;
+                }
+            }
+        }
         let ready_on_arrival = npc_arrivals.iter().any(|arrival| {
             (definition.locations.is_empty()
                 || definition
@@ -584,6 +608,8 @@ fn frontier_score(
         ready_one_move,
         ready_uncovered,
         Reverse(nearest_ready_target),
+        deferred_ready,
+        Reverse(nearest_deferred_ready),
         total_progress,
         best_partial.0,
         Reverse(frontier.depth.saturating_add((best_partial.1).0)),
@@ -591,6 +617,59 @@ fn frontier_score(
         !report.reached_locations.contains(location),
         Reverse(frontier.ordinal),
     ))
+}
+
+/// Prioritize the flag consequences of currently guarded deferred events.
+/// These are search hints only: inventory, elapsed time, and other effects
+/// remain unmodeled. A projected state is never admitted, executed, hashed,
+/// or counted as coverage; actual waiting still uses complete kernel catalogs.
+fn pending_deferred_flag_projections(
+    state: &GameState,
+    content: &CompiledContent,
+) -> Result<Vec<(u64, GameState)>, VerifyError> {
+    let mut projections = Vec::new();
+    projections
+        .try_reserve(state.world.scheduled_events.len())
+        .map_err(|_| VerifyError::new("crawler deferred planning allocation failed"))?;
+    for pending in &state.world.scheduled_events {
+        let project = || {
+            let event = content.deferred_event(&pending.id)?;
+            if !event.condition.evaluate(state) {
+                return None;
+            }
+            let mut projected = state.clone();
+            let mut changes_flag = false;
+            for effect in &event.effects {
+                let (flags, flag, value) = match effect {
+                    Effect::SetFlag { flag, value } | Effect::SetWorldFlag { flag, value } => {
+                        (&mut projected.world.flags, flag, value)
+                    }
+                    Effect::SetLocationFlag {
+                        location: StringRef::Literal(location),
+                        flag,
+                        value,
+                    } => (
+                        &mut projected.world.locations.get_mut(location)?.flags,
+                        flag,
+                        value,
+                    ),
+                    Effect::RandomChance { .. } => return None,
+                    _ => continue,
+                };
+                changes_flag = true;
+                if *value {
+                    flags.insert(flag.clone());
+                } else {
+                    flags.remove(flag);
+                }
+            }
+            changes_flag.then_some((pending.due_time.saturating_sub(state.world.time), projected))
+        };
+        if let Some(projection) = project() {
+            projections.push(projection);
+        }
+    }
+    Ok(projections)
 }
 
 /// Rank conversations opened by NPC relocation during an available travel
@@ -1056,6 +1135,7 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
         | Effect::AdjustNpcRelationship { .. }
         | Effect::TransferNpcItemToCharacter { .. }
         | Effect::ApplyRecipe { .. }
+        | Effect::ScheduleEvent { .. }
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::AddCharacterDeed { .. } => Ok((0, 0)),
@@ -1063,6 +1143,20 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
 }
 
 fn normalized_state_id(state: &GameState) -> Result<String, VerifyError> {
+    // A resolved template remains unavailable forever. Its schedule ledger
+    // affects future legality even after its queue entry and visible effects
+    // disappear; preserve those IDs while discarding redundant event detail.
+    let scheduled_templates: BTreeSet<_> = state
+        .event_log
+        .iter()
+        .filter_map(|event| {
+            if let EventKind::EventScheduled { event_id, .. } = &event.kind {
+                Some(event_id.as_str())
+            } else {
+                None
+            }
+        })
+        .collect();
     let mut normalized = state.clone();
     let current_time = normalized.world.time;
     normalized.world.time = 0;
@@ -1078,12 +1172,12 @@ fn normalized_state_id(state: &GameState) -> Result<String, VerifyError> {
             knowledge.turn = 0;
         }
     }
-    sha256_json(&NormalizedState(&normalized))
+    sha256_json(&NormalizedState(&normalized, scheduled_templates))
         .map_err(|_| VerifyError::new("crawler could not hash a normalized state"))
 }
 
 #[derive(Serialize)]
-struct NormalizedState<'a>(&'a GameState);
+struct NormalizedState<'a>(&'a GameState, BTreeSet<&'a str>);
 
 fn accept_frontier(
     dominance: &mut BTreeMap<String, Vec<BTreeSet<ActionShape>>>,
@@ -1115,6 +1209,246 @@ mod tests {
     use forge_content::{compile_production, parse, parse_and_compile_production};
 
     const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
+
+    #[test]
+    fn deferred_hints_preserve_real_state_and_repeated_waits_use_canonical_actions() {
+        let mut draft = parse(SPLIT_TIDE).unwrap();
+        draft.contract = forge_kernel::ContentContract::Fixture;
+        draft.character_presets.truncate(1);
+        draft.timed_events.clear();
+        draft.recipes.clear();
+        for location in &mut draft.locations {
+            location.terminal = true;
+        }
+        draft.deferred_events = vec![forge_kernel::DeferredEventDefinition {
+            id: "test.delayed".to_owned(),
+            delay: 4,
+            event_kind: "test".to_owned(),
+            label: "Ready".to_owned(),
+            result: "The signal arrives.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![
+                Effect::SetWorldFlag {
+                    flag: "test.ready".to_owned(),
+                    value: true,
+                },
+                Effect::TeachNpc {
+                    npc: StringRef::Literal("sava_rusk".to_owned()),
+                    knowledge_id: "test.signal".to_owned(),
+                    subject: "Sava saw the signal.".to_owned(),
+                    provenance: forge_kernel::KnowledgeProvenance::Witnessed,
+                },
+            ],
+        }];
+        let action = |id: &str, category: &str, condition, effects| ActionDefinition {
+            id: id.to_owned(),
+            label: "Act".to_owned(),
+            category: category.to_owned(),
+            result: "Done.".to_owned(),
+            result_variants: Vec::new(),
+            locations: Vec::new(),
+            condition,
+            effects,
+            parameters: Vec::new(),
+            meaningful: true,
+            movement: false,
+        };
+        draft.actions = vec![
+            action(
+                "test.schedule",
+                "Act",
+                Condition::Always,
+                vec![
+                    Effect::ScheduleEvent {
+                        event: "test.delayed".to_owned(),
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            action(
+                "test.wait",
+                "Time",
+                Condition::Always,
+                vec![Effect::AdvanceTime { ticks: 1 }],
+            ),
+            action(
+                "test.inspect",
+                "Act",
+                Condition::All {
+                    conditions: vec![
+                        Condition::WorldFlag {
+                            flag: "test.ready".to_owned(),
+                        },
+                        Condition::Not {
+                            condition: Box::new(Condition::WorldFlag {
+                                flag: "test.inspected".to_owned(),
+                            }),
+                        },
+                    ],
+                },
+                vec![Effect::SetWorldFlag {
+                    flag: "test.inspected".to_owned(),
+                    value: true,
+                }],
+            ),
+        ];
+        let content = forge_content::compile(draft).unwrap();
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        let record = |session: &mut Session<'_>, id: &str| {
+            let action = enumerate_legal_actions(session.state(), &content)
+                .unwrap()
+                .into_iter()
+                .find(|action| action.definition_id == id)
+                .unwrap();
+            session.record(&action).unwrap();
+        };
+        record(&mut session, "test.schedule");
+        let before = session.state().clone();
+        let hints = pending_deferred_flag_projections(session.state(), &content).unwrap();
+        assert_eq!(hints.len(), 1);
+        assert_eq!(hints[0].0, 3);
+        assert!(hints[0].1.world.flags.contains("test.ready"));
+        assert_eq!(
+            hints[0].1.world.npcs, before.world.npcs,
+            "hints cannot invent knowledge"
+        );
+        assert_eq!(hints[0].1.event_log, before.event_log);
+        assert_eq!(
+            *session.state(),
+            before,
+            "hints cannot alter the authoritative state"
+        );
+        for _ in 0..3 {
+            assert!(!session.state().world.flags.contains("test.ready"));
+            assert!(
+                !session.state().world.npcs["sava_rusk"]
+                    .knowledge
+                    .contains_key("test.signal")
+            );
+            assert!(
+                !enumerate_legal_actions(session.state(), &content)
+                    .unwrap()
+                    .iter()
+                    .any(|action| action.definition_id == "test.inspect")
+            );
+            record(&mut session, "test.wait");
+        }
+        assert!(session.state().world.flags.contains("test.ready"));
+        assert!(
+            session.state().world.npcs["sava_rusk"]
+                .knowledge
+                .contains_key("test.signal")
+        );
+        record(&mut session, "test.inspect");
+        assert_eq!(
+            forge_replay::verify(session.trace(), &content).unwrap(),
+            *session.state()
+        );
+        let report = crawl_production(
+            &content,
+            CrawlBudget {
+                max_depth: 6,
+                max_expanded_states: 8,
+                max_discovered_frontiers: 16,
+                max_action_executions: 32,
+                catalog_page_size: 1,
+            },
+        )
+        .unwrap();
+        assert_eq!(report.covered_definitions, report.advertised_definitions);
+        assert_eq!(report.covered_definitions.len(), 3);
+        assert_eq!(
+            report.expanded_states, 5,
+            "the crawler must expand each real waiting state"
+        );
+        assert_eq!(
+            report.successful_actions, 7,
+            "every legal action in all five catalogs executes"
+        );
+    }
+
+    #[test]
+    fn normalization_preserves_resolved_one_shot_history_when_visible_state_matches() {
+        let mut draft = parse(SPLIT_TIDE).unwrap();
+        draft.contract = forge_kernel::ContentContract::Fixture;
+        draft.timed_events.clear();
+        draft.recipes.clear();
+        for location in &mut draft.locations {
+            location.terminal = true;
+        }
+        let flag = Effect::SetWorldFlag {
+            flag: "test.ready".to_owned(),
+            value: true,
+        };
+        draft.deferred_events = vec![forge_kernel::DeferredEventDefinition {
+            id: "test.once".to_owned(),
+            delay: 1,
+            event_kind: "test".to_owned(),
+            label: "Ready".to_owned(),
+            result: "Still ready.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![flag.clone()],
+        }];
+        let action = |id: &str, effects| ActionDefinition {
+            id: id.to_owned(),
+            label: "Act".to_owned(),
+            category: "Time".to_owned(),
+            result: "Done.".to_owned(),
+            result_variants: Vec::new(),
+            locations: Vec::new(),
+            condition: Condition::Always,
+            effects,
+            parameters: Vec::new(),
+            meaningful: true,
+            movement: false,
+        };
+        draft.actions = vec![
+            action("test.prepare", vec![flag]),
+            action("test.wait", vec![Effect::AdvanceTime { ticks: 1 }]),
+            action(
+                "test.schedule",
+                vec![
+                    Effect::ScheduleEvent {
+                        event: "test.once".to_owned(),
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+        ];
+        let content = forge_content::compile(draft).unwrap();
+        let apply = |state: &GameState, id: &str| {
+            let action = enumerate_legal_actions(state, &content)
+                .unwrap()
+                .into_iter()
+                .find(|action| action.definition_id == id)
+                .unwrap();
+            step(state, &action, &content, &state.entropy)
+                .unwrap()
+                .into_state()
+        };
+        let initial = content.new_game("ilyan", 71).unwrap();
+        let prepared = apply(&initial, "test.prepare");
+        let unused = apply(&prepared, "test.wait");
+        let resolved = apply(&prepared, "test.schedule");
+        content.validate_state(&unused).unwrap();
+        content.validate_state(&resolved).unwrap();
+        assert!(resolved.world.scheduled_events.is_empty());
+        assert_eq!(unused.world, resolved.world);
+        assert_eq!(unused.character, resolved.character);
+        assert_eq!(unused.entropy, resolved.entropy);
+        let can_schedule = |state: &GameState| {
+            enumerate_legal_actions(state, &content)
+                .unwrap()
+                .iter()
+                .any(|action| action.definition_id == "test.schedule")
+        };
+        assert!(can_schedule(&unused));
+        assert!(!can_schedule(&resolved));
+        assert_ne!(
+            normalized_state_id(&unused).unwrap(),
+            normalized_state_id(&resolved).unwrap()
+        );
+    }
 
     #[test]
     fn scenario_seed_replays_exact_prefix_and_preserves_depth_and_action_history() {
@@ -1177,22 +1511,35 @@ mod tests {
     }
 
     #[test]
-    fn bounded_crawl_executes_every_authored_definition() {
+    fn bounded_regression_crawl_preserves_all_sixty_previous_definitions() {
         let content = parse_and_compile_production(SPLIT_TIDE).unwrap();
         let budget = CrawlBudget {
             max_expanded_states: 96,
+            max_discovered_frontiers: 512,
             ..CrawlBudget::default()
         };
-        let report = crawl_production(&content, budget).unwrap();
+        let report = crate::expansion::crawl_regression(&content, budget)
+            .unwrap()
+            .crawl;
         assert!(report.is_complete());
-        assert_eq!(report.advertised_definitions.len(), 60);
-        assert_eq!(report.reached_locations.len(), 7);
-        assert!(report.successful_actions >= report.advertised_definitions.len());
+        assert_eq!(report.required_definitions.len(), 60);
+        assert_eq!(report.advertised_definitions.len(), 73);
+        assert!(report.reached_locations.len() >= 7);
+        assert!(report.successful_actions >= report.required_definitions.len());
+        assert_eq!(report.starting_sessions.len(), 2);
+        assert!(
+            report
+                .starting_sessions
+                .iter()
+                .all(|start| start.depth == 0 && start.label.starts_with("preset:"))
+        );
         assert!(report.expanded_states <= 96);
         assert!(report.discovered_frontiers <= 512);
         assert_eq!(report.execution_receipt.len(), 64);
 
-        let repeated = crawl_production(&content, budget).unwrap();
+        let repeated = crate::expansion::crawl_regression(&content, budget)
+            .unwrap()
+            .crawl;
         assert_eq!(report.execution_receipt, repeated.execution_receipt);
     }
 
@@ -1551,15 +1898,16 @@ mod tests {
             )
         });
         let content = compile_production(draft).unwrap();
-        let report = crawl_production(
+        let report = crate::expansion::crawl_regression(
             &content,
             CrawlBudget {
                 max_expanded_states: 96,
+                max_discovered_frontiers: 512,
                 ..CrawlBudget::default()
             },
         )
         .expect("source depletion is authoritative retirement even if the guard remains true");
-        assert!(report.is_complete());
+        assert!(report.crawl.is_complete());
     }
 
     #[test]

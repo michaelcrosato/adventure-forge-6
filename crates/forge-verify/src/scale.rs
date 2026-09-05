@@ -1039,8 +1039,8 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
         });
     }
     Ok(ContentDraft {
-        schema_version: "forge-schema-v8".to_owned(),
-        rules_version: "forge-rules-v6".to_owned(),
+        schema_version: "forge-schema-v9".to_owned(),
+        rules_version: "forge-rules-v7".to_owned(),
         world_id: SCALE_WORLD_ID.to_owned(),
         contract: ContentContract::Fixture,
         start_location: SCALE_START_LOCATION.to_owned(),
@@ -1055,6 +1055,7 @@ fn scale_draft() -> Result<ContentDraft, crate::VerifyError> {
         recipes: Vec::new(),
         locations,
         npcs: Vec::new(),
+        deferred_events: Vec::new(),
         timed_events: Vec::new(),
         actions: vec![ActionDefinition {
             id: SCALE_TRAVEL_DEFINITION.to_owned(),

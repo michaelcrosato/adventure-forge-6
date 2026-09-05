@@ -6,12 +6,25 @@ use forge_replay::{Session, TraceStart};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::deferred_evidence::{
+    DeferredEventExpectation, PendingEventExpectation, validate_deferred_expectations,
+    validate_deferred_history,
+};
 use crate::{VerifyError, replay_error};
 
 const SCENARIO_BINDING_FORMAT: &str = "forge-scenario-spec-v1";
 const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
+    "m2-fume-batch-ready",
+    "m2-fume-manufacture-local",
+    "m2-fume-manufacture-sale",
+    "m2-fume-manufacture-bare",
+    "m2-fume-remote-spoil",
+    "m2-fume-bank-save-tide",
+    "m2-fume-draw-miss-tide",
+    "m2-fume-late-manufacture",
+    "m2-fume-reclaim-charge",
     "m2-fume-cold-repair",
     "m2-fume-cold-screen",
     "m2-fume-unscreened-freight",
@@ -96,6 +109,13 @@ struct ScenarioResourceExpectation {
 }
 
 #[derive(Clone, Copy, Debug, Serialize)]
+struct ScenarioNpcInventoryExpectation {
+    npc: &'static str,
+    item: &'static str,
+    count: u32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
 struct ScenarioNpcInventoryAbsence {
     npc: &'static str,
     item: &'static str,
@@ -120,6 +140,7 @@ pub(super) struct ScenarioExpectations {
     required_world_flags: &'static [&'static str],
     forbidden_world_flags: &'static [&'static str],
     required_location_flags: &'static [(&'static str, &'static str)],
+    forbidden_location_flags: &'static [(&'static str, &'static str)],
     required_deeds: &'static [&'static str],
     required_visited_locations: &'static [&'static str],
     required_npc_locations: &'static [ScenarioNpcLocationExpectation],
@@ -128,9 +149,12 @@ pub(super) struct ScenarioExpectations {
     required_npc_memories: &'static [ScenarioNpcMemoryExpectation],
     required_character_inventory: &'static [ScenarioInventoryExpectation],
     required_character_resources: &'static [ScenarioResourceExpectation],
+    required_npc_inventory: &'static [ScenarioNpcInventoryExpectation],
     forbidden_npc_inventory: &'static [ScenarioNpcInventoryAbsence],
     forbidden_character_inventory: &'static [&'static str],
     recipe_events: &'static [ScenarioRecipeExpectation],
+    deferred_events: &'static [DeferredEventExpectation],
+    pending_deferred_events: &'static [PendingEventExpectation],
     required_legal_definitions: &'static [&'static str],
     forbidden_legal_definitions: &'static [&'static str],
 }
@@ -598,6 +622,8 @@ const PILOT_EMPTY_NESSA: &[ScenarioNpcInventoryAbsence] = &[
     },
 ];
 
+include!("batch_scenarios.inc.rs");
+
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
         id: "m0-ilyan",
@@ -616,6 +642,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["forged_order_found"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
@@ -625,9 +652,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -649,6 +679,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["culvert_revealed"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[("lowsail_market", "worker_cover")],
             required_deeds: &["found_worker_cover"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
@@ -658,9 +689,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -683,6 +717,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["forged_order_found", "stolen_route"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[("lowsail_market", "order_audited")],
             required_deeds: &["stole_permit", "read_forged_order"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
@@ -692,9 +727,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -717,6 +755,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["worker_credit"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[],
             required_deeds: &["saved_worker"],
             required_visited_locations: &["lowsail_market", "lowsail.levee"],
@@ -726,9 +765,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -764,6 +806,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_relief",
                 "ending_freedom",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[("lowsail.return", "market_flooded")],
             required_deeds: &["faced_flood"],
             required_visited_locations: &["lowsail_market", "lowsail.return"],
@@ -773,9 +816,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[],
         },
@@ -811,6 +857,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "authorized_entry"),
                 ("red_sluice.top", "wheels_checked"),
@@ -830,9 +877,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -868,6 +918,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("lowsail_market", "market_permit"),
                 ("red_sluice.floor", "authorized_entry"),
@@ -888,9 +939,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -912,6 +966,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["market_warned"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[("red_sluice.floor", "authorized_entry")],
             required_deeds: &[],
             required_visited_locations: &[
@@ -926,9 +981,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &["floor.open_relief"],
         },
@@ -950,6 +1008,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             exclusive_after_action: "",
             required_world_flags: &["market_warned"],
             forbidden_world_flags: &[],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "authorized_entry"),
                 ("red_sluice.floor", "warning_received"),
@@ -967,9 +1026,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &["floor.open_relief"],
             forbidden_legal_definitions: &[],
         },
@@ -1006,6 +1068,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "culvert_entry"),
                 ("red_sluice.top", "relief_ready"),
@@ -1026,9 +1089,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1064,6 +1130,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_relief",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "culvert_entry"),
                 ("lowsail.return", "ferry_free"),
@@ -1082,9 +1149,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1121,6 +1191,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_relief",
                 "ending_freedom",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "forged_entry"),
                 ("red_sluice.top", "worker_rescue_needed"),
@@ -1140,9 +1211,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1181,6 +1255,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("lowsail_market", "worker_cover"),
                 ("red_sluice.floor", "culvert_entry"),
@@ -1207,9 +1282,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1248,6 +1326,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("lowsail.levee", "damage_seen"),
                 ("red_sluice.floor", "authorized_entry"),
@@ -1278,9 +1357,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: &[],
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1317,6 +1399,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "culvert_entry"),
                 ("red_sluice.top", "wheels_checked"),
@@ -1342,9 +1425,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: &[],
             required_character_inventory: TIDE_KEY_CHARACTER_INVENTORY,
             required_character_resources: &[],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: TIDE_KEY_YARA_INVENTORY_ABSENCE,
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1383,6 +1469,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "ending_freedom",
                 "ending_disaster",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("red_sluice.floor", "culvert_entry"),
                 ("red_sluice.top", "relief_ready"),
@@ -1403,9 +1490,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
             required_npc_memories: PAID_TOWLINE_REQUIRED_NPC_MEMORIES,
             required_character_inventory: PAID_TOWLINE_CHARACTER_INVENTORY,
             required_character_resources: PAID_TOWLINE_CHARACTER_RESOURCES,
+            required_npc_inventory: &[],
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: OUTCOME_DEFINITIONS,
         },
@@ -1438,6 +1528,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "flow_relief",
                 "ending_relief",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("fume_yards.workshop", "fume_yards.stock_given"),
                 ("fume_yards.workshop", "fume_yards.freight_loaded"),
@@ -1484,9 +1575,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
                     amount: 1,
                 },
             ],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_REPAIR_EVENTS,
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[
                 "fume_yards.take_stock",
@@ -1528,6 +1622,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "flow_relief",
                 "ending_relief",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("fume_yards.workshop", "fume_yards.stock_given"),
                 ("fume_yards.workshop", "fume_yards.freight_loaded"),
@@ -1563,9 +1658,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
                     amount: 3,
                 },
             ],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_SCREEN_EVENTS,
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[
                 "fume_yards.take_stock",
@@ -1607,6 +1705,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "flow_relief",
                 "ending_relief",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("fume_yards.workshop", "fume_yards.stock_given"),
                 ("fume_yards.workshop", "fume_yards.freight_loaded"),
@@ -1650,9 +1749,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
                     amount: 1,
                 },
             ],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: &["fume_yards.repair_lot", "fume_yards.catch_screen"],
             recipe_events: &[],
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &["fume_yards.press_repair_plugs"],
             forbidden_legal_definitions: &[
                 "fume_yards.take_stock",
@@ -1689,6 +1791,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
                 "flow_locked_market",
                 "ending_council",
             ],
+            forbidden_location_flags: &[],
             required_location_flags: &[
                 ("fume_yards.workshop", "fume_yards.stock_given"),
                 ("fume_yards.workshop", "fume_yards.freight_loaded"),
@@ -1735,9 +1838,12 @@ const SCENARIOS: &[ScenarioSpec] = &[
                     amount: 2,
                 },
             ],
+            required_npc_inventory: &[],
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_LATE_EVENTS,
+            deferred_events: &[],
+            pending_deferred_events: &[],
             required_legal_definitions: &[],
             forbidden_legal_definitions: &[
                 "fume_yards.take_stock",
@@ -1751,6 +1857,15 @@ const SCENARIOS: &[ScenarioSpec] = &[
             ],
         },
     },
+    BATCH_READY_SPEC,
+    BATCH_LOCAL_SPEC,
+    BATCH_SALE_SPEC,
+    BATCH_BARE_SPEC,
+    BATCH_REMOTE_SPEC,
+    BATCH_BANK_SPEC,
+    BATCH_MISSED_SPEC,
+    BATCH_LATE_SPEC,
+    BATCH_RECLAIM_SPEC,
 ];
 
 #[derive(Serialize)]
@@ -1886,6 +2001,18 @@ pub(super) fn validate_session(
             ));
         }
     }
+    for (location, flag) in expected.forbidden_location_flags {
+        if state
+            .world
+            .locations
+            .get(*location)
+            .is_none_or(|runtime| runtime.flags.contains(*flag))
+        {
+            return Err(VerifyError::new(
+                "scenario established a forbidden location consequence",
+            ));
+        }
+    }
     for (location, flag) in expected.required_location_flags {
         if !state
             .world
@@ -1918,7 +2045,25 @@ pub(super) fn validate_session(
             )));
         }
     }
+    for expected_stock in expected.required_npc_inventory {
+        if state
+            .world
+            .npcs
+            .get(expected_stock.npc)
+            .and_then(|npc| npc.inventory.get(expected_stock.item))
+            != Some(&expected_stock.count)
+        {
+            return Err(VerifyError::new(
+                "scenario NPC owned stock differs from its claim",
+            ));
+        }
+    }
     validate_recipe_events(state, expected.recipe_events)?;
+    validate_deferred_history(
+        state,
+        expected.deferred_events,
+        expected.pending_deferred_events,
+    )?;
     validate_npc_locations(state, expected.required_npc_locations)?;
 
     let mut visited = BTreeSet::new();
@@ -2429,6 +2574,34 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                 ));
             }
         }
+        for expected in spec.expectations.required_npc_inventory {
+            if expected.npc.trim().is_empty()
+                || expected.item.trim().is_empty()
+                || expected.count == 0
+            {
+                return Err(VerifyError::new(
+                    "scenario NPC stock assertions must name an NPC and positive item count",
+                ));
+            }
+        }
+        for (location, flag) in spec.expectations.forbidden_location_flags {
+            if location.trim().is_empty()
+                || flag.trim().is_empty()
+                || spec
+                    .expectations
+                    .required_location_flags
+                    .contains(&(*location, *flag))
+            {
+                return Err(VerifyError::new(
+                    "scenario forbidden local flags must be named and cannot also be required",
+                ));
+            }
+        }
+        validate_deferred_expectations(
+            spec.expectations.deferred_events,
+            spec.expectations.pending_deferred_events,
+            spec.expectations.final_world_time,
+        )?;
         for expected in spec.expectations.forbidden_npc_inventory {
             if expected.npc.trim().is_empty() || expected.item.trim().is_empty() {
                 return Err(VerifyError::new(

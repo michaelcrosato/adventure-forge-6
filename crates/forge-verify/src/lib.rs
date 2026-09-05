@@ -12,12 +12,13 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 mod crawler;
+mod deferred_evidence;
 mod expansion;
 mod scale;
 mod scenarios;
 
 pub use crawler::{CrawlBudget, CrawlReport, crawl_production};
-pub use expansion::{ProductionCrawlReport, SplitTideProjection};
+pub use expansion::{ProductionCrawlReport, RegressionCrawlReport, SplitTideProjection};
 pub use scale::{
     SCALE_MAX_REPORT_BYTES, ScaleBudget, ScaleReport, check_scale_report, generate_scale_report,
 };
@@ -123,11 +124,15 @@ pub fn generate_witness(scenario_id: &str) -> Result<EvidenceWitness, VerifyErro
 
 pub fn generate_crawl_report() -> Result<ProductionCrawlReport, VerifyError> {
     let content = load_content()?;
-    expansion::preserve_split_tide(crawl_production(&content, CrawlBudget::default())?)
+    expansion::crawl_all(&content)
 }
 
 pub fn generate_optional_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_pilot(&load_content()?)
+}
+
+pub fn generate_batchworks_crawl_report() -> Result<CrawlReport, VerifyError> {
+    expansion::crawl_batchworks(&load_content()?)
 }
 
 pub fn check_player_trace(
@@ -316,7 +321,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 20);
+        assert_eq!(ids.len(), 29);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();

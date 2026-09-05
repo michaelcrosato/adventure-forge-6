@@ -2,31 +2,41 @@
   "verifier_id": "1098f187201bbb0ffcf39e90cba5e17257252947c6258e367fa509a44132a5ba",
   "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
   "budget": {
-    "max_depth": 13,
-    "max_expanded_states": 96,
-    "max_discovered_frontiers": 512,
-    "max_action_executions": 1024,
+    "max_depth": 20,
+    "max_expanded_states": 128,
+    "max_discovered_frontiers": 768,
+    "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 8,
-  "discovered_frontiers": 49,
-  "successful_actions": 48,
+  "expanded_states": 19,
+  "discovered_frontiers": 97,
+  "successful_actions": 99,
   "max_legal_actions": 7,
   "reached_locations": [
+    "fume_yards.kiln_bay",
     "fume_yards.workshop",
     "lowsail.return"
   ],
   "covered_definitions": [
-    "fume_yards.fit_catch_screen",
+    "fume_yards.bank_kiln",
+    "fume_yards.draw_filter",
+    "fume_yards.fit_dust_filter",
+    "fume_yards.fit_wet_screen",
+    "fume_yards.ignite_batch",
+    "fume_yards.inspect_spoiled_batch",
+    "fume_yards.load_filtered_kiln_freight",
     "fume_yards.load_freight",
-    "fume_yards.load_screened_freight",
+    "fume_yards.load_kiln_freight",
     "fume_yards.pack_catch_screen",
+    "fume_yards.prepare_charge",
     "fume_yards.press_repair_plugs",
+    "fume_yards.reclaim_charge",
+    "fume_yards.take_cask",
+    "fume_yards.take_fuel",
     "fume_yards.take_stock",
     "return.ask_oren",
-    "return.patch_stand",
     "return.read_tide",
-    "return.sort_dry_goods",
+    "return.sell_filter",
     "return.visit_workshop",
     "travel_adjacent",
     "wait_tide",
@@ -108,15 +118,19 @@
     "world.enter_aftermath"
   ],
   "required_definitions": [
-    "fume_yards.fit_catch_screen",
-    "fume_yards.load_freight",
-    "fume_yards.load_screened_freight",
-    "fume_yards.pack_catch_screen",
-    "fume_yards.press_repair_plugs",
-    "fume_yards.take_stock",
-    "return.patch_stand",
-    "return.sort_dry_goods",
-    "return.visit_workshop"
+    "fume_yards.bank_kiln",
+    "fume_yards.draw_filter",
+    "fume_yards.fit_dust_filter",
+    "fume_yards.fit_wet_screen",
+    "fume_yards.ignite_batch",
+    "fume_yards.inspect_spoiled_batch",
+    "fume_yards.load_filtered_kiln_freight",
+    "fume_yards.load_kiln_freight",
+    "fume_yards.prepare_charge",
+    "fume_yards.reclaim_charge",
+    "fume_yards.take_cask",
+    "fume_yards.take_fuel",
+    "return.sell_filter"
   ],
   "starting_sessions": [
     {
@@ -153,5 +167,5 @@
       "state_id": "1c507d39c56a0519e2954854aae50d023c6aa3f37174ac5723ce075a2d53e3ab"
     }
   ],
-  "execution_receipt": "e85907b30528354d5d6e7b1db6d88aad955a758fe1f7d6008a077a04cb65f9b4"
+  "execution_receipt": "d8698d2a84019d76e8dd242e97d0e2e1397dfe5b26c53d172ff57864fe520131"
 }
