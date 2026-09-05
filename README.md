@@ -42,7 +42,7 @@ The first return also brings Oren, Sava, and Mira into the changed market. Their
 
 Normal observations and creation previews show your own resources and gear with readable names and exact quantities. The kernel derives this read-only supply line; payments and item transfers update it through canonical actions. NPC stock and hidden world records remain private, and replay binds the same public readout.
 
-`forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The browser interface will use the same kernel and action protocol after this CLI slice earns broader play evidence.
+`forge-verify check-player` is the independent trusted checker for a player-safe save. `./verify` is the non-AI acceptance gate. The [Rust session service](crates/forge-server/README.md) provides the tested in-process foundation for a browser player, including canonical action submission, retry-safe acknowledgments, and player-safe save/resume. It does not yet provide an HTTP listener or browser interface.
 
 The gate also builds reviewed bad-change mutants in a disposable source copy. Three selector-free controls must pass before six defects are activated separately. Action ordering, page ordering, crawler scheduling, and process-identity mutations must fail the fresh-process crawl contract. Stale-action acceptance and private NPC-stock leakage must fail dedicated production boundary tests with specific failure messages. No mutant hook is compiled into the production crates; the inventory probe is not a claim of complete hidden-state mutation coverage.
 

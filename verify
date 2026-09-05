@@ -8,6 +8,7 @@ cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 cargo run --locked -p forge-cli -- play --character rook </dev/null
+./tools/verify-session-service.sh
 ./tools/test-live-blind-auth.sh
 ./tools/verify-nondeterminism-mutants.sh
 ./tools/verify-locked-player.sh
