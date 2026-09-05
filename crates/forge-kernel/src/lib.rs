@@ -20,8 +20,8 @@ pub use content::{
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
     CompiledContent, Condition, ContentContract, ContentDraft, ContentValidationError,
     DeferredEventDefinition, Effect, ItemView, LocationDefinition, NpcDefinition, Observation,
-    ParameterDomain, ParameterSpec, RecipeDefinition, ResourceView, StringRef, SupplyLabels,
-    SupplyView, TextVariant, TimedEventDefinition, TimedEventView,
+    ParameterDomain, ParameterSpec, RecipeDefinition, ResourceView, StorageDefinition, StringRef,
+    SupplyLabels, SupplyView, TextVariant, TimedEventDefinition, TimedEventView,
 };
 pub use entropy::{
     ENTROPY_ALGORITHM_VERSION, EntropyDraw, EntropyError, EntropyState, MAX_ENTROPY_CURSOR,
@@ -33,7 +33,7 @@ pub use model::{
     ActionId, BuildId, Character, CharacterChoiceSelection, CharacterId, CharacterSelection,
     CharacterStart, Event, EventKind, FacetValue, GameState, Knowledge, KnowledgeProvenance,
     KnowledgeProvenanceKind, LocationId, LocationRuntime, Memory, NpcId, NpcState, ScheduledEvent,
-    WorldId, WorldState,
+    StorageState, WorldId, WorldState,
 };
 pub use reducer::{
     CanonicalAction, KernelError, Transition, enumerate_legal_actions, legal_action_digest, step,

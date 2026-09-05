@@ -103,6 +103,29 @@ pub(super) const SALVAGE_ACTIONS: &[&str] = &[
     "fume_yards.load_cold_freight",
 ];
 
+pub(super) const MARKET_WATER_ACTIONS: &[&str] = &[
+    "fume_yards.read_collateral_docket",
+    "fume_yards.buy_collateral_filter",
+    "fume_yards.settle_collateral_fuel",
+    "fume_yards.return_to_cage",
+    "return.order_water_stand",
+    "return.fit_market_filter",
+    "fume_yards.take_market_cask",
+    "fume_yards.escort_market_cask",
+    "return.install_market_cask",
+    "return.draw_clean_water",
+];
+
+// Declared in cycle 34 before the first trial. Previous components retain
+// their exact limits; the reviewed H7 prefix still consumes seven steps.
+pub(super) const MARKET_WATER_BUDGET: CrawlBudget = CrawlBudget {
+    max_depth: 35,
+    max_expanded_states: 128,
+    max_discovered_frontiers: 1024,
+    max_action_executions: 4096,
+    catalog_page_size: 7,
+};
+
 pub(super) const BATCHWORKS_BUDGET: CrawlBudget = CrawlBudget {
     max_depth: 20,
     max_expanded_states: 128,
@@ -141,7 +164,7 @@ pub struct RegressionCrawlReport {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 /// Combined coverage from independent crawls. The legacy regression keeps
-/// its original ceilings; batch work and salvage have their own explicit
+/// its original ceilings; batch work, salvage, and market water have explicit
 /// budgets. Components do not claim exhaustive reachable-state coverage or
 /// admission of a complete new area.
 pub struct ProductionCrawlReport {
@@ -153,6 +176,7 @@ pub struct ProductionCrawlReport {
     pub regression: RegressionCrawlReport,
     pub batchworks: CrawlReport,
     pub salvage: CrawlReport,
+    pub market_water: CrawlReport,
 }
 
 impl ProductionCrawlReport {
@@ -209,6 +233,7 @@ fn validate_expansion_catalog(content: &CompiledContent) -> Result<BTreeSet<Stri
     let mut reviewed = regression_definitions();
     reviewed.extend(ids(BATCHWORKS_ACTIONS));
     reviewed.extend(ids(SALVAGE_ACTIONS));
+    reviewed.extend(ids(MARKET_WATER_ACTIONS));
     if authored != reviewed {
         return Err(VerifyError::new(
             "expansion crawl action contract contains unreviewed additions or omissions",
@@ -233,7 +258,8 @@ pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlRepo
     let regression = crawl_regression(content, CrawlBudget::default())?;
     let batchworks = crawl_batchworks(content)?;
     let salvage = crawl_salvage(content)?;
-    combine_crawls(content, regression, batchworks, salvage)
+    let market_water = crawl_market_water_production(content)?;
+    combine_crawls(content, regression, batchworks, salvage, market_water)
 }
 
 fn combine_crawls(
@@ -241,9 +267,10 @@ fn combine_crawls(
     regression: RegressionCrawlReport,
     batchworks: CrawlReport,
     salvage: CrawlReport,
+    market_water: CrawlReport,
 ) -> Result<ProductionCrawlReport, VerifyError> {
     let advertised_definitions = validate_expansion_catalog(content)?;
-    for report in [&regression.crawl, &batchworks, &salvage] {
+    for report in [&regression.crawl, &batchworks, &salvage, &market_water] {
         if report.build_id != content.build_id()
             || report.verifier_id != crate::VERIFIER_ID
             || report.advertised_definitions != advertised_definitions
@@ -265,12 +292,34 @@ fn combine_crawls(
             "combined crawl component scope or budget differs from contract",
         ));
     }
-    let covered_definitions = [&regression.crawl, &batchworks, &salvage]
+    check_market_water_report(content, &market_water)?;
+    // Each established component retains its own consequence locations even
+    // when a newer component happens to reach the same places.
+    if ![
+        "fume_yards.kiln_bay",
+        "fume_yards.workshop",
+        "lowsail.return",
+    ]
+    .iter()
+    .all(|id| batchworks.reached_locations.contains(*id))
+        || ![
+            "fume_yards.ash_beds",
+            "fume_yards.kiln_bay",
+            "fume_yards.workshop",
+        ]
+        .iter()
+        .all(|id| salvage.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "combined crawl lost a component consequence location",
+        ));
+    }
+    let covered_definitions = [&regression.crawl, &batchworks, &salvage, &market_water]
         .into_iter()
         .flat_map(|report| &report.covered_definitions)
         .cloned()
         .collect();
-    let reached_locations = [&regression.crawl, &batchworks, &salvage]
+    let reached_locations = [&regression.crawl, &batchworks, &salvage, &market_water]
         .into_iter()
         .flat_map(|report| &report.reached_locations)
         .cloned()
@@ -290,6 +339,7 @@ fn combine_crawls(
         regression,
         batchworks,
         salvage,
+        market_water,
     })
 }
 
@@ -374,6 +424,94 @@ pub(super) fn crawl_salvage(content: &CompiledContent) -> Result<CrawlReport, Ve
     Ok(report)
 }
 
+pub(super) fn crawl_market_water_production(
+    content: &CompiledContent,
+) -> Result<CrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    let report = crate::crawler::crawl_targets_with_scenarios(
+        content,
+        MARKET_WATER_BUDGET,
+        ids(MARKET_WATER_ACTIONS),
+        &["m1-outcome-hold-market"],
+    )?;
+    check_market_water_report(content, &report)?;
+    Ok(report)
+}
+
+fn market_water_starting_sessions(
+    content: &CompiledContent,
+) -> Result<Vec<crate::crawler::CrawlStartingSession>, VerifyError> {
+    let mut starts = Vec::new();
+    for preset in ["ilyan", "rook"] {
+        let session =
+            forge_replay::Session::new_game(preset, 71, content).map_err(crate::replay_error)?;
+        starts.push(crate::crawler::CrawlStartingSession {
+            label: format!("preset:{preset}"),
+            start: session.trace().start.clone(),
+            depth: 0,
+            final_receipt: session.trace().final_receipt.clone(),
+            state_id: session.state().state_id(),
+        });
+    }
+    let hold = crate::scenarios::run(crate::scenarios::get("m1-outcome-hold-market")?, content)?;
+    if hold.trace().steps.len() != 7 {
+        return Err(VerifyError::new(
+            "market-water crawl requires the unchanged seven-step Hold Market prefix",
+        ));
+    }
+    starts.push(crate::crawler::CrawlStartingSession {
+        label: "scenario:m1-outcome-hold-market".to_owned(),
+        start: hold.trace().start.clone(),
+        depth: 7,
+        final_receipt: hold.trace().final_receipt.clone(),
+        state_id: hold.state().state_id(),
+    });
+    Ok(starts)
+}
+
+pub(super) fn check_market_water_report(
+    content: &CompiledContent,
+    report: &CrawlReport,
+) -> Result<(), VerifyError> {
+    let authored = validate_expansion_catalog(content)?;
+    if report.build_id != content.build_id()
+        || report.verifier_id != crate::VERIFIER_ID
+        || report.advertised_definitions != authored
+        || report.required_definitions != ids(MARKET_WATER_ACTIONS)
+        || !report.covered_definitions.is_subset(&authored)
+        || !report.is_complete()
+        || report.budget != MARKET_WATER_BUDGET
+        || report.expanded_states > MARKET_WATER_BUDGET.max_expanded_states
+        || report.discovered_frontiers > MARKET_WATER_BUDGET.max_discovered_frontiers
+        || report.successful_actions > MARKET_WATER_BUDGET.max_action_executions
+    {
+        return Err(VerifyError::new(
+            "market-water crawl identity, coverage, or fixed budget differs from contract",
+        ));
+    }
+    let locations: BTreeSet<_> = content.locations().map(|(id, _)| id.clone()).collect();
+    if !report.reached_locations.is_subset(&locations)
+        || ![
+            "fume_yards.ash_beds",
+            "fume_yards.kiln_bay",
+            "fume_yards.workshop",
+            "lowsail.return",
+        ]
+        .iter()
+        .all(|id| report.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "market-water crawl missed a consequence location or added an unknown location",
+        ));
+    }
+    if report.starting_sessions != market_water_starting_sessions(content)? {
+        return Err(VerifyError::new(
+            "market-water crawl starting sessions differ from canonical preset and H7 lineage",
+        ));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -387,7 +525,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 81);
+        assert_eq!(report.advertised_definitions.len(), 91);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -414,7 +552,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 81);
+        assert_eq!(report.advertised_definitions.len(), 91);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -430,6 +568,36 @@ mod tests {
         assert!(report.successful_actions <= 2048);
         eprintln!(
             "salvage: {} states, {} frontiers, {} actions",
+            report.expanded_states, report.discovered_frontiers, report.successful_actions
+        );
+    }
+
+    #[test]
+    fn market_water_crawl_covers_ten_targets_under_its_predeclared_budget() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let report = crawl_market_water_production(&content).unwrap();
+        assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
+        assert_eq!(report.required_definitions.len(), 10);
+        assert_eq!(report.advertised_definitions.len(), 91);
+        assert_eq!(report.budget, MARKET_WATER_BUDGET);
+        assert!(report.is_complete());
+        assert_eq!(
+            report.starting_sessions,
+            market_water_starting_sessions(&content).unwrap()
+        );
+        assert_eq!(
+            report
+                .starting_sessions
+                .iter()
+                .map(|start| start.depth)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 7]
+        );
+        assert!(report.expanded_states <= 128);
+        assert!(report.discovered_frontiers <= 1024);
+        assert!(report.successful_actions <= 4096);
+        eprintln!(
+            "market-water: {} states, {} frontiers, {} actions",
             report.expanded_states, report.discovered_frontiers, report.successful_actions
         );
     }
@@ -467,14 +635,18 @@ mod tests {
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut market_water =
+            declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
+        market_water.starting_sessions = market_water_starting_sessions(&content).unwrap();
         let combined = combine_crawls(
             &content,
             regression.clone(),
             batchworks.clone(),
             salvage.clone(),
+            market_water.clone(),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 81);
+        assert_eq!(combined.advertised_definitions.len(), 91);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions
@@ -497,7 +669,14 @@ mod tests {
                 }
             }
             assert!(
-                combine_crawls(&content, regression.clone(), changed, salvage.clone()).is_err()
+                combine_crawls(
+                    &content,
+                    regression.clone(),
+                    changed,
+                    salvage.clone(),
+                    market_water.clone()
+                )
+                .is_err()
             );
         }
         let mut missing_location = regression.clone();
@@ -518,13 +697,14 @@ mod tests {
                 &content,
                 missing_location,
                 missing_location_batch,
-                missing_location_salvage
+                missing_location_salvage,
+                market_water.clone(),
             )
             .is_err()
         );
         let mut omitted = regression;
         omitted.crawl.covered_definitions.remove("top.split_flow");
-        assert!(combine_crawls(&content, omitted, batchworks, salvage).is_err());
+        assert!(combine_crawls(&content, omitted, batchworks, salvage, market_water).is_err());
         let mut unreviewed = forge_content::parse(SOURCE).unwrap();
         let mut action = unreviewed.actions[0].clone();
         action.id = "test.unreviewed".to_owned();
@@ -544,6 +724,9 @@ mod tests {
         .unwrap();
         let mut batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut market_water =
+            declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
+        market_water.starting_sessions = market_water_starting_sessions(&content).unwrap();
         // Give only the salvage component the new location, so its loss cannot
         // hide behind these deliberately synthetic aggregation fixtures.
         regression
@@ -556,6 +739,7 @@ mod tests {
             regression.clone(),
             batchworks.clone(),
             salvage.clone(),
+            market_water.clone(),
         )
         .unwrap();
         for mutation in 0..7 {
@@ -584,8 +768,124 @@ mod tests {
                 }
             }
             assert!(
-                combine_crawls(&content, regression.clone(), batchworks.clone(), changed).is_err(),
+                combine_crawls(
+                    &content,
+                    regression.clone(),
+                    batchworks.clone(),
+                    changed,
+                    market_water.clone()
+                )
+                .is_err(),
                 "mutation {mutation} must not weaken combined coverage"
+            );
+        }
+    }
+
+    #[test]
+    fn market_water_component_rejects_identity_scope_budget_location_and_seed_corruption() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let regression = preserve_split_tide(declared_report(
+            &content,
+            regression_definitions(),
+            CrawlBudget::default(),
+        ))
+        .unwrap();
+        let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
+        let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut market_water =
+            declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
+        market_water.starting_sessions = market_water_starting_sessions(&content).unwrap();
+        check_market_water_report(&content, &market_water).unwrap();
+        for mutation in [
+            "coverage",
+            "build",
+            "verifier",
+            "required",
+            "advertised",
+            "depth budget",
+            "state budget",
+            "frontier budget",
+            "execution budget",
+            "page budget",
+            "states",
+            "frontiers",
+            "executions",
+            "location",
+            "unknown location",
+            "unknown coverage",
+            "missing seed",
+            "seed label",
+            "seed depth",
+            "seed receipt",
+            "seed state",
+            "seed start",
+            "seed order",
+        ] {
+            let mut changed = market_water.clone();
+            match mutation {
+                "coverage" => {
+                    changed
+                        .covered_definitions
+                        .remove("return.draw_clean_water");
+                }
+                "build" => changed.build_id.push('x'),
+                "verifier" => changed.verifier_id.push('x'),
+                "required" => {
+                    changed
+                        .required_definitions
+                        .remove("return.draw_clean_water");
+                }
+                "advertised" => {
+                    changed
+                        .advertised_definitions
+                        .remove("return.draw_clean_water");
+                }
+                "depth budget" => changed.budget.max_depth += 1,
+                "state budget" => changed.budget.max_expanded_states += 1,
+                "frontier budget" => changed.budget.max_discovered_frontiers += 1,
+                "execution budget" => changed.budget.max_action_executions += 1,
+                "page budget" => changed.budget.catalog_page_size += 1,
+                "states" => changed.expanded_states = 129,
+                "frontiers" => changed.discovered_frontiers = 1025,
+                "executions" => changed.successful_actions = 4097,
+                "location" => {
+                    changed.reached_locations.remove("lowsail.return");
+                }
+                "unknown location" => {
+                    changed.reached_locations.insert("test.unknown".to_owned());
+                }
+                "unknown coverage" => {
+                    changed
+                        .covered_definitions
+                        .insert("test.unknown".to_owned());
+                }
+                "missing seed" => {
+                    changed.starting_sessions.pop();
+                }
+                "seed label" => changed.starting_sessions[2].label.push('x'),
+                "seed depth" => changed.starting_sessions[2].depth = 0,
+                "seed receipt" => changed.starting_sessions[2].final_receipt.push('x'),
+                "seed state" => changed.starting_sessions[2].state_id.push('x'),
+                "seed start" => {
+                    changed.starting_sessions[2].start = changed.starting_sessions[1].start.clone()
+                }
+                "seed order" => changed.starting_sessions.swap(0, 2),
+                _ => unreachable!(),
+            }
+            assert!(
+                check_market_water_report(&content, &changed).is_err(),
+                "accepted market-water {mutation}"
+            );
+            assert!(
+                combine_crawls(
+                    &content,
+                    regression.clone(),
+                    batchworks.clone(),
+                    salvage.clone(),
+                    changed
+                )
+                .is_err(),
+                "combined report accepted market-water {mutation}"
             );
         }
     }

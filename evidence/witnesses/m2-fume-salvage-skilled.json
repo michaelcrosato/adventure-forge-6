@@ -1,31 +1,31 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
+  "verifier_id": "2ed3d3769ce3353bf064b50f4814b6c0018f603e63ae4ccb651e35b5a25f34ce",
   "scenario_id": "m2-fume-salvage-skilled",
-  "scenario_binding": "9c145a88b7b4df2091d01e6964dd5bb06e81dc2fd8fcabc9bbb6e4ad29839a0d",
+  "scenario_binding": "a502d633a57ac36f2404cca85f1b474b785c8e0a1f99027fddacabb7b88044a0",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+    "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
     "start": {
       "kind": "character_preset",
       "character_preset_id": "rook",
       "seed": 71
     },
     "action_ids": [
-      "c1b610ca78bb11feb4b503c386fb08ccd946accb648fe094b7f4751cb70d38f6",
-      "f830c2833c379222e62829d5a384254a53b8ac4409745e22e67daf1edf67109f",
-      "ccce413e08e3b00c1b50742ac68392563905db419794c2d54a1150137bea3d28",
-      "ffedfbf0658f98940e69e48552eb094325a11e07f3f88aaa26edc60f2018a81d",
-      "4de20ac115d308fb5fe4e338f8beff3355e9e9170b3372d0da14e7c4e2fd146a",
-      "3392bbe72ee917f06682019f12ee23a12a95323b84346e4987f9aa89b1e0c66a"
+      "a0271fb8d5d090684857de1c557ab70bfab16339753b5c2c52135b0cf02638cd",
+      "62301d332c0cdf5ab76e46dc045d047c0afb7e2ce7c90681658d441600aa7baf",
+      "7d453129da1c9c0107d23bcad29e860dbdcee25c00d5a58980a377fa0047a8e4",
+      "ceeb3f009a90be6c7f1dbe66a3ad5da3f374a65f4fe471e24b98ed2754025e07",
+      "207c485398998034ca1b3f0139b5e1c2d81427aa5ea2f67e43b266869d6d37c0",
+      "3a28c83c7ae7ef114ae6ff714802b2f375a5aab04e3bb8687a3392e17e21c244"
     ],
-    "final_state_id": "cc657b3f9f4fd2dc565cb99d8d69553fe768171ed07c02a36513c62eacf15fdc",
-    "final_receipt": "c6f65968f8d6180a34663047dfd6da5ba785858c5a07341cc451054de2a23df3"
+    "final_state_id": "b35b7200703738b18ecf59dfa2424fd4a822e9eacb519d5f11c4b184478a0ee6",
+    "final_receipt": "ec92283fecba8abc5c366b7918714f9fcf319597d1d8431671e53f0dc6f601b7"
   },
-  "initial_state_id": "1db9ef0be6324014379f518c4203ce60f3d58a61713c8e8047f7c79c0966eb23",
+  "initial_state_id": "440eced9ec641ae8771bbc841721e85843d51963c174e30150dba524eddb1ab1",
   "initial_observation": {
-    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-    "state_id": "1db9ef0be6324014379f518c4203ce60f3d58a61713c8e8047f7c79c0966eb23",
+    "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+    "state_id": "440eced9ec641ae8771bbc841721e85843d51963c174e30150dba524eddb1ab1",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
@@ -63,27 +63,27 @@
         "remaining_ticks": 16
       }
     ],
-    "action_set_digest": "2014aa81d8c9cb81c746ccc107866cf887048584456a4fc9492f23e7baee6379",
+    "action_set_digest": "41e70c1be73c6400ecc4f80a1b1ccd9dd4924489b2b7312329fb8765a901efe7",
     "action_count": 8
   },
-  "initial_observation_hash": "3046c8c457122dc2ed8f3ceb8f51946e3e216274621737e7aadf6e49e00d23b2",
-  "initial_receipt": "e815919995023797a325d50ef96dd01994aacbf5a3c93e5d3d47173e0a2bd39b",
+  "initial_observation_hash": "2ccd99d646a66467478e7d35c9c83ab6e6eaf130641d01e719380371ddc79bd3",
+  "initial_receipt": "8edae724540496596317785ef1389bd2550acee5c8ecda679fb81e43b7c21811",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "c1b610ca78bb11feb4b503c386fb08ccd946accb648fe094b7f4751cb70d38f6",
+      "action_id": "a0271fb8d5d090684857de1c557ab70bfab16339753b5c2c52135b0cf02638cd",
       "action_definition_id": "checkpoint.blend_workers",
       "action_parameters": {},
-      "legal_action_set_digest": "2014aa81d8c9cb81c746ccc107866cf887048584456a4fc9492f23e7baee6379",
-      "pre_state_id": "1db9ef0be6324014379f518c4203ce60f3d58a61713c8e8047f7c79c0966eb23",
+      "legal_action_set_digest": "41e70c1be73c6400ecc4f80a1b1ccd9dd4924489b2b7312329fb8765a901efe7",
+      "pre_state_id": "440eced9ec641ae8771bbc841721e85843d51963c174e30150dba524eddb1ab1",
       "events_hash": "ecba9cf35a9af50574db3ce6a159260cbe14dbe78d6e59f6cdf58a257c20369e",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "5f62f068c5d9a3a002f3a42988666483cd8899eb39d4e3839fdf3575d1e3e01f",
+      "post_state_id": "abf4c24ccab78bd6b6182d3be863b5c02dda62509e9e0e4d065bc0ac67c3c11b",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "5f62f068c5d9a3a002f3a42988666483cd8899eb39d4e3839fdf3575d1e3e01f",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "abf4c24ccab78bd6b6182d3be863b5c02dda62509e9e0e4d065bc0ac67c3c11b",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "The workers reveal the Culvert Path at Lowsail Levee and hide your passage. Their note confirms your crossing to Oren. Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
@@ -121,29 +121,29 @@
             "remaining_ticks": 15
           }
         ],
-        "action_set_digest": "88a3aab5a6aa6c0e1dd3acf4b3428898946385e346615fa8eca80cb8afe74a1e",
+        "action_set_digest": "a072f56b543b3edc46a3be3c99673fd633841553101b6de971e7d24223a4234c",
         "action_count": 7
       },
-      "observation_hash": "0a8a19f6bbaa086e38493ce9a478dc96a81d6ad5275d0dd4fbd3fc39d9f9a177",
-      "receipt": "0ce0a92bc1f0fc0c4fe3383e497435d0f3ea8d5cea85e2e3f3b49aeab200f9b2"
+      "observation_hash": "0cfbfa3d2ec76dae91fe15a458e4bd43c601a73d56827e6cee4291bd0e166ced",
+      "receipt": "136f4429b93aabce21821795b700c36b6e00e92e5f5bf91fbd5f8924de501a84"
     },
     {
       "step_index": 1,
-      "action_id": "f830c2833c379222e62829d5a384254a53b8ac4409745e22e67daf1edf67109f",
+      "action_id": "62301d332c0cdf5ab76e46dc045d047c0afb7e2ce7c90681658d441600aa7baf",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.levee"
       },
-      "legal_action_set_digest": "88a3aab5a6aa6c0e1dd3acf4b3428898946385e346615fa8eca80cb8afe74a1e",
-      "pre_state_id": "5f62f068c5d9a3a002f3a42988666483cd8899eb39d4e3839fdf3575d1e3e01f",
+      "legal_action_set_digest": "a072f56b543b3edc46a3be3c99673fd633841553101b6de971e7d24223a4234c",
+      "pre_state_id": "abf4c24ccab78bd6b6182d3be863b5c02dda62509e9e0e4d065bc0ac67c3c11b",
       "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "4250671c92afb3c5765526d9c47498a591f1b7344610a9c36d07123634178170",
+      "post_state_id": "ce10e012ac960583cc700fb55f801b2a8ef43be2e691c397b191897454ae7949",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "4250671c92afb3c5765526d9c47498a591f1b7344610a9c36d07123634178170",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "ce10e012ac960583cc700fb55f801b2a8ef43be2e691c397b191897454ae7949",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment.",
@@ -181,29 +181,29 @@
             "remaining_ticks": 14
           }
         ],
-        "action_set_digest": "5499cb74665f92e911b5189ae19d4acda7e93d3493614da1b9b24949c955664a",
+        "action_set_digest": "27d4818b7887faafc9c3301d9978b6614ab805e7b3410cb40dccb39f91c1e8c1",
         "action_count": 6
       },
-      "observation_hash": "b4027ed4b75e41a99398007a7a180284d8660c01ded9d4f35429b91375a53d9e",
-      "receipt": "cc631825c9706a56509ae08eb7173adec0ae1b4081cc21fba9aa78b4e1475d5f"
+      "observation_hash": "2d6489d450d6bf0ad34b035adaa54d81917956fed1463ba93e2825ef5dfb5095",
+      "receipt": "c584623a65f5a2a646802bd9f2d501a3ed903008235ff0f817008aeffadbac64"
     },
     {
       "step_index": 2,
-      "action_id": "ccce413e08e3b00c1b50742ac68392563905db419794c2d54a1150137bea3d28",
+      "action_id": "7d453129da1c9c0107d23bcad29e860dbdcee25c00d5a58980a377fa0047a8e4",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "fume_yards.workshop"
       },
-      "legal_action_set_digest": "5499cb74665f92e911b5189ae19d4acda7e93d3493614da1b9b24949c955664a",
-      "pre_state_id": "4250671c92afb3c5765526d9c47498a591f1b7344610a9c36d07123634178170",
+      "legal_action_set_digest": "27d4818b7887faafc9c3301d9978b6614ab805e7b3410cb40dccb39f91c1e8c1",
+      "pre_state_id": "ce10e012ac960583cc700fb55f801b2a8ef43be2e691c397b191897454ae7949",
       "events_hash": "b084471d9b1a4982b000c3c78d80f4702bae8b48b816814eb58dc47623ec9f9b",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "5e4e63dfa28004424396e1fa20cb0c6a7c02653f1dc2b126d1d5b811b5aad0d4",
+      "post_state_id": "50c037a1843f93a7a414874eefede0f224169fa1377d01e36e9361c49e04d68d",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "5e4e63dfa28004424396e1fa20cb0c6a7c02653f1dc2b126d1d5b811b5aad0d4",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "50c037a1843f93a7a414874eefede0f224169fa1377d01e36e9361c49e04d68d",
         "location_id": "fume_yards.workshop",
         "title": "Fume Yards Workshop",
         "text": "You move along the connected path. Nessa offers two clay and one mesh for plugs or screening; optional work uses tide steps. Plugs unlock Lowsail's three-coin sorting job after the tide; screening saves two stamina loading freight.",
@@ -241,29 +241,29 @@
             "remaining_ticks": 13
           }
         ],
-        "action_set_digest": "db1e5e25cff1d25bf23854309071fbfef25ecfc90c5a1a267e0708a5f0d107ab",
+        "action_set_digest": "7ec9f39afb9aac280acc50b3dd0f5c26426499664089f805e270f36abc28dd8b",
         "action_count": 6
       },
-      "observation_hash": "a30d357befc6e190870cccf12a8dbad080ea18023f973f7f4e6859fb260280ac",
-      "receipt": "7a1e8732eacf14cda3471bc35d3aed5133bac81538dbc05256915722da0cbd69"
+      "observation_hash": "7ddea4b7b8daa5e9dbc607ad1b37c3134ada22c914f8199e3114ec45c46c43cc",
+      "receipt": "412977356a808073cc8c15811bc917d771dbcd6e6c31b032f509c75d7ce0f8df"
     },
     {
       "step_index": 3,
-      "action_id": "ffedfbf0658f98940e69e48552eb094325a11e07f3f88aaa26edc60f2018a81d",
+      "action_id": "ceeb3f009a90be6c7f1dbe66a3ad5da3f374a65f4fe471e24b98ed2754025e07",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "fume_yards.kiln_bay"
       },
-      "legal_action_set_digest": "db1e5e25cff1d25bf23854309071fbfef25ecfc90c5a1a267e0708a5f0d107ab",
-      "pre_state_id": "5e4e63dfa28004424396e1fa20cb0c6a7c02653f1dc2b126d1d5b811b5aad0d4",
+      "legal_action_set_digest": "7ec9f39afb9aac280acc50b3dd0f5c26426499664089f805e270f36abc28dd8b",
+      "pre_state_id": "50c037a1843f93a7a414874eefede0f224169fa1377d01e36e9361c49e04d68d",
       "events_hash": "9a4a54888dd34b07c110fce062bc02fc7ce96d44d5e5f67e346a179410e6d7a3",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "bb55db30cd4b81c9b51efa915fb1a80f36daffd5f7f158d445bf52aaa254d2da",
+      "post_state_id": "985ac31ce92a56a3dd965e2337ae921263d653e681588e4aea70ff7ad1368d03",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "bb55db30cd4b81c9b51efa915fb1a80f36daffd5f7f158d445bf52aaa254d2da",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "985ac31ce92a56a3dd965e2337ae921263d653e681588e4aea70ff7ad1368d03",
         "location_id": "fume_yards.kiln_bay",
         "title": "Fume Yards Kiln Bay",
         "text": "You move along the connected path. Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
@@ -301,27 +301,27 @@
             "remaining_ticks": 12
           }
         ],
-        "action_set_digest": "918ee8f3605ac381e5b5e8590703f288ce5e99db2f19fd1b55915ed982f112e0",
+        "action_set_digest": "3e2f76d1e20dbdd9e75e5c769bc8296d9804d0d3ed25aed7061e7e91382ebd99",
         "action_count": 5
       },
-      "observation_hash": "bff2da8150791474afe28b218564ff6602a523a57627f28faec5c101017f0bcb",
-      "receipt": "aad98b32009898fbbecc3916a5a852b7b882634b64a8fb8bba02ce3bdcae85c9"
+      "observation_hash": "24ad53d0febf51459f891b71001f9bdffcbc0c98664bbc1abb480a39ee2bcbea",
+      "receipt": "ea65e9beeeed7b5451a2a0e39c446ff60d9ee36c1da6cd1fc31226784706944a"
     },
     {
       "step_index": 4,
-      "action_id": "4de20ac115d308fb5fe4e338f8beff3355e9e9170b3372d0da14e7c4e2fd146a",
+      "action_id": "207c485398998034ca1b3f0139b5e1c2d81427aa5ea2f67e43b266869d6d37c0",
       "action_definition_id": "fume_yards.enter_ash_hatch",
       "action_parameters": {},
-      "legal_action_set_digest": "918ee8f3605ac381e5b5e8590703f288ce5e99db2f19fd1b55915ed982f112e0",
-      "pre_state_id": "bb55db30cd4b81c9b51efa915fb1a80f36daffd5f7f158d445bf52aaa254d2da",
+      "legal_action_set_digest": "3e2f76d1e20dbdd9e75e5c769bc8296d9804d0d3ed25aed7061e7e91382ebd99",
+      "pre_state_id": "985ac31ce92a56a3dd965e2337ae921263d653e681588e4aea70ff7ad1368d03",
       "events_hash": "73e4c4edd109a6d6196b83631308182111266c2a602fdf65a5d016b6bd707a50",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "b27d09aa69062ca592aed96a0868f24c0889551f4aba415f5b75a713fc36dda0",
+      "post_state_id": "947ebe57063a1bb3805259986eaa233eb92b011a57cc0aefac39694ba1efa801",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "b27d09aa69062ca592aed96a0868f24c0889551f4aba415f5b75a713fc36dda0",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "947ebe57063a1bb3805259986eaa233eb92b011a57cc0aefac39694ba1efa801",
         "location_id": "fume_yards.ash_beds",
         "title": "Fume Yards Ash Beds",
         "text": "You take the maintenance hatch to the rack's rear. Your heat sense and lock-runner handling let you thread your rope safely, spending no stamina.",
@@ -359,27 +359,27 @@
             "remaining_ticks": 11
           }
         ],
-        "action_set_digest": "86d0e03f055496445cfaa84551ae9d087b5d265fbb62f734b6fbb109c21cecd4",
-        "action_count": 5
+        "action_set_digest": "e3a29516a51572774c5fd5cfa77c303e443e522ed5aad62660678db7c8b46e7f",
+        "action_count": 7
       },
-      "observation_hash": "6a2926db37dc3a9be215abe70b23892429418c40f2ae2cd28853f79f428ed9ea",
-      "receipt": "69c95703a6dae6ad362458ff697fb11f0db6fd9e0eb52c5d73c490078efff009"
+      "observation_hash": "c9c515b1522b43b80a368795eac61b9c344029a1d4fd61588f4010d4efbc06c4",
+      "receipt": "5e8fab887806af7b1dc6cda6f616495e7ffe490d33a4cf0918b42759e5c3d430"
     },
     {
       "step_index": 5,
-      "action_id": "3392bbe72ee917f06682019f12ee23a12a95323b84346e4987f9aa89b1e0c66a",
+      "action_id": "3a28c83c7ae7ef114ae6ff714802b2f375a5aab04e3bb8687a3392e17e21c244",
       "action_definition_id": "fume_yards.thread_rack_filter",
       "action_parameters": {},
-      "legal_action_set_digest": "86d0e03f055496445cfaa84551ae9d087b5d265fbb62f734b6fbb109c21cecd4",
-      "pre_state_id": "b27d09aa69062ca592aed96a0868f24c0889551f4aba415f5b75a713fc36dda0",
+      "legal_action_set_digest": "e3a29516a51572774c5fd5cfa77c303e443e522ed5aad62660678db7c8b46e7f",
+      "pre_state_id": "947ebe57063a1bb3805259986eaa233eb92b011a57cc0aefac39694ba1efa801",
       "events_hash": "cb0e396dfeaf3a70273d56a6e5e82b1e475b57f12b022137be2ece4243ae367d",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "cc657b3f9f4fd2dc565cb99d8d69553fe768171ed07c02a36513c62eacf15fdc",
+      "post_state_id": "b35b7200703738b18ecf59dfa2424fd4a822e9eacb519d5f11c4b184478a0ee6",
       "observation": {
-        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "cc657b3f9f4fd2dc565cb99d8d69553fe768171ed07c02a36513c62eacf15fdc",
+        "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
+        "state_id": "b35b7200703738b18ecf59dfa2424fd4a822e9eacb519d5f11c4b184478a0ee6",
         "location_id": "fume_yards.ash_beds",
         "title": "Fume Yards Ash Beds",
         "text": "You feel safe contact points and thread your rope through them. The filter comes free; you retain the rope. The rack is clear; reporting with Daro through the rear hatch earns one coin.",
@@ -422,13 +422,13 @@
             "remaining_ticks": 10
           }
         ],
-        "action_set_digest": "6ace06ee876ea14328f7c1b343785f8cd1b226ecec0e9e415152818439d8e1e0",
-        "action_count": 4
+        "action_set_digest": "a1fb166403058836518edf019fbe666df72ff7c718942a6b626f2d66c800cbc1",
+        "action_count": 6
       },
-      "observation_hash": "40cad967c11677a38162fd8b55e705fe3faefa2167e016a93ebe894f98896ef4",
-      "receipt": "c6f65968f8d6180a34663047dfd6da5ba785858c5a07341cc451054de2a23df3"
+      "observation_hash": "a000d85b136086221e6d61b5634780c366ee957bb02ee18cc09befd2e1cd47db",
+      "receipt": "ec92283fecba8abc5c366b7918714f9fcf319597d1d8431671e53f0dc6f601b7"
     }
   ],
-  "final_state_id": "cc657b3f9f4fd2dc565cb99d8d69553fe768171ed07c02a36513c62eacf15fdc",
-  "final_receipt": "c6f65968f8d6180a34663047dfd6da5ba785858c5a07341cc451054de2a23df3"
+  "final_state_id": "b35b7200703738b18ecf59dfa2424fd4a822e9eacb519d5f11c4b184478a0ee6",
+  "final_receipt": "ec92283fecba8abc5c366b7918714f9fcf319597d1d8431671e53f0dc6f601b7"
 }

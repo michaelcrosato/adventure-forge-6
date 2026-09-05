@@ -163,7 +163,7 @@ type FrontierScore = (
     Reverse<usize>,
     usize,
     Reverse<u64>,
-    (usize, usize, Reverse<usize>),
+    (usize, Reverse<usize>, usize, usize, Reverse<usize>),
     usize,
     Reverse<usize>,
     usize,
@@ -522,13 +522,30 @@ fn frontier_score(
     let npc_arrivals = immediate_npc_arrival_projections(&frontier.state, content)?;
     let deferred_flags = pending_deferred_flag_projections(&frontier.state, content)?;
     let mut relevant_flags = BTreeSet::new();
+    let mut relevant_items = BTreeSet::new();
+    // Preserve established multi-target search ordering. Once only one goal
+    // remains, its item prerequisite can justify a temporary walk away before
+    // comparing raw clause counts. A closed source must not outrank available
+    // acquisition merely because it satisfies more unrelated clauses.
+    let final_target = report
+        .required_definitions
+        .difference(&report.covered_definitions)
+        .count()
+        == 1;
     for (id, action) in content.actions() {
         if report.required_definitions.contains(id) && !report.covered_definitions.contains(id) {
             collect_condition_flags(&action.condition, &mut relevant_flags);
+            if final_target {
+                collect_condition_items(&action.condition, &mut relevant_items);
+            }
         }
     }
     let producer_flags =
         potential_flag_producer_projections(&frontier.state, content, &relevant_flags)?;
+    let acquisition_hints =
+        potential_item_acquisition_projections(&frontier.state, content, &relevant_items)?;
+    let mut acquisition_ready = 0usize;
+    let mut nearest_acquisition = usize::MAX;
     let mut uncovered_here = 0usize;
     let mut ready_one_move = 0usize;
     let mut ready_uncovered = 0usize;
@@ -553,6 +570,12 @@ fn frontier_score(
                     nearest_deferred_ready = nearest_deferred_ready.min(*remaining);
                     break;
                 }
+            }
+            if let Some(distance) =
+                item_acquisition_distance(definition, &acquisition_hints, content)?
+            {
+                acquisition_ready += 1;
+                nearest_acquisition = nearest_acquisition.min(distance);
             }
             let producer_distance = producer_flags
                 .iter()
@@ -635,7 +658,13 @@ fn frontier_score(
         Reverse(nearest_ready_target),
         deferred_ready,
         Reverse(nearest_deferred_ready),
-        (total_progress, producer_ready, Reverse(nearest_producer)),
+        (
+            acquisition_ready,
+            Reverse(nearest_acquisition),
+            total_progress,
+            producer_ready,
+            Reverse(nearest_producer),
+        ),
         best_partial.0,
         Reverse(frontier.depth.saturating_add((best_partial.1).0)),
         state_progress(&frontier.state),
@@ -687,6 +716,8 @@ fn potential_flag_producer_projections(
             | Effect::AddNpcMemory { .. }
             | Effect::TeachNpc { .. }
             | Effect::TransferNpcItemToCharacter { .. }
+            | Effect::TransferStorageItemToCharacter { .. }
+            | Effect::TransferCharacterItemToStorage { .. }
             | Effect::ApplyRecipe { .. }
             | Effect::AddCharacterDeed { .. }
             | Effect::AdvanceTime { .. } => true,
@@ -768,6 +799,268 @@ fn potential_flag_producer_projections(
         }
     }
     Ok(projections)
+}
+
+/// Potential item ownership after one fixed withdrawal program. Sources remain
+/// separate from the projected state and are checked in effect order. These
+/// values only rank real frontiers; they never enter admission or coverage.
+/// Travel side effects and crossed timers remain unmodeled, so even a legal
+/// withdrawal may yield a false-positive hint if a due recipe consumes it.
+fn potential_item_acquisition_projections(
+    state: &GameState,
+    content: &CompiledContent,
+    relevant_items: &BTreeSet<&str>,
+) -> Result<Vec<(usize, GameState)>, VerifyError> {
+    let mut hints = Vec::new();
+    let mut local_catalog: Option<BTreeSet<String>> = None;
+    for (_, action) in content.actions() {
+        if action.movement || !action.parameters.is_empty() {
+            continue;
+        }
+        let mut relevant = false;
+        let supported = action.effects.iter().all(|effect| match effect {
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal(_),
+                item,
+                count,
+            }
+            | Effect::TransferStorageItemToCharacter { item, count, .. } => {
+                relevant |= relevant_items.contains(item.as_str());
+                *count > 0
+            }
+            Effect::SetFlag { .. }
+            | Effect::SetWorldFlag { .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Literal(_),
+                ..
+            }
+            | Effect::Noop
+            | Effect::AddNpcMemory { .. }
+            | Effect::TeachNpc { .. }
+            | Effect::AddCharacterDeed { .. }
+            | Effect::AdvanceTime { .. } => true,
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Parameter(_),
+                ..
+            }
+            | Effect::TransferCharacterItemToStorage { .. }
+            | Effect::ApplyRecipe { .. }
+            | Effect::AdjustResource { .. }
+            | Effect::AdjustNpcRelationship { .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Parameter(_),
+                ..
+            }
+            | Effect::MoveCharacter { .. }
+            | Effect::MoveNpc { .. }
+            | Effect::RandomChance { .. }
+            | Effect::ScheduleEvent { .. } => false,
+        });
+        if !supported || !relevant {
+            continue;
+        }
+        let locations = if action.locations.is_empty() {
+            std::slice::from_ref(&state.world.current_location)
+        } else {
+            action.locations.as_slice()
+        };
+        for location in locations {
+            let mut projected = state.clone();
+            projected.world.current_location.clone_from(location);
+            if !action.condition.evaluate(&projected) {
+                continue;
+            }
+            let distance = location_distance(
+                content,
+                &state.world.current_location,
+                location,
+                Some(state),
+            )?;
+            if distance == usize::MAX {
+                continue;
+            }
+            if distance == 0 {
+                if local_catalog.is_none() {
+                    local_catalog = Some(
+                        enumerate_legal_actions(state, content)
+                            .map_err(|_| {
+                                VerifyError::new(
+                                    "crawler could not enumerate item acquisition candidates",
+                                )
+                            })?
+                            .into_iter()
+                            .map(|action| action.definition_id)
+                            .collect(),
+                    );
+                }
+                if !local_catalog.as_ref().unwrap().contains(&action.id) {
+                    continue;
+                }
+            }
+            if !project_item_acquisition(&mut projected, action, content) {
+                continue;
+            }
+            hints
+                .try_reserve(1)
+                .map_err(|_| VerifyError::new("crawler item acquisition hint allocation failed"))?;
+            hints.push((distance.saturating_add(1), projected));
+        }
+    }
+    Ok(hints)
+}
+
+fn project_item_acquisition(
+    projected: &mut GameState,
+    action: &ActionDefinition,
+    content: &CompiledContent,
+) -> bool {
+    let mut remaining_sources = BTreeMap::new();
+    let mut latest_time = projected.world.time;
+    for effect in &action.effects {
+        let source = match effect {
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal(npc),
+                item,
+                count,
+            } => {
+                let Some(source) = projected.world.npcs.get(npc) else {
+                    return false;
+                };
+                if source.location != projected.world.current_location {
+                    return false;
+                }
+                Some((
+                    false,
+                    npc,
+                    item,
+                    count,
+                    source.inventory.get(item).copied().unwrap_or_default(),
+                ))
+            }
+            Effect::TransferStorageItemToCharacter {
+                storage,
+                item,
+                count,
+            } => {
+                let Some(definition) = content.storage(storage) else {
+                    return false;
+                };
+                let Some(source) = projected.world.storages.get(storage) else {
+                    return false;
+                };
+                if definition.location != projected.world.current_location {
+                    return false;
+                }
+                Some((
+                    true,
+                    storage,
+                    item,
+                    count,
+                    source.inventory.get(item).copied().unwrap_or_default(),
+                ))
+            }
+            Effect::SetFlag { flag, value } | Effect::SetWorldFlag { flag, value } => {
+                if *value {
+                    projected.world.flags.insert(flag.clone());
+                } else {
+                    projected.world.flags.remove(flag);
+                }
+                None
+            }
+            Effect::SetLocationFlag {
+                location: StringRef::Literal(location),
+                flag,
+                value,
+            } => {
+                let Some(runtime) = projected.world.locations.get_mut(location) else {
+                    return false;
+                };
+                if *value {
+                    runtime.flags.insert(flag.clone());
+                } else {
+                    runtime.flags.remove(flag);
+                }
+                None
+            }
+            Effect::AdvanceTime { ticks } => {
+                let Some(next) = latest_time.checked_add(*ticks) else {
+                    return false;
+                };
+                latest_time = next;
+                None
+            }
+            // No NPC facts, deeds, entropy, history, time, or source balances
+            // are invented. A later target must already have those premises.
+            _ => None,
+        };
+        if let Some((storage, owner, item, count, initial)) = source {
+            let remaining = remaining_sources
+                .entry((storage, owner, item))
+                .or_insert(initial);
+            let Some(next_source) = remaining.checked_sub(*count) else {
+                return false;
+            };
+            let held = projected
+                .character
+                .inventory
+                .get(item)
+                .copied()
+                .unwrap_or_default();
+            let Some(next_held) = held.checked_add(*count) else {
+                return false;
+            };
+            *remaining = next_source;
+            projected
+                .character
+                .inventory
+                .insert(item.clone(), next_held);
+        }
+    }
+    true
+}
+
+fn item_acquisition_distance(
+    target: &ActionDefinition,
+    hints: &[(usize, GameState)],
+    content: &CompiledContent,
+) -> Result<Option<usize>, VerifyError> {
+    let mut nearest = None;
+    for (approach, hint) in hints {
+        let locations = if target.locations.is_empty() {
+            std::slice::from_ref(&hint.world.current_location)
+        } else {
+            target.locations.as_slice()
+        };
+        for location in locations {
+            let mut at_target = hint.clone();
+            at_target.world.current_location.clone_from(location);
+            if !target.condition.evaluate(&at_target) {
+                continue;
+            }
+            let onward =
+                location_distance(content, &hint.world.current_location, location, Some(hint))?;
+            if onward != usize::MAX {
+                let distance = approach.saturating_add(onward);
+                nearest = Some(nearest.map_or(distance, |prior: usize| prior.min(distance)));
+            }
+        }
+    }
+    Ok(nearest)
+}
+
+fn collect_condition_items<'a>(condition: &'a Condition, items: &mut BTreeSet<&'a str>) {
+    match condition {
+        Condition::HasItem { item, .. } => {
+            items.insert(item);
+        }
+        Condition::All { conditions } | Condition::Any { conditions } => {
+            for condition in conditions {
+                collect_condition_items(condition, items);
+            }
+        }
+        Condition::Not { condition } => collect_condition_items(condition, items),
+        _ => {}
+    }
 }
 
 fn collect_condition_flags<'a>(condition: &'a Condition, flags: &mut BTreeSet<&'a str>) {
@@ -1300,6 +1593,8 @@ fn independent_effect_time_cost(effect: &Effect) -> Result<(u64, u64), VerifyErr
         | Effect::MoveNpc { .. }
         | Effect::AdjustNpcRelationship { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. }
         | Effect::ApplyRecipe { .. }
         | Effect::ScheduleEvent { .. }
         | Effect::AddNpcMemory { .. }
@@ -1395,6 +1690,7 @@ mod tests {
         draft.timed_events.clear();
         draft.deferred_events.clear();
         draft.npcs.retain(|npc| npc.id == "sava_rusk");
+        draft.storages.clear();
         draft
             .locations
             .retain(|location| ["lowsail_market", "lowsail.docks"].contains(&location.id.as_str()));
@@ -1498,6 +1794,492 @@ mod tests {
             ),
         ];
         draft
+    }
+
+    fn acquisition_fixture(stored: bool) -> forge_kernel::ContentDraft {
+        let mut draft = flag_producer_fixture();
+        draft.character_presets[0].character.inventory.clear();
+        draft.npcs[0].location = "lowsail.docks".to_owned();
+        draft.npcs[0].inventory = if stored {
+            BTreeMap::new()
+        } else {
+            BTreeMap::from([("test.part".to_owned(), 1)])
+        };
+        if stored {
+            draft.storages.push(forge_kernel::StorageDefinition {
+                id: "test.reserve".to_owned(),
+                name: "Reserve".to_owned(),
+                location: "lowsail.docks".to_owned(),
+                inventory: BTreeMap::from([("test.part".to_owned(), 1)]),
+            });
+        }
+        draft.actions[1].id = "test.take".to_owned();
+        draft.actions[1].condition = Condition::NpcAtLocation {
+            npc: "sava_rusk".to_owned(),
+            location: "lowsail.docks".to_owned(),
+        };
+        let transfer = if stored {
+            Effect::TransferStorageItemToCharacter {
+                storage: "test.reserve".to_owned(),
+                item: "test.part".to_owned(),
+                count: 1,
+            }
+        } else {
+            Effect::TransferNpcItemToCharacter {
+                npc: StringRef::Literal("sava_rusk".to_owned()),
+                item: "test.part".to_owned(),
+                count: 1,
+            }
+        };
+        draft.actions[1].effects = vec![
+            transfer,
+            Effect::SetWorldFlag {
+                flag: "test.taken".to_owned(),
+                value: true,
+            },
+            Effect::AddCharacterDeed {
+                deed_id: "test.received".to_owned(),
+            },
+            Effect::TeachNpc {
+                npc: StringRef::Literal("sava_rusk".to_owned()),
+                knowledge_id: "test.receipt".to_owned(),
+                subject: "The item changed hands.".to_owned(),
+                provenance: forge_kernel::KnowledgeProvenance::Witnessed,
+            },
+            Effect::AdvanceTime { ticks: 1 },
+        ];
+        draft.actions[2].locations = vec!["lowsail_market".to_owned()];
+        draft.actions[2].condition = Condition::All {
+            conditions: vec![
+                Condition::HasItem {
+                    item: "test.part".to_owned(),
+                    count: 1,
+                },
+                Condition::Not {
+                    condition: Box::new(Condition::WorldFlag {
+                        flag: "test.done".to_owned(),
+                    }),
+                },
+            ],
+        };
+        draft.actions[2].effects = vec![
+            Effect::ApplyRecipe {
+                recipe: "test.install".to_owned(),
+            },
+            Effect::SetWorldFlag {
+                flag: "test.done".to_owned(),
+                value: true,
+            },
+            Effect::AdvanceTime { ticks: 1 },
+        ];
+        draft
+    }
+
+    fn acquisition_hints(state: &GameState, content: &CompiledContent) -> Vec<(usize, GameState)> {
+        let mut items = BTreeSet::new();
+        collect_condition_items(&content.action("test.use").unwrap().condition, &mut items);
+        potential_item_acquisition_projections(state, content, &items).unwrap()
+    }
+
+    #[test]
+    fn item_acquisition_hints_require_canonical_walk_withdraw_return_and_complete_use_catalog() {
+        for stored in [false, true] {
+            let content = forge_content::compile(acquisition_fixture(stored)).unwrap();
+            let initial = content.new_game("ilyan", 71).unwrap();
+            let before = initial.clone();
+            let hints = acquisition_hints(&initial, &content);
+            assert_eq!(hints.len(), 1);
+            assert_eq!(
+                item_acquisition_distance(content.action("test.use").unwrap(), &hints, &content)
+                    .unwrap(),
+                Some(3)
+            );
+            let projected = &hints[0].1;
+            assert_eq!(projected.character.inventory["test.part"], 1);
+            assert_eq!(projected.character.deeds, before.character.deeds);
+            assert_eq!(projected.character.knowledge, before.character.knowledge);
+            assert_eq!(projected.world.npcs, before.world.npcs);
+            assert_eq!(projected.world.storages, before.world.storages);
+            assert_eq!(projected.entropy, before.entropy);
+            assert_eq!(projected.event_log, before.event_log);
+            assert_eq!(projected.world.time, before.world.time);
+            assert_eq!(initial, before);
+            assert!(
+                enumerate_legal_actions(&initial, &content)
+                    .unwrap()
+                    .iter()
+                    .all(|action| action.definition_id != "test.use")
+            );
+            let report = crawl_targets(
+                &content,
+                CrawlBudget {
+                    max_depth: 4,
+                    max_expanded_states: 4,
+                    max_discovered_frontiers: 16,
+                    max_action_executions: 6,
+                    catalog_page_size: 1,
+                },
+                BTreeSet::from(["test.use".to_owned()]),
+            )
+            .unwrap();
+            assert_eq!(report.expanded_states, 4);
+            assert_eq!(
+                report.successful_actions, 6,
+                "all four complete catalogs must execute"
+            );
+            assert_eq!(
+                report.covered_definitions,
+                BTreeSet::from([
+                    "test.walk".to_owned(),
+                    "test.take".to_owned(),
+                    "test.use".to_owned()
+                ])
+            );
+            let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+            for id in ["test.walk", "test.take", "test.walk", "test.use"] {
+                let action = enumerate_legal_actions(session.state(), &content)
+                    .unwrap()
+                    .into_iter()
+                    .find(|action| action.definition_id == id)
+                    .unwrap();
+                session.record(&action).unwrap();
+            }
+            assert!(session.state().character.inventory.is_empty());
+            assert_eq!(session.state().entropy.cursor, 0);
+            assert!(session.state().world.flags.contains("test.done"));
+            assert_eq!(
+                forge_replay::verify(session.trace(), &content).unwrap(),
+                *session.state()
+            );
+        }
+    }
+
+    #[test]
+    fn item_acquisition_hints_preserve_literal_multitarget_priorities_until_the_last_goal() {
+        let mut source = acquisition_fixture(false);
+        source.character_presets[0].character.deeds.clear();
+        source.character_presets[0].character.knowledge.clear();
+        source.character_presets[0].character.resources.clear();
+        let mut other = source.actions[2].clone();
+        other.id = "test.other".to_owned();
+        other.condition = Condition::WorldFlag {
+            flag: "test.other_ready".to_owned(),
+        };
+        source.actions.push(other);
+        let partial_flags = ["test.one", "test.two", "test.three", "test.four"];
+        source.actions[2].condition = Condition::Any {
+            conditions: vec![
+                source.actions[2].condition.clone(),
+                Condition::All {
+                    conditions: partial_flags
+                        .iter()
+                        .map(|flag| Condition::WorldFlag {
+                            flag: (*flag).to_owned(),
+                        })
+                        .collect(),
+                },
+            ],
+        };
+        let mut close_source = source.actions[2].clone();
+        close_source.id = "test.close_source".to_owned();
+        close_source.condition = Condition::NpcAtLocation {
+            npc: "sava_rusk".to_owned(),
+            location: "lowsail.docks".to_owned(),
+        };
+        close_source.effects = vec![Effect::MoveNpc {
+            npc: StringRef::Literal("sava_rusk".to_owned()),
+            location: StringRef::Literal("lowsail_market".to_owned()),
+        }];
+        close_source
+            .effects
+            .extend(partial_flags[..3].iter().map(|flag| Effect::SetWorldFlag {
+                flag: (*flag).to_owned(),
+                value: true,
+            }));
+        close_source.effects.push(Effect::AdvanceTime { ticks: 1 });
+        source.actions.push(close_source);
+        let content = forge_content::compile(source).unwrap();
+        let initial = content.new_game("ilyan", 71).unwrap();
+        let walk = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == "test.walk")
+            .unwrap();
+        let moved = step(&initial, &walk, &content, &initial.entropy)
+            .unwrap()
+            .into_state();
+        let start_frontier = Frontier {
+            state: initial,
+            depth: 0,
+            ordinal: 0,
+            used_actions: BTreeSet::new(),
+        };
+        let stock_frontier = Frontier {
+            state: moved,
+            depth: 1,
+            ordinal: 1,
+            used_actions: BTreeSet::new(),
+        };
+        let mut report = CrawlReport {
+            verifier_id: crate::VERIFIER_ID.to_owned(),
+            build_id: content.build_id().to_owned(),
+            budget: CrawlBudget::default(),
+            expanded_states: 0,
+            discovered_frontiers: 0,
+            successful_actions: 0,
+            max_legal_actions: 0,
+            reached_locations: BTreeSet::from([
+                "lowsail_market".to_owned(),
+                "lowsail.docks".to_owned(),
+            ]),
+            covered_definitions: BTreeSet::new(),
+            advertised_definitions: content.actions().map(|(id, _)| id.clone()).collect(),
+            required_definitions: BTreeSet::from(["test.use".to_owned(), "test.other".to_owned()]),
+            starting_sessions: Vec::new(),
+            execution_receipt: "score fixture only".to_owned(),
+        };
+        // Hand-computed pre-acquisition priorities: use has one of two
+        // clauses, other has zero of one; neither goal nor flag work is ready.
+        let initial_expected = (
+            0,
+            0,
+            0,
+            Reverse(usize::MAX),
+            0,
+            Reverse(u64::MAX),
+            (0, Reverse(usize::MAX), 512, 0, Reverse(usize::MAX)),
+            512,
+            Reverse(0),
+            0,
+            false,
+            Reverse(0),
+        );
+        let moved_expected = (
+            0,
+            0,
+            0,
+            Reverse(usize::MAX),
+            0,
+            Reverse(u64::MAX),
+            (0, Reverse(usize::MAX), 512, 0, Reverse(usize::MAX)),
+            512,
+            Reverse(2),
+            0,
+            false,
+            Reverse(1),
+        );
+        assert_eq!(
+            frontier_score(&start_frontier, &report, &content).unwrap(),
+            initial_expected
+        );
+        assert_eq!(
+            frontier_score(&stock_frontier, &report, &content).unwrap(),
+            moved_expected
+        );
+        assert!(
+            initial_expected > moved_expected,
+            "multi-goal search retains the earlier shallow ordering"
+        );
+        report.covered_definitions.insert("test.other".to_owned());
+        let initial_last = frontier_score(&start_frontier, &report, &content).unwrap();
+        let moved_last = frontier_score(&stock_frontier, &report, &content).unwrap();
+        assert_eq!(initial_last.6, (1, Reverse(3), 512, 0, Reverse(usize::MAX)));
+        assert_eq!(moved_last.6, (1, Reverse(2), 512, 0, Reverse(usize::MAX)));
+        assert!(
+            moved_last > initial_last,
+            "only the last goal justifies approaching the actual supplier"
+        );
+        let close = enumerate_legal_actions(&start_frontier.state, &content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == "test.close_source")
+            .unwrap();
+        let closed = step(
+            &start_frontier.state,
+            &close,
+            &content,
+            &start_frontier.state.entropy,
+        )
+        .unwrap()
+        .into_state();
+        let closed_frontier = Frontier {
+            state: closed,
+            depth: 1,
+            ordinal: 2,
+            used_actions: BTreeSet::new(),
+        };
+        let closed_score = frontier_score(&closed_frontier, &report, &content).unwrap();
+        assert_eq!(closed_score.6.0, 0, "the actual custodian left the source");
+        assert_eq!(closed_score.6.2, 768, "three of four clauses are satisfied");
+        assert!(initial_last.6.2 < closed_score.6.2);
+        assert!(
+            initial_last > closed_score,
+            "last-goal acquisition precedes infeasible raw progress"
+        );
+        // The separate canonical acquisition fixture still requires every
+        // walk, withdrawal, return, and use catalog to claim any coverage.
+    }
+
+    #[test]
+    fn item_acquisition_hints_reject_absent_empty_remote_and_overdrawn_sources_and_custodians() {
+        for stored in [false, true] {
+            let source = acquisition_fixture(stored);
+            let content = forge_content::compile(source.clone()).unwrap();
+            let initial = content.new_game("ilyan", 71).unwrap();
+            for defect in ["absent", "empty", "wrong location", "capacity"] {
+                let mut state = initial.clone();
+                match defect {
+                    "absent" if stored => {
+                        state.world.storages.clear();
+                    }
+                    "absent" => {
+                        state.world.npcs.clear();
+                    }
+                    "empty" if stored => {
+                        state
+                            .world
+                            .storages
+                            .get_mut("test.reserve")
+                            .unwrap()
+                            .inventory
+                            .clear();
+                    }
+                    "empty" => {
+                        state
+                            .world
+                            .npcs
+                            .get_mut("sava_rusk")
+                            .unwrap()
+                            .inventory
+                            .clear();
+                    }
+                    "wrong location" => {
+                        state.world.npcs.get_mut("sava_rusk").unwrap().location =
+                            "lowsail_market".to_owned()
+                    }
+                    "capacity" => {
+                        state
+                            .character
+                            .inventory
+                            .insert("test.part".to_owned(), u32::MAX);
+                    }
+                    _ => unreachable!(),
+                }
+                assert!(
+                    acquisition_hints(&state, &content).is_empty(),
+                    "accepted {stored}/{defect}"
+                );
+            }
+            let mut overdrawn = source.clone();
+            let transfer = overdrawn.actions[1].effects[0].clone();
+            overdrawn.actions[1].effects.insert(1, transfer);
+            let content = forge_content::compile(overdrawn).unwrap();
+            let initial = content.new_game("ilyan", 71).unwrap();
+            assert!(
+                acquisition_hints(&initial, &content).is_empty(),
+                "whole program cannot withdraw the same sole item twice"
+            );
+            let walk = enumerate_legal_actions(&initial, &content)
+                .unwrap()
+                .remove(0);
+            let local = step(&initial, &walk, &content, &initial.entropy)
+                .unwrap()
+                .into_state();
+            assert!(
+                content
+                    .action("test.take")
+                    .unwrap()
+                    .condition
+                    .evaluate(&local)
+            );
+            assert!(
+                enumerate_legal_actions(&local, &content)
+                    .unwrap()
+                    .iter()
+                    .all(|action| action.definition_id != "test.take")
+            );
+            assert!(
+                acquisition_hints(&local, &content).is_empty(),
+                "local producer must be canonical catalog legal"
+            );
+            if stored {
+                let mut wrong = source;
+                wrong.storages[0].location = "lowsail_market".to_owned();
+                let content = forge_content::compile(wrong).unwrap();
+                assert!(
+                    acquisition_hints(&content.new_game("ilyan", 71).unwrap(), &content).is_empty()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn item_acquisition_hints_exclude_rich_programs_and_never_invent_deeds_or_npc_knowledge() {
+        for extra in [
+            Effect::RandomChance {
+                success_percent: 100,
+                on_success: Box::new(Effect::Noop),
+                on_failure: Box::new(Effect::Noop),
+            },
+            Effect::ApplyRecipe {
+                recipe: "test.install".to_owned(),
+            },
+            Effect::TransferCharacterItemToStorage {
+                storage: "test.reserve".to_owned(),
+                item: "test.part".to_owned(),
+                count: 1,
+            },
+            Effect::MoveCharacter {
+                location: StringRef::Literal("lowsail_market".to_owned()),
+            },
+            Effect::AdjustResource {
+                resource: "coin".to_owned(),
+                amount: -1,
+            },
+        ] {
+            let mut source = acquisition_fixture(true);
+            source.actions[1].effects.push(extra);
+            let content = forge_content::compile(source).unwrap();
+            assert!(
+                acquisition_hints(&content.new_game("ilyan", 71).unwrap(), &content).is_empty()
+            );
+        }
+        for prerequisite in [
+            Condition::CharacterHasDeed {
+                deed_id: "test.received".to_owned(),
+            },
+            Condition::NpcKnows {
+                npc: "sava_rusk".to_owned(),
+                knowledge_id: "test.receipt".to_owned(),
+            },
+            Condition::Not {
+                condition: Box::new(Condition::WorldFlag {
+                    flag: "test.taken".to_owned(),
+                }),
+            },
+        ] {
+            let mut source = acquisition_fixture(false);
+            if let Condition::All { conditions } = &mut source.actions[2].condition {
+                conditions.push(prerequisite);
+            }
+            let content = forge_content::compile(source).unwrap();
+            let initial = content.new_game("ilyan", 71).unwrap();
+            assert_eq!(
+                item_acquisition_distance(
+                    content.action("test.use").unwrap(),
+                    &acquisition_hints(&initial, &content),
+                    &content
+                )
+                .unwrap(),
+                None
+            );
+        }
+        let mut blocked_walk = acquisition_fixture(false);
+        blocked_walk.actions[0].condition = Condition::WorldFlag {
+            flag: "test.unopened_route".to_owned(),
+        };
+        let content = forge_content::compile(blocked_walk).unwrap();
+        assert!(acquisition_hints(&content.new_game("ilyan", 71).unwrap(), &content).is_empty());
     }
 
     #[test]
@@ -1953,7 +2735,7 @@ mod tests {
             .crawl;
         assert!(report.is_complete());
         assert_eq!(report.required_definitions.len(), 60);
-        assert_eq!(report.advertised_definitions.len(), 81);
+        assert_eq!(report.advertised_definitions.len(), 91);
         assert!(report.reached_locations.len() >= 7);
         assert!(report.successful_actions >= report.required_definitions.len());
         assert_eq!(report.starting_sessions.len(), 2);

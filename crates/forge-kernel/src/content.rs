@@ -3,7 +3,7 @@ use crate::hash::sha256_json;
 use crate::model::{
     Character, CharacterChoiceSelection, CharacterSelection, CharacterStart, EventKind, FacetValue,
     GameState, KnowledgeProvenance, KnowledgeProvenanceKind, LocationId, NpcId, NpcState,
-    ScheduledEvent, is_reserved_character_facet_axis,
+    ScheduledEvent, StorageState, is_reserved_character_facet_axis,
 };
 use crate::{EntropyState, LocationRuntime};
 use serde::{Deserialize, Serialize};
@@ -300,6 +300,17 @@ pub struct RecipeDefinition {
     pub outputs: BTreeMap<String, u32>,
 }
 
+/// Finite inventory at a fixed compiled location, separate from NPC identity.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct StorageDefinition {
+    pub id: String,
+    pub name: String,
+    pub location: LocationId,
+    #[serde(default)]
+    pub inventory: BTreeMap<String, u32>,
+}
+
 /// Untrusted authoring input. A `CompiledContent` can only be created by
 /// `try_compile`, which performs all semantic checks in the kernel.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -322,6 +333,8 @@ pub struct ContentDraft {
     pub locations: Vec<LocationDefinition>,
     #[serde(default)]
     pub npcs: Vec<NpcDefinition>,
+    #[serde(default)]
+    pub storages: Vec<StorageDefinition>,
     #[serde(default)]
     pub timed_events: Vec<TimedEventDefinition>,
     #[serde(default)]
@@ -700,6 +713,16 @@ pub enum Effect {
         item: String,
         count: u32,
     },
+    TransferStorageItemToCharacter {
+        storage: String,
+        item: String,
+        count: u32,
+    },
+    TransferCharacterItemToStorage {
+        storage: String,
+        item: String,
+        count: u32,
+    },
     ApplyRecipe {
         recipe: String,
     },
@@ -740,6 +763,8 @@ impl Effect {
             | Self::AddNpcMemory { .. }
             | Self::TeachNpc { .. }
             | Self::TransferNpcItemToCharacter { .. }
+            | Self::TransferStorageItemToCharacter { .. }
+            | Self::TransferCharacterItemToStorage { .. }
             | Self::ApplyRecipe { .. }
             | Self::ScheduleEvent { .. }
             | Self::AddCharacterDeed { .. }
@@ -781,6 +806,8 @@ fn effect_time_cost(effect: &Effect) -> Option<ActionTimeCost> {
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. }
         | Effect::ApplyRecipe { .. }
         | Effect::ScheduleEvent { .. }
         | Effect::AddCharacterDeed { .. } => Some(ActionTimeCost {
@@ -817,6 +844,7 @@ struct ContentIdentity<'a> {
     supply_labels: &'a SupplyLabels,
     locations: &'a BTreeMap<LocationId, LocationDefinition>,
     npcs: &'a BTreeMap<NpcId, NpcDefinition>,
+    storages: &'a BTreeMap<String, StorageDefinition>,
     timed_events: &'a BTreeMap<String, TimedEventDefinition>,
     deferred_events: &'a BTreeMap<String, DeferredEventDefinition>,
     recipes: &'a BTreeMap<String, RecipeDefinition>,
@@ -837,6 +865,7 @@ pub struct CompiledContent {
     supply_labels: SupplyLabels,
     locations: BTreeMap<LocationId, LocationDefinition>,
     npcs: BTreeMap<NpcId, NpcDefinition>,
+    storages: BTreeMap<String, StorageDefinition>,
     timed_events: BTreeMap<String, TimedEventDefinition>,
     deferred_events: BTreeMap<String, DeferredEventDefinition>,
     recipes: BTreeMap<String, RecipeDefinition>,
@@ -890,6 +919,11 @@ impl CompiledContent {
             .into_iter()
             .map(|npc| (npc.id.clone(), npc))
             .collect::<BTreeMap<_, _>>();
+        let storages = draft
+            .storages
+            .into_iter()
+            .map(|storage| (storage.id.clone(), storage))
+            .collect::<BTreeMap<_, _>>();
         let timed_events = draft
             .timed_events
             .into_iter()
@@ -939,6 +973,7 @@ impl CompiledContent {
             supply_labels: &supply_labels,
             locations: &locations,
             npcs: &npcs,
+            storages: &storages,
             timed_events: &timed_events,
             deferred_events: &deferred_events,
             recipes: &recipes,
@@ -955,6 +990,7 @@ impl CompiledContent {
             supply_labels,
             locations,
             npcs,
+            storages,
             timed_events,
             deferred_events,
             recipes,
@@ -1035,6 +1071,14 @@ impl CompiledContent {
 
     pub fn npc(&self, id: &str) -> Option<&NpcDefinition> {
         self.npcs.get(id)
+    }
+
+    pub fn storage(&self, id: &str) -> Option<&StorageDefinition> {
+        self.storages.get(id)
+    }
+
+    pub fn storages(&self) -> impl Iterator<Item = (&String, &StorageDefinition)> {
+        self.storages.iter()
     }
 
     pub fn action(&self, id: &str) -> Option<&ActionDefinition> {
@@ -1142,6 +1186,7 @@ impl CompiledContent {
             supply_labels: &self.supply_labels,
             locations: &self.locations,
             npcs: &self.npcs,
+            storages: &self.storages,
             timed_events: &self.timed_events,
             deferred_events: &self.deferred_events,
             recipes: &self.recipes,
@@ -1354,6 +1399,18 @@ impl CompiledContent {
             EntropyState::new(seed),
         );
         state.character_start = character_start;
+        state.world.storages = self
+            .storages
+            .iter()
+            .map(|(id, definition)| {
+                (
+                    id.clone(),
+                    StorageState {
+                        inventory: definition.inventory.clone(),
+                    },
+                )
+            })
+            .collect();
         state.world.scheduled_events = self
             .timed_events
             .values()
@@ -1776,6 +1833,24 @@ impl CompiledContent {
                 errors.push(format!("state is missing registered NPC {npc}"));
             }
         }
+        if state.world.storages.len() != self.storages.len() {
+            errors.push("state storage keys are not exact registered keys");
+        }
+        for storage in self.storages.keys() {
+            if !state.world.storages.contains_key(storage) {
+                errors.push(format!("state is missing registered storage {storage}"));
+            }
+        }
+        for (id, storage) in &state.world.storages {
+            if !self.storages.contains_key(id) {
+                errors.push(format!("state storage {id} is not in the content registry"));
+            }
+            for (item, count) in &storage.inventory {
+                if !valid_namespaced_id(item) || *count == 0 {
+                    errors.push(format!("storage {id} has an invalid inventory entry"));
+                }
+            }
+        }
         for (location_id, runtime) in &state.world.locations {
             for entity in &runtime.entities {
                 match state.world.npcs.get(entity) {
@@ -1969,11 +2044,23 @@ impl CompiledContent {
             .map(|(id, definition)| (id.clone(), definition.inventory.clone()))
             .collect::<BTreeMap<_, _>>();
 
+        let mut expected_storages = self
+            .storages
+            .iter()
+            .map(|(id, definition)| (id.clone(), definition.inventory.clone()))
+            .collect::<BTreeMap<_, _>>();
+
+        // Owner balances and program maps establish structural consistency.
+        // They do not authenticate which canonical actions produced this ledger.
         let mut previous_inventory_turn = None;
         for (index, event) in state.event_log.iter().enumerate() {
             let event_name = match &event.kind {
                 EventKind::NpcItemTransferredToCharacter { .. } => {
                     format!("inventory transfer event {index}")
+                }
+                EventKind::StorageItemTransferredToCharacter { .. }
+                | EventKind::CharacterItemTransferredToStorage { .. } => {
+                    format!("storage transfer event {index}")
                 }
                 EventKind::RecipeApplied { .. } => format!("recipe event {index}"),
                 _ => continue,
@@ -2028,6 +2115,52 @@ impl CompiledContent {
                     } else {
                         source.insert(item.clone(), available - *count);
                     }
+                }
+                EventKind::StorageItemTransferredToCharacter {
+                    storage,
+                    item,
+                    count,
+                }
+                | EventKind::CharacterItemTransferredToStorage {
+                    storage,
+                    item,
+                    count,
+                } => {
+                    if !valid_namespaced_id(item) || *count == 0 {
+                        errors.push(format!("{event_name} has an invalid item or zero count"));
+                        continue;
+                    }
+                    let Some(stock) = expected_storages.get_mut(storage) else {
+                        errors.push(format!("{event_name} references unknown storage {storage}"));
+                        continue;
+                    };
+                    let (source, destination) = match &event.kind {
+                        EventKind::StorageItemTransferredToCharacter { .. } => {
+                            (stock, &mut expected_character)
+                        }
+                        EventKind::CharacterItemTransferredToStorage { .. } => {
+                            (&mut expected_character, stock)
+                        }
+                        _ => unreachable!("only directional storage transfers reach this branch"),
+                    };
+                    let available = source.get(item).copied().unwrap_or_default();
+                    let Some(remaining) = available.checked_sub(*count) else {
+                        errors.push(format!("{event_name} exceeds source balance for {item}"));
+                        continue;
+                    };
+                    let current = destination.get(item).copied().unwrap_or_default();
+                    let Some(next) = current.checked_add(*count) else {
+                        errors.push(format!(
+                            "{event_name} overflows destination inventory for {item}"
+                        ));
+                        continue;
+                    };
+                    if remaining == 0 {
+                        source.remove(item);
+                    } else {
+                        source.insert(item.clone(), remaining);
+                    }
+                    destination.insert(item.clone(), next);
                 }
                 EventKind::RecipeApplied {
                     recipe,
@@ -2087,6 +2220,13 @@ impl CompiledContent {
             errors.push(
                 "production character inventory does not match authored genesis and transfer/recipe history",
             );
+        }
+        for (storage_id, expected) in expected_storages {
+            if let Some(actual) = state.world.storages.get(&storage_id)
+                && actual.inventory != expected
+            {
+                errors.push(format!("production storage {storage_id} inventory does not match authored genesis and transfer/recipe history"));
+            }
         }
         for (npc_id, expected) in expected_npcs {
             if let Some(actual) = state.world.npcs.get(&npc_id)
@@ -2410,6 +2550,45 @@ fn validate_draft(
         }
     }
 
+    let mut storage_ids = BTreeSet::new();
+    for storage in &draft.storages {
+        if !valid_namespaced_id(&storage.id) {
+            errors.push(format!(
+                "storage {} has an invalid namespaced id",
+                storage.id
+            ));
+        }
+        if !storage_ids.insert(&storage.id) {
+            errors.push(format!("duplicate storage id {}", storage.id));
+        }
+        if npc_ids.contains(&storage.id) || location_ids.contains(&storage.id) {
+            errors.push(format!(
+                "storage {} conflicts with an NPC or location id",
+                storage.id
+            ));
+        }
+        if !valid_authored_value(&storage.name) || word_count(&storage.name) > 8 {
+            errors.push(format!(
+                "storage {} has an invalid name or exceeds 8 words",
+                storage.id
+            ));
+        }
+        if !location_ids.contains(&storage.location) {
+            errors.push(format!(
+                "storage {} references unknown location {}",
+                storage.id, storage.location
+            ));
+        }
+        for (item, count) in &storage.inventory {
+            if !valid_namespaced_id(item) || *count == 0 {
+                errors.push(format!(
+                    "storage {} has an invalid inventory item or zero count: {item}",
+                    storage.id
+                ));
+            }
+        }
+    }
+
     let mut preset_ids = BTreeSet::new();
     let mut character_ids = BTreeSet::new();
     for preset in &draft.character_presets {
@@ -2505,6 +2684,14 @@ fn validate_draft(
         .collect::<BTreeSet<_>>();
     for event in &draft.timed_events {
         validate_timed_event(event, &location_ids, &npc_ids, &mut errors);
+        validate_storage_effects(
+            &event.effects,
+            &event.id,
+            &storage_ids,
+            false,
+            &mut errors,
+            0,
+        );
         validate_recipe_effects(
             &event.effects,
             &event.id,
@@ -2532,6 +2719,14 @@ fn validate_draft(
                 event.id
             ));
         }
+        validate_storage_effects(
+            &event.effects,
+            &event.id,
+            &storage_ids,
+            false,
+            &mut errors,
+            0,
+        );
         // Reuse the closed event-program checks, with the positive relative
         // delay taking the absolute event's positive-time validation slot.
         validate_timed_event(
@@ -2574,6 +2769,14 @@ fn validate_draft(
     let mut action_ids = BTreeSet::new();
     for action in &draft.actions {
         validate_action(action, &location_ids, &npc_ids, production, &mut errors);
+        validate_storage_effects(
+            &action.effects,
+            &action.id,
+            &storage_ids,
+            true,
+            &mut errors,
+            0,
+        );
         validate_schedule_effects(
             &action.effects,
             &action.id,
@@ -2667,7 +2870,9 @@ fn collect_effect_supply_ids(
         Effect::AdjustResource { resource, .. } => {
             resources.insert(resource.clone());
         }
-        Effect::TransferNpcItemToCharacter { item, .. } => {
+        Effect::TransferNpcItemToCharacter { item, .. }
+        | Effect::TransferStorageItemToCharacter { item, .. }
+        | Effect::TransferCharacterItemToStorage { item, .. } => {
             items.insert(item.clone());
         }
         Effect::RandomChance {
@@ -2710,6 +2915,9 @@ fn potential_supply_ids(draft: &ContentDraft) -> (BTreeSet<String>, BTreeSet<Str
     }
     for npc in &draft.npcs {
         items.extend(npc.inventory.keys().cloned());
+    }
+    for storage in &draft.storages {
+        items.extend(storage.inventory.keys().cloned());
     }
     for recipe in &draft.recipes {
         items.extend(recipe.inputs.keys().cloned());
@@ -2754,7 +2962,7 @@ fn potential_supply_summary_words(draft: &ContentDraft) -> usize {
     let item_words = if items.is_empty() {
         0
     } else {
-        1 + crate::supply_budget::potential_item_words(draft, &items)
+        1 + crate::supply_budget::tighter_potential_item_words(draft, &items)
     };
     resource_words.saturating_add(item_words)
 }
@@ -3561,6 +3769,8 @@ fn effect_advances_time(effect: &Effect) -> bool {
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. }
         | Effect::ApplyRecipe { .. }
         | Effect::ScheduleEvent { .. }
         | Effect::AddCharacterDeed { .. } => false,
@@ -3836,10 +4046,72 @@ fn validate_effects(
                     allow_inventory_transfers,
                 );
             }
-            Effect::ScheduleEvent { .. }
+            Effect::TransferStorageItemToCharacter { .. }
+            | Effect::TransferCharacterItemToStorage { .. }
+            | Effect::ScheduleEvent { .. }
             | Effect::ApplyRecipe { .. }
             | Effect::AdvanceTime { .. }
             | Effect::Noop => {}
+        }
+    }
+}
+
+fn validate_storage_effects(
+    effects: &[Effect],
+    owner: &str,
+    storage_ids: &BTreeSet<&String>,
+    allow_transfers: bool,
+    errors: &mut ContentValidationError,
+    depth: usize,
+) {
+    if depth > 64 {
+        return;
+    }
+    for effect in effects {
+        match effect {
+            Effect::TransferStorageItemToCharacter {
+                storage,
+                item,
+                count,
+            }
+            | Effect::TransferCharacterItemToStorage {
+                storage,
+                item,
+                count,
+            } => {
+                if !storage_ids.contains(storage) {
+                    errors.push(format!(
+                        "action {owner} references unknown storage {storage}"
+                    ));
+                }
+                if !valid_namespaced_id(item) || *count == 0 {
+                    errors.push(format!(
+                        "action {owner} has an invalid storage transfer item or zero count"
+                    ));
+                }
+                if !allow_transfers {
+                    errors.push(format!(
+                        "action {owner} cannot transfer storage inventory in a timed event"
+                    ));
+                }
+            }
+            Effect::RandomChance {
+                on_success,
+                on_failure,
+                ..
+            } => {
+                for branch in [on_success, on_failure] {
+                    validate_storage_effects(
+                        std::slice::from_ref(branch),
+                        owner,
+                        storage_ids,
+                        allow_transfers,
+                        errors,
+                        depth + 1,
+                    );
+                }
+            }
+            _ => {}
         }
     }
 }
@@ -4228,6 +4500,8 @@ fn guaranteed_npc_knowledge_after_effects(
             | Effect::AdjustNpcRelationship { .. }
             | Effect::AddNpcMemory { .. }
             | Effect::TransferNpcItemToCharacter { .. }
+            | Effect::TransferStorageItemToCharacter { .. }
+            | Effect::TransferCharacterItemToStorage { .. }
             | Effect::ApplyRecipe { .. }
             | Effect::ScheduleEvent { .. }
             | Effect::AddCharacterDeed { .. }
@@ -4675,6 +4949,7 @@ mod tests {
                 tags: BTreeSet::new(),
                 inventory: BTreeMap::new(),
             }],
+            storages: Vec::new(),
             timed_events: Vec::new(),
             deferred_events: Vec::new(),
             recipes: Vec::new(),
@@ -6368,7 +6643,7 @@ mod tests {
     }
 
     #[test]
-    fn production_deferred_cohort_fits_one_salvage_filter_and_unstocked_shard() {
+    fn production_supply_and_deferred_proofs_preserve_the_strict_combined_boundary() {
         let mut source: ContentDraft =
             serde_json::from_str(include_str!("../../../content/split-tide.json")).unwrap();
         let stock = |item: &str| {
@@ -6381,7 +6656,20 @@ mod tests {
         assert_eq!(stock("fume_yards.filter"), 1);
         assert_eq!(stock("fume_yards.shard"), 0);
         assert_eq!(source.supply_labels.items["fume_yards.shard"], "Shard");
-        assert_eq!(potential_supply_summary_words(&source), 29);
+        assert_eq!(source.storages.len(), 1);
+        assert_eq!(source.storages[0].inventory["fume_yards.filter"], 1);
+        let (_, items) = potential_supply_ids(&source);
+        // Keep the previous conservation estimator and its exact old stock
+        // arithmetic visible. Adding a second reserve raises that fallback;
+        // the independently exhausted recipe closure proves a tighter bound.
+        let mut previous_stock = source.clone();
+        previous_stock.storages.clear();
+        let previous_fallback =
+            6 + crate::supply_budget::potential_item_words(&previous_stock, &items);
+        let current_fallback = 6 + crate::supply_budget::potential_item_words(&source, &items);
+        assert_eq!(previous_fallback, 29);
+        assert_eq!(current_fallback, 31);
+        assert_eq!(potential_supply_summary_words(&source), 26);
         assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 2);
         let location_words = source
             .locations
@@ -6398,11 +6686,20 @@ mod tests {
             .max()
             .unwrap();
         assert_eq!((location_words, result_words), (31, 28));
-        assert_eq!(location_words + result_words + 9 + 2 + 29, 99);
-        compile(source.clone()).expect("actual production with finite salvage remains below 100");
+        assert_eq!(
+            location_words + result_words + 9 + 2 + previous_fallback,
+            99
+        );
+        assert_eq!(
+            location_words + result_words + 9 + 2 + current_fallback,
+            101
+        );
+        assert_eq!(location_words + result_words + 9 + 2 + 26, 96);
+        compile(source.clone()).expect("finite collateral stock has a proven 96-word bound");
 
         // Even a certain random arm is deliberately outside the cohort proof.
-        // Losing that proof restores both results and rejects the 101-word bound.
+        // Losing that proof still restores both deferred results. The separate
+        // inventory proof remains sound, so the current combined bound is 98.
         let scheduling_action = source
             .actions
             .iter_mut()
@@ -6419,11 +6716,20 @@ mod tests {
             on_failure: Box::new(Effect::Noop),
         });
         assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 4);
+        assert_eq!(
+            location_words + result_words + 9 + 4 + previous_fallback,
+            101
+        );
+        assert_eq!(location_words + result_words + 9 + 4 + 26, 98);
+        compile(source.clone()).expect("inventory proof does not depend on the cohort proof");
+        // The acceptance boundary itself has not moved. Add two result words
+        // to the absolute tide event, retaining its sentence-size constraint.
+        source.timed_events[0].result.push_str(" Water runs.");
         assert!(
             compile(source)
                 .unwrap_err()
                 .to_string()
-                .contains("may reach 101 words")
+                .contains("may reach 100 words")
         );
     }
 
@@ -6701,6 +7007,427 @@ mod tests {
         content
             .validate_state(&game)
             .expect("custom genesis plus transfer history must validate");
+    }
+
+    fn storage(id: &str, items: &[(&str, u32)]) -> StorageDefinition {
+        StorageDefinition {
+            id: id.to_owned(),
+            name: "Stock Cage".to_owned(),
+            location: "gate".to_owned(),
+            inventory: items
+                .iter()
+                .map(|(id, count)| ((*id).to_owned(), *count))
+                .collect(),
+        }
+    }
+
+    fn storage_event(turn: u64, withdraw: bool, storage: &str, item: &str, count: u32) -> Event {
+        let kind = if withdraw {
+            EventKind::StorageItemTransferredToCharacter {
+                storage: storage.to_owned(),
+                item: item.to_owned(),
+                count,
+            }
+        } else {
+            EventKind::CharacterItemTransferredToStorage {
+                storage: storage.to_owned(),
+                item: item.to_owned(),
+                count,
+            }
+        };
+        Event { turn, kind }
+    }
+
+    #[test]
+    fn storage_registry_normalizes_identity_and_seeds_separate_private_balances() {
+        let mut source = production_draft(Vec::new());
+        source.storages = vec![
+            storage("test.cage", &[("test.filter", 1)]),
+            storage("test.bin", &[]),
+        ];
+        let content = compile(source.clone()).unwrap();
+        let game = content.new_game("hero", 9).unwrap();
+        assert_eq!(content.storages().count(), 2);
+        assert_eq!(content.storage("test.cage").unwrap().location, "gate");
+        assert_eq!(game.world.storages["test.cage"].inventory["test.filter"], 1);
+        assert!(game.world.storages["test.bin"].inventory.is_empty());
+        assert!(!game.world.npcs.contains_key("test.cage"));
+        assert!(!game.world.locations["gate"].entities.contains("test.cage"));
+        assert!(
+            !content
+                .supply_view(&game)
+                .items
+                .iter()
+                .any(|item| item.id == "test.filter")
+        );
+        assert!(potential_supply_ids(&source).1.contains("test.filter"));
+        source.storages.reverse();
+        assert_eq!(
+            content.build_id(),
+            compile(source.clone()).unwrap().build_id()
+        );
+        for field in ["id", "name", "location", "inventory"] {
+            let mut changed = source.clone();
+            let stock = changed
+                .storages
+                .iter_mut()
+                .find(|s| s.id == "test.cage")
+                .unwrap();
+            match field {
+                "id" => stock.id = "test.other".to_owned(),
+                "name" => stock.name = "Other Cage".to_owned(),
+                "location" => stock.location = "yard".to_owned(),
+                "inventory" => {
+                    stock.inventory.insert("test.filter".to_owned(), 2);
+                }
+                _ => unreachable!(),
+            }
+            let changed = compile(changed).unwrap();
+            assert_ne!(
+                content.build_id(),
+                changed.build_id(),
+                "storage {field} must bind identity"
+            );
+            assert!(
+                changed.validate_state(&game).is_err(),
+                "old-build storage state cannot migrate implicitly"
+            );
+        }
+        let mut corrupted = content.clone();
+        corrupted
+            .storages
+            .get_mut("test.cage")
+            .unwrap()
+            .inventory
+            .clear();
+        assert!(!corrupted.has_valid_build_id());
+    }
+
+    #[test]
+    fn storage_schema_rejects_invalid_definitions_references_roles_and_quantities() {
+        let mut source = draft(vec![action(
+            "take",
+            Condition::Always,
+            vec![Effect::TransferStorageItemToCharacter {
+                storage: "test.cage".to_owned(),
+                item: "test.filter".to_owned(),
+                count: 1,
+            }],
+        )]);
+        source.storages = vec![storage("test.cage", &[("test.filter", 1)])];
+        compile(source.clone()).unwrap();
+        for defect in [
+            "duplicate",
+            "id",
+            "name",
+            "location",
+            "item",
+            "zero",
+            "npc_collision",
+            "location_collision",
+        ] {
+            let mut invalid = source.clone();
+            match defect {
+                "duplicate" => invalid.storages.push(invalid.storages[0].clone()),
+                "id" => invalid.storages[0].id = "cage".to_owned(),
+                "name" => invalid.storages[0].name = " ".to_owned(),
+                "location" => invalid.storages[0].location = "missing".to_owned(),
+                "item" => {
+                    invalid.storages[0].inventory = BTreeMap::from([("bad item".to_owned(), 1)])
+                }
+                "zero" => {
+                    invalid.storages[0].inventory = BTreeMap::from([("test.filter".to_owned(), 0)])
+                }
+                "npc_collision" => invalid.npcs[0].id = "test.cage".to_owned(),
+                "location_collision" => invalid.storages[0].id = "gate".to_owned(),
+                _ => unreachable!(),
+            }
+            assert!(
+                compile(invalid).is_err(),
+                "invalid storage {defect} must fail"
+            );
+        }
+        for (id, item, count) in [
+            ("sava", "test.filter", 1),
+            ("yard", "test.filter", 1),
+            ("test.missing", "test.filter", 1),
+            ("test.cage", "filter", 1),
+            ("test.cage", "test.filter", 0),
+        ] {
+            for withdraw in [true, false] {
+                let mut invalid = source.clone();
+                invalid.actions[0].effects = vec![if withdraw {
+                    Effect::TransferStorageItemToCharacter {
+                        storage: id.to_owned(),
+                        item: item.to_owned(),
+                        count,
+                    }
+                } else {
+                    Effect::TransferCharacterItemToStorage {
+                        storage: id.to_owned(),
+                        item: item.to_owned(),
+                        count,
+                    }
+                }];
+                assert!(
+                    compile(invalid).is_err(),
+                    "invalid directional reference/count must fail"
+                );
+            }
+        }
+        source.actions[0].effects = vec![Effect::TeachNpc {
+            npc: StringRef::Literal("test.cage".to_owned()),
+            knowledge_id: "test.fact".to_owned(),
+            subject: "stock".to_owned(),
+            provenance: KnowledgeProvenance::Witnessed,
+        }];
+        assert!(
+            compile(source)
+                .unwrap_err()
+                .to_string()
+                .contains("unknown Npc test.cage")
+        );
+    }
+
+    #[test]
+    fn storage_transfers_are_forbidden_in_absolute_and_deferred_event_programs() {
+        for deferred_program in [false, true] {
+            for withdraw in [false, true] {
+                for nested in [false, true] {
+                    let mut source = draft(Vec::new());
+                    source.storages = vec![storage("test.cage", &[("test.filter", 1)])];
+                    let transfer = if withdraw {
+                        Effect::TransferStorageItemToCharacter {
+                            storage: "test.cage".to_owned(),
+                            item: "test.filter".to_owned(),
+                            count: 1,
+                        }
+                    } else {
+                        Effect::TransferCharacterItemToStorage {
+                            storage: "test.cage".to_owned(),
+                            item: "test.filter".to_owned(),
+                            count: 1,
+                        }
+                    };
+                    let effect = if nested {
+                        Effect::RandomChance {
+                            success_percent: 100,
+                            on_success: Box::new(transfer),
+                            on_failure: Box::new(Effect::Noop),
+                        }
+                    } else {
+                        transfer
+                    };
+                    if deferred_program {
+                        let mut event = deferred("test.event", 1);
+                        event.effects = vec![effect];
+                        source.deferred_events = vec![event];
+                    } else {
+                        source.timed_events = vec![TimedEventDefinition {
+                            id: "test.event".to_owned(),
+                            due_time: 1,
+                            event_kind: "stock".to_owned(),
+                            label: "Stock".to_owned(),
+                            result: "Stock moved.".to_owned(),
+                            condition: Condition::Always,
+                            effects: vec![effect],
+                        }];
+                    }
+                    assert!(
+                        compile(source)
+                            .unwrap_err()
+                            .to_string()
+                            .contains("cannot transfer storage inventory in a timed event")
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn storage_admission_reconstructs_npc_withdraw_recipe_and_deposit_owners_in_order() {
+        let mut source = production_draft(Vec::new());
+        source.npcs[0].inventory = BTreeMap::from([("test.mesh".to_owned(), 1)]);
+        source.storages = vec![storage("test.cage", &[("test.clay", 2)])];
+        source.recipes = vec![repair_recipe()];
+        let content = compile(source).unwrap();
+        let mut game = content.new_game("hero", 9).unwrap();
+        game.world.npcs.get_mut("sava").unwrap().inventory.clear();
+        game.world.storages.get_mut("test.cage").unwrap().inventory = repair_recipe().outputs;
+        game.event_log = vec![
+            transfer_event(0, "sava", "test.mesh", 1),
+            storage_event(0, true, "test.cage", "test.clay", 2),
+            recipe_event(0, &repair_recipe()),
+            storage_event(0, false, "test.cage", "test.repair", 1),
+        ];
+        content.validate_state(&game).expect("structural balance ledger may combine every supported owner and recipe; action authenticity requires replay");
+        assert!(game.character.inventory.is_empty());
+        let original_id = game.state_id();
+        game.world
+            .storages
+            .get_mut("test.cage")
+            .unwrap()
+            .inventory
+            .clear();
+        assert_ne!(game.state_id(), original_id);
+        assert!(content.validate_state(&game).is_err());
+    }
+
+    #[test]
+    fn storage_admission_rejects_map_history_direction_order_and_time_corruption() {
+        let mut source = production_draft(Vec::new());
+        source.storages = vec![
+            storage("test.cage", &[("test.filter", 1)]),
+            storage("test.bin", &[]),
+        ];
+        let content = compile(source).unwrap();
+        let initial = content.new_game("hero", 9).unwrap();
+        let mut moved = initial.clone();
+        moved
+            .world
+            .storages
+            .get_mut("test.cage")
+            .unwrap()
+            .inventory
+            .clear();
+        moved
+            .world
+            .storages
+            .get_mut("test.bin")
+            .unwrap()
+            .inventory
+            .insert("test.filter".to_owned(), 1);
+        moved.event_log = vec![
+            storage_event(0, true, "test.cage", "test.filter", 1),
+            storage_event(0, false, "test.bin", "test.filter", 1),
+        ];
+        content.validate_state(&moved).unwrap();
+        for defect in [
+            "missing_map",
+            "unknown_map",
+            "zero_map",
+            "npc_index",
+            "missing_event",
+            "duplicate_event",
+            "unknown_owner",
+            "direction",
+            "order",
+            "zero_event",
+            "invalid_item",
+            "future",
+            "descending",
+            "source_excess",
+            "stock_invention",
+        ] {
+            let mut invalid = moved.clone();
+            match defect {
+                "missing_map" => {
+                    invalid.world.storages.remove("test.cage");
+                }
+                "unknown_map" => {
+                    invalid
+                        .world
+                        .storages
+                        .insert("test.unknown".to_owned(), StorageState::default());
+                }
+                "zero_map" => {
+                    invalid
+                        .world
+                        .storages
+                        .get_mut("test.cage")
+                        .unwrap()
+                        .inventory
+                        .insert("test.filter".to_owned(), 0);
+                }
+                "npc_index" => {
+                    invalid
+                        .world
+                        .locations
+                        .get_mut("gate")
+                        .unwrap()
+                        .entities
+                        .insert("test.cage".to_owned());
+                }
+                "missing_event" => {
+                    invalid.event_log.remove(0);
+                }
+                "duplicate_event" => invalid.event_log.push(invalid.event_log[0].clone()),
+                "unknown_owner" => {
+                    invalid.event_log[0] = storage_event(0, true, "sava", "test.filter", 1)
+                }
+                "direction" => {
+                    invalid.event_log[0] = storage_event(0, false, "test.cage", "test.filter", 1)
+                }
+                "order" => invalid.event_log.swap(0, 1),
+                "zero_event" => {
+                    invalid.event_log[0] = storage_event(0, true, "test.cage", "test.filter", 0)
+                }
+                "invalid_item" => {
+                    invalid.event_log[0] = storage_event(0, true, "test.cage", "filter", 1)
+                }
+                "future" => invalid.event_log[0].turn = 1,
+                "descending" => {
+                    invalid.world.time = 1;
+                    invalid.event_log[0].turn = 1;
+                }
+                "source_excess" => {
+                    invalid.event_log[0] = storage_event(0, true, "test.cage", "test.filter", 2)
+                }
+                "stock_invention" => {
+                    invalid
+                        .world
+                        .storages
+                        .get_mut("test.cage")
+                        .unwrap()
+                        .inventory
+                        .insert("test.filter".to_owned(), 1);
+                }
+                _ => unreachable!(),
+            }
+            assert!(
+                content.validate_state(&invalid).is_err(),
+                "storage corruption {defect} must fail"
+            );
+        }
+        let mut fixture = production_draft(Vec::new());
+        fixture.contract = ContentContract::Fixture;
+        fixture.storages = vec![storage("test.cage", &[])];
+        let fixture_content = compile(fixture).unwrap();
+        let mut fixture_state = fixture_content.new_game("hero", 9).unwrap();
+        fixture_content.validate_state(&fixture_state).unwrap();
+        // Fixture states have no inventory lineage promise, but the registered
+        // storage map remains exact regardless of the content contract.
+        fixture_state
+            .world
+            .storages
+            .insert("test.unknown".to_owned(), StorageState::default());
+        assert!(fixture_content.validate_state(&fixture_state).is_err());
+    }
+
+    #[test]
+    fn storage_admission_checks_both_destination_capacity_boundaries() {
+        for withdraw in [false, true] {
+            let mut source = production_draft(Vec::new());
+            let character_count = if withdraw { u32::MAX } else { 1 };
+            let storage_count = if withdraw { 1 } else { u32::MAX };
+            source.character_presets[0]
+                .character
+                .inventory
+                .insert("test.filter".to_owned(), character_count);
+            source.storages = vec![storage("test.cage", &[("test.filter", storage_count)])];
+            let content = compile(source).unwrap();
+            let mut invalid = content.new_game("hero", 9).unwrap();
+            invalid
+                .event_log
+                .push(storage_event(0, withdraw, "test.cage", "test.filter", 1));
+            assert!(
+                content
+                    .validate_state(&invalid)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("overflows destination inventory")
+            );
+        }
     }
 
     fn recipe_event(turn: u64, definition: &RecipeDefinition) -> Event {

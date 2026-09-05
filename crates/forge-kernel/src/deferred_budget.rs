@@ -144,6 +144,8 @@ fn collect_schedule_uses<'a>(
         | Effect::AddNpcMemory { .. }
         | Effect::TeachNpc { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. }
         | Effect::ApplyRecipe { .. }
         | Effect::AddCharacterDeed { .. }
         | Effect::AdvanceTime { .. } => {}

@@ -205,6 +205,8 @@ const SALVAGE_BASE: ScenarioExpectations = ScenarioExpectations {
         "fume_yards.prepared_charge",
     ],
     recipe_events: &[],
+    storage_balances: UNTOUCHED_COLLATERAL,
+    storage_transfers: &[],
     entropy_draws: &[],
     deferred_events: &[],
     pending_deferred_events: &[],
@@ -402,6 +404,8 @@ const SALVAGE_INTACT_SPEC: ScenarioSpec = ScenarioSpec {
                 amount: 3,
             },
         ],
+        storage_balances: UNTOUCHED_COLLATERAL,
+        storage_transfers: &[],
         entropy_draws: &[EntropyExpectation {
             turn: 9,
             algorithm: "splitmix64-v1",
@@ -439,6 +443,8 @@ const SALVAGE_BROKEN_SPEC: ScenarioSpec = ScenarioSpec {
             &[("fume_yards.filter", 1)],
             &[("fume_yards.shard", 1)],
         )],
+        storage_balances: UNTOUCHED_COLLATERAL,
+        storage_transfers: &[],
         entropy_draws: &[EntropyExpectation {
             turn: 9,
             algorithm: "splitmix64-v1",
@@ -520,6 +526,8 @@ const SALVAGE_PRIOR_FILTER_BROKEN_SPEC: ScenarioSpec = ScenarioSpec {
             batch_resolved(16, "fume_yards.batch_ready", true),
             batch_resolved(19, "fume_yards.batch_spoil", false),
         ],
+        storage_balances: UNTOUCHED_COLLATERAL,
+        storage_transfers: &[],
         entropy_draws: &[EntropyExpectation {
             turn: 18,
             algorithm: "splitmix64-v1",

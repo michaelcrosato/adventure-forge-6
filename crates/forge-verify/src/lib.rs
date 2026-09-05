@@ -17,6 +17,7 @@ mod entropy_evidence;
 mod expansion;
 mod scale;
 mod scenarios;
+mod storage_evidence;
 
 pub use crawler::{CrawlBudget, CrawlReport, crawl_production};
 pub use expansion::{ProductionCrawlReport, RegressionCrawlReport, SplitTideProjection};
@@ -138,6 +139,10 @@ pub fn generate_batchworks_crawl_report() -> Result<CrawlReport, VerifyError> {
 
 pub fn generate_salvage_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_salvage(&load_content()?)
+}
+
+pub fn generate_market_water_crawl_report() -> Result<CrawlReport, VerifyError> {
+    expansion::crawl_market_water_production(&load_content()?)
 }
 
 pub fn check_player_trace(
@@ -326,7 +331,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 38);
+        assert_eq!(ids.len(), 47);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();

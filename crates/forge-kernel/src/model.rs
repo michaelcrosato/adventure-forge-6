@@ -243,6 +243,13 @@ pub struct ScheduledEvent {
     pub event_kind: String,
 }
 
+/// Mutable stock only; fixed storage placement belongs to compiled content.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct StorageState {
+    pub inventory: BTreeMap<String, u32>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct WorldState {
@@ -251,6 +258,7 @@ pub struct WorldState {
     pub current_location: LocationId,
     pub locations: BTreeMap<LocationId, LocationRuntime>,
     pub npcs: BTreeMap<NpcId, NpcState>,
+    pub storages: BTreeMap<String, StorageState>,
     pub flags: BTreeSet<String>,
     pub scheduled_events: Vec<ScheduledEvent>,
 }
@@ -268,6 +276,7 @@ impl WorldState {
             current_location: current_location.into(),
             locations,
             npcs,
+            storages: BTreeMap::new(),
             flags: BTreeSet::new(),
             scheduled_events: Vec::new(),
         }
@@ -359,6 +368,16 @@ pub enum EventKind {
     },
     NpcItemTransferredToCharacter {
         npc: NpcId,
+        item: String,
+        count: u32,
+    },
+    StorageItemTransferredToCharacter {
+        storage: String,
+        item: String,
+        count: u32,
+    },
+    CharacterItemTransferredToStorage {
+        storage: String,
         item: String,
         count: u32,
     },

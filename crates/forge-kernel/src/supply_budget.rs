@@ -11,6 +11,44 @@ use crate::{ContentDraft, Effect};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn potential_item_words(draft: &ContentDraft, items: &BTreeSet<String>) -> usize {
+    item_words_with_closure(draft, items, None)
+}
+
+/// Refine the established conservation bound only after a finite, deliberately
+/// permissive inventory model has been exhausted. A partial search is never a
+/// proof and cannot lower the fallback.
+pub(super) fn tighter_potential_item_words(
+    draft: &ContentDraft,
+    items: &BTreeSet<String>,
+) -> usize {
+    let fallback = potential_item_words(draft, items);
+    fallback.min(item_words_with_closure(
+        draft,
+        items,
+        Some(ClosureBudget::default()),
+    ))
+}
+
+#[derive(Clone, Copy)]
+struct ClosureBudget {
+    states: usize,
+    recipe_attempts: usize,
+}
+
+impl Default for ClosureBudget {
+    fn default() -> Self {
+        Self {
+            states: 4_096,
+            recipe_attempts: 65_536,
+        }
+    }
+}
+
+fn item_words_with_closure(
+    draft: &ContentDraft,
+    items: &BTreeSet<String>,
+    closure_budget: Option<ClosureBudget>,
+) -> usize {
     let line_words = |item: &String| {
         draft
             .supply_labels
@@ -84,10 +122,14 @@ pub(super) fn potential_item_words(draft: &ContentDraft, items: &BTreeSet<String
         };
         let mut costs: Vec<_> = component.iter().map(line_words).collect();
         costs.sort_unstable_by(|left, right| right.cmp(left));
-        total = costs
-            .into_iter()
-            .take(slots)
-            .fold(total, usize::saturating_add);
+        let fallback = costs.into_iter().take(slots).fold(0, usize::saturating_add);
+        let refined = if conserved {
+            closure_budget
+                .and_then(|budget| closed_component_words(draft, &component, line_words, budget))
+        } else {
+            None
+        };
+        total = total.saturating_add(refined.map_or(fallback, |words| words.min(fallback)));
     }
     total
 }
@@ -105,6 +147,12 @@ fn genesis_units(draft: &ContentDraft, component: &BTreeSet<String>) -> usize {
         .npcs
         .iter()
         .map(|npc| inventory_units(&npc.inventory, component))
+        .chain(
+            draft
+                .storages
+                .iter()
+                .map(|storage| inventory_units(&storage.inventory, component)),
+        )
         .fold(0, usize::saturating_add);
     let preset = draft
         .character_presets
@@ -129,6 +177,127 @@ fn genesis_units(draft: &ContentDraft, component: &BTreeSet<String>) -> usize {
         )
     });
     stock.saturating_add(preset.max(custom))
+}
+
+/// Pool every owner's initial stock. Per-item character maxima may combine
+/// mutually exclusive starts; that extra stock makes the model conservative.
+/// Any real recipe sequence remains applicable from this larger pool, and
+/// the surplus stays nonnegative throughout that sequence.
+fn pooled_genesis(draft: &ContentDraft, items: &[String]) -> Option<Vec<u64>> {
+    items
+        .iter()
+        .map(|item| {
+            let count = |inventory: &BTreeMap<String, u32>| {
+                u64::from(inventory.get(item).copied().unwrap_or_default())
+            };
+            let stock = draft
+                .npcs
+                .iter()
+                .map(|npc| count(&npc.inventory))
+                .chain(
+                    draft
+                        .storages
+                        .iter()
+                        .map(|storage| count(&storage.inventory)),
+                )
+                .try_fold(0u64, u64::checked_add)?;
+            let preset = draft
+                .character_presets
+                .iter()
+                .map(|preset| count(&preset.character.inventory))
+                .max()
+                .unwrap_or_default();
+            let custom = match &draft.character_creation {
+                None => 0,
+                Some(creation) => creation.slots.iter().try_fold(
+                    count(&creation.base.inventory),
+                    |total, slot| {
+                        total.checked_add(
+                            slot.choices
+                                .iter()
+                                .map(|choice| count(&choice.patch.inventory))
+                                .max()
+                                .unwrap_or_default(),
+                        )
+                    },
+                )?,
+            };
+            stock.checked_add(preset.max(custom))
+        })
+        .collect()
+}
+
+fn closed_component_words(
+    draft: &ContentDraft,
+    component: &BTreeSet<String>,
+    line_words: impl Fn(&String) -> usize,
+    budget: ClosureBudget,
+) -> Option<usize> {
+    let items: Vec<_> = component.iter().cloned().collect();
+    let indexes: BTreeMap<_, _> = items
+        .iter()
+        .enumerate()
+        .map(|(index, item)| (item.as_str(), index))
+        .collect();
+    let recipes: Vec<_> = draft
+        .recipes
+        .iter()
+        .filter(|recipe| recipe.inputs.keys().any(|item| component.contains(item)))
+        .map(|recipe| {
+            let indexed = |counts: &BTreeMap<String, u32>| {
+                counts
+                    .iter()
+                    .map(|(item, count)| Some((*indexes.get(item.as_str())?, u64::from(*count))))
+                    .collect::<Option<Vec<_>>>()
+            };
+            Some((indexed(&recipe.inputs)?, indexed(&recipe.outputs)?))
+        })
+        .collect::<Option<_>>()?;
+    let initial = pooled_genesis(draft, &items)?;
+    let costs: Vec<_> = items.iter().map(line_words).collect();
+    let mut seen = BTreeSet::from([initial.clone()]);
+    if seen.len() > budget.states {
+        return None;
+    }
+    let mut pending = vec![initial];
+    let mut attempts = 0usize;
+    let mut maximum = 0usize;
+    while let Some(inventory) = pending.pop() {
+        let words = inventory
+            .iter()
+            .zip(&costs)
+            .filter(|(count, _)| **count > 0)
+            .map(|(_, words)| *words)
+            .fold(0usize, usize::saturating_add);
+        maximum = maximum.max(words);
+        for (inputs, outputs) in &recipes {
+            attempts = attempts.checked_add(1)?;
+            if attempts > budget.recipe_attempts {
+                return None;
+            }
+            if !inputs
+                .iter()
+                .all(|(index, count)| inventory[*index] >= *count)
+            {
+                continue;
+            }
+            let mut next = inventory.clone();
+            for (index, count) in inputs {
+                next[*index] = next[*index].checked_sub(*count)?;
+            }
+            for (index, count) in outputs {
+                next[*index] = next[*index].checked_add(*count)?;
+            }
+            if !seen.contains(&next) {
+                if seen.len() >= budget.states {
+                    return None;
+                }
+                seen.insert(next.clone());
+                pending.push(next);
+            }
+        }
+    }
+    Some(maximum)
 }
 
 fn known_inventory_operations(draft: &ContentDraft) -> bool {
@@ -157,6 +326,8 @@ fn known_inventory_effect(effect: &Effect) -> bool {
         } => known_inventory_effect(on_success) && known_inventory_effect(on_failure),
         Effect::ApplyRecipe { .. }
         | Effect::TransferNpcItemToCharacter { .. }
+        | Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. }
         | Effect::Noop
         | Effect::SetFlag { .. }
         | Effect::SetWorldFlag { .. }
@@ -182,7 +353,7 @@ mod tests {
     };
 
     fn draft() -> ContentDraft {
-        serde_json::from_str(r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"fixture"}"#).unwrap()
+        serde_json::from_str(r#"{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"fixture"}"#).unwrap()
     }
 
     fn recipe(id: &str, inputs: &[(&str, u32)], outputs: &[(&str, u32)]) -> RecipeDefinition {
@@ -213,6 +384,12 @@ mod tests {
             .iter()
             .flat_map(|r| r.inputs.keys().chain(r.outputs.keys()))
             .chain(draft.npcs.iter().flat_map(|npc| npc.inventory.keys()))
+            .chain(
+                draft
+                    .storages
+                    .iter()
+                    .flat_map(|storage| storage.inventory.keys()),
+            )
             .cloned()
             .collect()
     }
@@ -356,5 +533,169 @@ mod tests {
             }
         }
         assert!(seen.len() >= 5);
+    }
+
+    #[test]
+    fn exhausted_recipe_closure_preserves_literal_multiowner_frontiers() {
+        let mut draft = draft();
+        stock(&mut draft, &[("clay", 2), ("mesh", 1)]);
+        stock(&mut draft, &[("fuel", 1), ("rope", 1)]);
+        draft.recipes = vec![
+            recipe("prepare", &[("clay", 2), ("mesh", 1)], &[("charge", 1)]),
+            recipe("ignite", &[("charge", 1), ("fuel", 1)], &[("claim", 1)]),
+            recipe("draw", &[("claim", 1)], &[("filter", 1)]),
+            recipe("spoil", &[("claim", 1)], &[("rejects", 1)]),
+            recipe("fit", &[("filter", 1)], &[]),
+        ];
+        draft
+            .supply_labels
+            .items
+            .insert("claim".to_owned(), "Kiln batch ticket".to_owned());
+        // Hand-counted frontiers include stock split across custodians: initial
+        // clay/mesh/fuel/rope = 8; charge/fuel/rope = 6; claim/rope = 6;
+        // filter/rope or rejects/rope = 4; installed filter leaves rope = 2.
+        assert_eq!(potential_item_words(&draft, &items(&draft)), 12);
+        assert_eq!(tighter_potential_item_words(&draft, &items(&draft)), 8);
+        draft.storages.push(crate::StorageDefinition {
+            id: "fixed.cage".to_owned(),
+            name: "Collateral cage".to_owned(),
+            location: "room".to_owned(),
+            inventory: BTreeMap::from([("filter".to_owned(), 1)]),
+        });
+        // The stored spare can coexist with every earlier frontier. It adds
+        // one two-word line to the initial maximum; it is never free stock.
+        assert_eq!(tighter_potential_item_words(&draft, &items(&draft)), 10);
+        assert_eq!(
+            pooled_genesis(&draft, &["filter".to_owned()]),
+            Some(vec![1])
+        );
+    }
+
+    #[test]
+    fn incomplete_closure_never_uses_a_partial_maximum() {
+        let mut draft = draft();
+        stock(&mut draft, &[("raw", 1)]);
+        draft.recipes = vec![
+            recipe("first", &[("raw", 1)], &[("intermediate", 1)]),
+            recipe("last", &[("intermediate", 1)], &[("finished", 1)]),
+        ];
+        draft.supply_labels.items.insert(
+            "finished".to_owned(),
+            "Seven whole words name these finished goods".to_owned(),
+        );
+        let all = items(&draft);
+        let expected = 8;
+        assert_eq!(potential_item_words(&draft, &all), expected);
+        for budget in [
+            ClosureBudget {
+                states: 0,
+                recipe_attempts: 100,
+            },
+            ClosureBudget {
+                states: 1,
+                recipe_attempts: 100,
+            },
+            ClosureBudget {
+                states: 2,
+                recipe_attempts: 100,
+            },
+            ClosureBudget {
+                states: 100,
+                recipe_attempts: 0,
+            },
+            ClosureBudget {
+                states: 100,
+                recipe_attempts: 1,
+            },
+        ] {
+            assert_eq!(
+                item_words_with_closure(&draft, &all, Some(budget)),
+                expected
+            );
+        }
+        assert_eq!(tighter_potential_item_words(&draft, &all), expected);
+    }
+
+    #[test]
+    fn cyclic_consuming_and_unstocked_recipes_have_complete_finite_closures() {
+        let mut draft = draft();
+        stock(&mut draft, &[("left", 1)]);
+        draft.recipes = vec![
+            recipe("right", &[("left", 1)], &[("right", 1)]),
+            recipe("left", &[("right", 1)], &[("left", 1)]),
+            recipe("use", &[("right", 1)], &[]),
+        ];
+        let component = items(&draft);
+        assert_eq!(
+            closed_component_words(&draft, &component, |_| 2, ClosureBudget::default()),
+            Some(2)
+        );
+        draft.npcs[0].inventory.clear();
+        assert_eq!(
+            closed_component_words(&draft, &component, |_| 2, ClosureBudget::default()),
+            Some(0)
+        );
+        assert_eq!(tighter_potential_item_words(&draft, &component), 0);
+    }
+
+    #[test]
+    fn growing_or_incomplete_recipe_components_keep_the_full_fallback() {
+        let mut draft = draft();
+        stock(&mut draft, &[("seed", 1)]);
+        draft.recipes = vec![
+            recipe("grow", &[("seed", 1)], &[("seed", 1), ("leaf", 1)]),
+            recipe("fold", &[("leaf", 1)], &[("paper", 1)]),
+        ];
+        assert_eq!(tighter_potential_item_words(&draft, &items(&draft)), 6);
+        // Malformed recipes are rejected by the compiler, but an incomplete
+        // authoring draft cannot make this proof silently omit its output.
+        draft.recipes.push(recipe("invalid", &[], &[("extra", 1)]));
+        assert_eq!(tighter_potential_item_words(&draft, &items(&draft)), 8);
+    }
+
+    #[test]
+    fn pooled_seed_uses_wide_arithmetic_and_every_character_item_maximum() {
+        let mut draft = draft();
+        stock(&mut draft, &[("raw", u32::MAX)]);
+        stock(&mut draft, &[("raw", u32::MAX)]);
+        assert_eq!(
+            pooled_genesis(&draft, &["raw".to_owned()]),
+            Some(vec![8_589_934_590])
+        );
+        let choice = |id: &str, item: &str, count| CharacterCreationChoice {
+            id: id.to_owned(),
+            display_name: id.to_owned(),
+            summary: "Choice".to_owned(),
+            patch: CharacterPatch {
+                inventory: BTreeMap::from([(item.to_owned(), count)]),
+                ..CharacterPatch::default()
+            },
+        };
+        draft.character_creation = Some(CharacterCreationDefinition {
+            base: CharacterPatch {
+                inventory: BTreeMap::from([("left".to_owned(), 1)]),
+                ..CharacterPatch::default()
+            },
+            slots: vec![
+                CharacterCreationSlot {
+                    id: "a".to_owned(),
+                    display_name: "A".to_owned(),
+                    order: 0,
+                    choices: vec![choice("a.left", "left", 2), choice("a.right", "right", 3)],
+                },
+                CharacterCreationSlot {
+                    id: "b".to_owned(),
+                    display_name: "B".to_owned(),
+                    order: 1,
+                    choices: vec![choice("b.left", "left", 4), choice("b.right", "right", 5)],
+                },
+            ],
+        });
+        // The deliberately overstocked pool includes both mutually exclusive
+        // maxima. It dominates all four legal custom combinations itemwise.
+        assert_eq!(
+            pooled_genesis(&draft, &["left".to_owned(), "right".to_owned()]),
+            Some(vec![7, 8])
+        );
     }
 }

@@ -9,7 +9,8 @@ pub use forge_kernel::{
     CharacterCreationDefinition, CharacterCreationSlot, CharacterPatch, CharacterPreset,
     CharacterSelection, Condition, ContentContract, ContentDraft, DeferredEventDefinition, Effect,
     LocationDefinition, NpcDefinition, Observation, ParameterDomain, ParameterSpec,
-    RecipeDefinition, StringRef, TextVariant, TimedEventDefinition, TimedEventView,
+    RecipeDefinition, StorageDefinition, StringRef, TextVariant, TimedEventDefinition,
+    TimedEventView,
 };
 pub type ContentSource = ContentDraft;
 pub type LocationSource = LocationDefinition;
@@ -96,6 +97,7 @@ mod tests {
             supply_labels: Default::default(),
             locations: Vec::new(),
             npcs: Vec::new(),
+            storages: Vec::new(),
             timed_events: Vec::new(),
             deferred_events: Vec::new(),
             recipes: Vec::new(),
@@ -111,14 +113,14 @@ mod tests {
     #[test]
     fn parser_rejects_duplicate_keys_before_typed_maps_collapse_them() {
         let duplicate_top_level = r#"{
-            "schema_version":"forge-schema-v9",
+            "schema_version":"forge-schema-v10",
             "schema_version":"shadow"
         }"#;
         assert!(parse(duplicate_top_level).is_err());
 
         let duplicate_nested_map = r#"{
-            "schema_version":"forge-schema-v9",
-            "rules_version":"forge-rules-v7",
+            "schema_version":"forge-schema-v10",
+            "rules_version":"forge-rules-v8",
             "world_id":"world",
             "character_creation":{
                 "base":{"resources":{"coin":1,"coin":2}},
@@ -140,21 +142,21 @@ mod tests {
             r#"[{"id":"test.press","inputs":{"test.clay":4294967296},"outputs":{}}]"#,
         ] {
             let input = format!(
-                r#"{{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","recipes":{recipes}}}"#
+                r#"{{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","recipes":{recipes}}}"#
             );
             assert!(
                 parse(&input).is_err(),
                 "malformed recipe must fail parsing: {recipes}"
             );
         }
-        let source = parse(r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world"}"#).unwrap();
+        let source = parse(r#"{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world"}"#).unwrap();
         assert!(source.recipes.is_empty());
         assert!(source.deferred_events.is_empty());
     }
 
     #[test]
     fn deferred_parser_rejects_ambiguous_fields_and_noninteger_delay() {
-        let valid_template = r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","deferred_events":[{"id":"test.ready","delay":2,"event_kind":"batch","label":"Ready","result":"Ready."}]}"#;
+        let valid_template = r#"{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","deferred_events":[{"id":"test.ready","delay":2,"event_kind":"batch","label":"Ready","result":"Ready."}]}"#;
         let parsed = parse(valid_template).unwrap();
         assert_eq!(parsed.deferred_events[0].condition, Condition::Always);
         assert!(parsed.deferred_events[0].effects.is_empty());
@@ -167,14 +169,14 @@ mod tests {
             r#"{"id":"test.ready","event_kind":"batch","label":"Ready","result":"Ready."}"#,
         ] {
             let source = format!(
-                r#"{{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","deferred_events":[{event}]}}"#
+                r#"{{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","deferred_events":[{event}]}}"#
             );
             assert!(
                 parse(&source).is_err(),
                 "malformed deferred template must fail: {event}"
             );
         }
-        let invalid_effect = r#"{"schema_version":"forge-schema-v9","rules_version":"forge-rules-v7","world_id":"test.world","actions":[{"id":"test.schedule","label":"Schedule","meaningful":true,"movement":false,"effects":[{"kind":"schedule_event","event":"test.ready","delay":2}]}]}"#;
+        let invalid_effect = r#"{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","actions":[{"id":"test.schedule","label":"Schedule","meaningful":true,"movement":false,"effects":[{"kind":"schedule_event","event":"test.ready","delay":2}]}]}"#;
         let valid_effect = invalid_effect.replace(",\"delay\":2", "");
         assert_eq!(
             parse(&valid_effect).unwrap().actions[0].effects,
@@ -186,5 +188,50 @@ mod tests {
             parse(invalid_effect).is_err(),
             "delay belongs only to the template"
         );
+    }
+
+    #[test]
+    fn storage_parser_rejects_ambiguous_stock_and_untyped_transfer_fields() {
+        for storage in [
+            r#"{"id":"test.cage","name":"Cage","location":"test.room","inventory":{"test.filter":1,"test.filter":2}}"#,
+            r#"{"id":"test.cage","name":"Cage","location":"test.room","capacity":10}"#,
+            r#"{"id":"test.cage","name":"Cage","location":"test.room","inventory":{"test.filter":-1}}"#,
+            r#"{"id":"test.cage","name":"Cage","location":"test.room","inventory":{"test.filter":1.5}}"#,
+            r#"{"id":"test.cage","name":"Cage","location":"test.room","inventory":{"test.filter":4294967296}}"#,
+            r#"{"id":"test.cage","name":"Cage"}"#,
+        ] {
+            let source = format!(
+                r#"{{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","storages":[{storage}]}}"#
+            );
+            assert!(
+                parse(&source).is_err(),
+                "malformed storage must fail parsing: {storage}"
+            );
+        }
+        for kind in [
+            "transfer_storage_item_to_character",
+            "transfer_character_item_to_storage",
+        ] {
+            for fields in [
+                r#""storage":{"kind":"parameter","value":"stock"},"item":"test.filter","count":1"#,
+                r#""storage":"test.cage","item":"test.filter","count":1,"npc":"test.custodian""#,
+                r#""storage":"test.cage","item":"test.filter","count":1,"count":2"#,
+                r#""storage":"test.cage","item":"test.filter","count":-1"#,
+            ] {
+                let source = format!(
+                    r#"{{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world","actions":[{{"id":"test.take","label":"Take","meaningful":true,"movement":false,"effects":[{{"kind":"{kind}",{fields}}}]}}]}}"#
+                );
+                assert!(
+                    parse(&source).is_err(),
+                    "storage transfers have fixed typed IDs and integer counts"
+                );
+            }
+        }
+        let empty = parse(r#"{"schema_version":"forge-schema-v10","rules_version":"forge-rules-v8","world_id":"test.world"}"#).unwrap();
+        assert!(empty.storages.is_empty());
+        let storage: StorageDefinition =
+            serde_json::from_str(r#"{"id":"test.cage","name":"Cage","location":"test.room"}"#)
+                .unwrap();
+        assert!(storage.inventory.is_empty());
     }
 }

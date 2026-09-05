@@ -1,0 +1,30 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -1150,6 +1150,14 @@
+             });
+         }
+         Effect::AdjustResource { resource, amount } => {
++            let adjusted_amount = if std::env::var_os("FORGE_MUTANT_COLLATERAL_PAYMENT").is_some()
++                && resource == "coin" && *amount == -4
++            {
++                -3
++            } else {
++                *amount
++            };
++            let amount = &adjusted_amount;
+             let current = state
+                 .character
+                 .resources
+@@ -1445,6 +1453,11 @@
+                 .copied()
+                 .unwrap_or_default();
+             let withdrawing = matches!(effect, Effect::TransferStorageItemToCharacter { .. });
++            if !withdrawing && item == "fume_yards.fuel"
++                && std::env::var_os("FORGE_MUTANT_COLLATERAL_FUEL").is_some()
++            {
++                return Ok(());
++            }
+             let (source_count, destination_count) = if withdrawing {
+                 (stored_count, character_count)
+             } else {

@@ -181,11 +181,30 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 9);
     assert_eq!(content.npcs().count(), 9);
-    assert_eq!(content.actions().count(), 81);
+    assert_eq!(content.actions().count(), 91);
     assert!(content.has_location("fume_yards.ash_beds"));
     assert!(content.npcs().any(|(id, _)| id == "fume_yards.daro_venn"));
-    assert_eq!(content.recipes().len(), 14);
+    assert_eq!(content.recipes().len(), 16);
     assert!(content.recipes().contains_key("fume_yards.break_filter"));
+    assert!(
+        content
+            .recipes()
+            .contains_key("fume_yards.fit_market_filter")
+    );
+    assert!(
+        content
+            .recipes()
+            .contains_key("fume_yards.install_market_cask")
+    );
+    assert_eq!(content.storages().count(), 1);
+    let collateral = content
+        .storage("fume_yards.collateral_cage")
+        .expect("finite collateral stock");
+    assert_eq!(collateral.location, "fume_yards.ash_beds");
+    assert_eq!(
+        collateral.inventory,
+        BTreeMap::from([("fume_yards.filter".to_owned(), 1)])
+    );
     assert_eq!(content.deferred_events().count(), 2);
     assert_eq!(content.character_presets().count(), 2);
     let creation = content.character_creation().expect("custom creation");

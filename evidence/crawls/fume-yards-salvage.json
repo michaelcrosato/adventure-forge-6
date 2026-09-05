@@ -1,6 +1,6 @@
 {
-  "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
-  "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+  "verifier_id": "2ed3d3769ce3353bf064b50f4814b6c0018f603e63ae4ccb651e35b5a25f34ce",
+  "build_id": "134a28fb225787c626f27ae8b9f69fa7e687e686a1f4c0b97818ee0a952718f7",
   "budget": {
     "max_depth": 20,
     "max_expanded_states": 96,
@@ -8,15 +8,14 @@
     "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 51,
-  "discovered_frontiers": 263,
-  "successful_actions": 283,
-  "max_legal_actions": 9,
+  "expanded_states": 16,
+  "discovered_frontiers": 99,
+  "successful_actions": 98,
+  "max_legal_actions": 8,
   "reached_locations": [
     "fume_yards.ash_beds",
     "fume_yards.kiln_bay",
     "fume_yards.workshop",
-    "lowsail.docks",
     "lowsail.levee",
     "lowsail.return",
     "lowsail_market"
@@ -27,31 +26,23 @@
     "checkpoint.pressure_guard",
     "checkpoint.read_flag",
     "checkpoint.use_stolen_permit",
-    "docks.ask_oren",
-    "docks.follow_yara",
-    "docks.press_yara",
-    "docks.rig_towline",
-    "docks.ring_warning",
-    "docks.search_crate",
     "fume_yards.brace_rack",
+    "fume_yards.buy_collateral_filter",
     "fume_yards.enter_ash_hatch",
     "fume_yards.fit_dust_filter",
     "fume_yards.leave_ash_hatch",
     "fume_yards.load_cold_freight",
     "fume_yards.load_freight",
-    "fume_yards.pack_catch_screen",
-    "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
+    "fume_yards.read_collateral_docket",
     "fume_yards.recover_braced_filter",
     "fume_yards.report_with_daro",
     "fume_yards.take_cask",
     "fume_yards.take_fuel",
     "fume_yards.take_stock",
     "fume_yards.thread_rack_filter",
-    "levee.culvert_path",
     "levee.help_worker",
     "levee.inspect_damage",
-    "levee.stolen_path",
     "return.ask_oren",
     "return.read_tide",
     "return.visit_workshop",
@@ -87,8 +78,10 @@
     "floor.test_pressure",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
+    "fume_yards.buy_collateral_filter",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
+    "fume_yards.escort_market_cask",
     "fume_yards.fit_catch_screen",
     "fume_yards.fit_dust_filter",
     "fume_yards.fit_wet_screen",
@@ -104,11 +97,15 @@
     "fume_yards.prepare_charge",
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
+    "fume_yards.read_collateral_docket",
     "fume_yards.reclaim_charge",
     "fume_yards.recover_braced_filter",
     "fume_yards.report_with_daro",
+    "fume_yards.return_to_cage",
+    "fume_yards.settle_collateral_fuel",
     "fume_yards.take_cask",
     "fume_yards.take_fuel",
+    "fume_yards.take_market_cask",
     "fume_yards.take_stock",
     "fume_yards.thread_rack_filter",
     "levee.authority_path",
@@ -121,9 +118,13 @@
     "return.acknowledge_report",
     "return.ask_oren",
     "return.count_dry_stalls",
+    "return.draw_clean_water",
     "return.face_flood",
+    "return.fit_market_filter",
+    "return.install_market_cask",
     "return.move_inland",
     "return.open_ferry",
+    "return.order_water_stand",
     "return.patch_stand",
     "return.read_tide",
     "return.sell_filter",
@@ -161,8 +162,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "3ed7648e4ebd0044b1c8783bd3c7de2203e173f08b9ffe476079fed7d8642a0e",
-      "state_id": "0b6a320c6f0e475b79f2336ea4546462b279a8d2a8bbb2680ad1a179e70c63b8"
+      "final_receipt": "7c7f0b96f5dbd19b494918b08e1f366d82a0a71d22c6c8b882f26d0bcdb66e6b",
+      "state_id": "486c9efd4a5138d64bbdba92bd2b32167f83dd69e8d9cf424e1b2e58041ed09b"
     },
     {
       "label": "preset:rook",
@@ -172,8 +173,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "e815919995023797a325d50ef96dd01994aacbf5a3c93e5d3d47173e0a2bd39b",
-      "state_id": "1db9ef0be6324014379f518c4203ce60f3d58a61713c8e8047f7c79c0966eb23"
+      "final_receipt": "8edae724540496596317785ef1389bd2550acee5c8ecda679fb81e43b7c21811",
+      "state_id": "440eced9ec641ae8771bbc841721e85843d51963c174e30150dba524eddb1ab1"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -183,9 +184,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "4989e31ee1c214e323a9126b7d7951f32213119d3aeec28ba32fcb1f14a68df8",
-      "state_id": "d347d61138bd6442884a1b6a8b060bdecc31db6d8c2ca971e522e03090bc905d"
+      "final_receipt": "18c9fa8a1255890c38e59394482af7f25a1ba27d5ef315399ea42abad5851773",
+      "state_id": "4e4bb2d944b5d312edcc300789706ad20665a303e70a5685dcd7012676ff379e"
     }
   ],
-  "execution_receipt": "10c0319e07a67cc13ed997b028ffb165ac615d1c37d6889d105c02322b3e3c7e"
+  "execution_receipt": "3e753c0d6257a1352a485be39a3f4d4127e1cbde4bcd765a3ba3d7c94158ae20"
 }

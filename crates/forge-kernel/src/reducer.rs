@@ -462,6 +462,7 @@ fn append_parameter_combinations(
 enum InventoryOwner {
     Character,
     Npc(String),
+    Storage(String),
 }
 
 #[derive(Clone, Copy)]
@@ -500,6 +501,12 @@ impl<'a> InventoryBounds<'a> {
         let inventory = match owner {
             InventoryOwner::Character => Some(&self.initial.character.inventory),
             InventoryOwner::Npc(npc) => self.initial.world.npcs.get(npc).map(|npc| &npc.inventory),
+            InventoryOwner::Storage(storage) => self
+                .initial
+                .world
+                .storages
+                .get(storage)
+                .map(|storage| &storage.inventory),
         };
         let count = inventory
             .and_then(|inventory| inventory.get(item))
@@ -583,15 +590,18 @@ fn inventory_candidate_available(
         return Ok(false);
     }
     let latest_time = inventories.latest_time.unwrap_or(u64::MAX);
-    let pending_recipe = state.world.scheduled_events.iter().any(|scheduled| {
-        scheduled.due_time <= latest_time
-            && content
-                .deferred_event(&scheduled.id)
-                .is_some_and(|event| effects_contain_recipe(&event.effects))
-    });
-    let new_recipe = inventories.scheduled.iter().any(|id| {
+    let mut pending_inventory_program = false;
+    for scheduled in &state.world.scheduled_events {
+        if scheduled.due_time <= latest_time {
+            let (_, effects) = scheduled_program(scheduled, content)?;
+            pending_inventory_program |=
+                effects_contain_recipe(effects) || effects_contain_storage_transfer(effects);
+        }
+    }
+    let new_inventory_program = inventories.scheduled.iter().any(|id| {
         content.deferred_event(id).is_some_and(|event| {
-            effects_contain_recipe(&event.effects)
+            (effects_contain_recipe(&event.effects)
+                || effects_contain_storage_transfer(&event.effects))
                 && state
                     .world
                     .time
@@ -599,7 +609,13 @@ fn inventory_candidate_available(
                     .is_some_and(|due| due <= latest_time)
         })
     });
-    if pending_recipe || new_recipe {
+    // Inventory intervals do not track character movement or event guards.
+    // Storage transfers require locality at their exact effect position, so
+    // replay all reachable paths whenever a storage program can execute.
+    if effects_contain_storage_transfer(&definition.effects)
+        || pending_inventory_program
+        || new_inventory_program
+    {
         return preflight_candidate_available(definition, parameters, state, content);
     }
     Ok(true)
@@ -619,6 +635,20 @@ fn inventory_effect_available(
                     && inventories.produce(InventoryOwner::Character, item, *count),
             )
         }
+        Effect::TransferStorageItemToCharacter {
+            storage,
+            item,
+            count,
+        } => Ok(
+            inventories.consume(InventoryOwner::Storage(storage.clone()), item, *count)
+                && inventories.produce(InventoryOwner::Character, item, *count),
+        ),
+        Effect::TransferCharacterItemToStorage {
+            storage,
+            item,
+            count,
+        } => Ok(inventories.consume(InventoryOwner::Character, item, *count)
+            && inventories.produce(InventoryOwner::Storage(storage.clone()), item, *count)),
         Effect::ApplyRecipe { recipe } => {
             let definition = content
                 .recipe(recipe)
@@ -705,6 +735,24 @@ fn effects_contain_recipe(effects: &[Effect]) -> bool {
     })
 }
 
+fn effects_contain_storage_transfer(effects: &[Effect]) -> bool {
+    effects.iter().any(|effect| match effect {
+        Effect::TransferStorageItemToCharacter { .. }
+        | Effect::TransferCharacterItemToStorage { .. } => true,
+        Effect::RandomChance {
+            success_percent,
+            on_success,
+            on_failure,
+        } => {
+            (*success_percent > 0
+                && effects_contain_storage_transfer(std::slice::from_ref(on_success)))
+                || (*success_percent < 100
+                    && effects_contain_storage_transfer(std::slice::from_ref(on_failure)))
+        }
+        _ => false,
+    })
+}
+
 fn event_already_used(state: &GameState, staged_events: &[Event], id: &str) -> bool {
     state
         .world
@@ -722,8 +770,8 @@ fn event_already_used(state: &GameState, staged_events: &[Event], id: &str) -> b
             })
 }
 
-/// Timed recipe guards can correlate inventory with flags changed by random
-/// actions. Explore these paths exactly, without drawing or reading entropy.
+/// Timed inventory guards and storage locality can correlate stock and position
+/// with random actions. Explore paths exactly, without drawing or reading entropy.
 /// Equivalent states merge; work vectors grow fallibly and have no path cap.
 fn preflight_candidate_available(
     definition: &crate::ActionDefinition,
@@ -839,7 +887,7 @@ fn push_preflight_state(paths: &mut Vec<GameState>, state: GameState) -> Result<
     // Emitted events are deliberately omitted: current conditions inspect only
     // state, and new one-shot identities remain in the staged pending queue.
     if !paths.contains(&state) {
-        try_reserve(paths, 1, "timed recipe preflight paths")?;
+        try_reserve(paths, 1, "inventory preflight paths")?;
         paths.push(state);
     }
     Ok(())
@@ -1357,6 +1405,96 @@ fn apply_effect(
                 },
             });
         }
+        Effect::TransferStorageItemToCharacter {
+            storage,
+            item,
+            count,
+        }
+        | Effect::TransferCharacterItemToStorage {
+            storage,
+            item,
+            count,
+        } => {
+            if *count == 0 {
+                return Err(KernelError::InvalidAction(
+                    "storage item transfer count must be positive".to_owned(),
+                ));
+            }
+            let definition = content
+                .storage(storage)
+                .ok_or_else(|| KernelError::InvalidAction(format!("unknown storage {storage}")))?;
+            if state.world.current_location != definition.location {
+                return Err(KernelError::InvalidAction(format!(
+                    "character must be at {} to transfer items with storage {storage}",
+                    definition.location
+                )));
+            }
+            let stored_count = state
+                .world
+                .storages
+                .get(storage)
+                .ok_or_else(|| KernelError::InvalidState(format!("missing storage {storage}")))?
+                .inventory
+                .get(item)
+                .copied()
+                .unwrap_or_default();
+            let character_count = state
+                .character
+                .inventory
+                .get(item)
+                .copied()
+                .unwrap_or_default();
+            let withdrawing = matches!(effect, Effect::TransferStorageItemToCharacter { .. });
+            let (source_count, destination_count) = if withdrawing {
+                (stored_count, character_count)
+            } else {
+                (character_count, stored_count)
+            };
+            let next_source = source_count.checked_sub(*count).ok_or_else(|| {
+                KernelError::InvalidAction(format!(
+                    "storage transfer source lacks {count} of item {item}"
+                ))
+            })?;
+            let next_destination = destination_count.checked_add(*count).ok_or_else(|| {
+                KernelError::InvalidAction(format!(
+                    "storage transfer destination cannot hold {count} more of item {item}"
+                ))
+            })?;
+            let (next_storage, next_character) = if withdrawing {
+                (next_source, next_destination)
+            } else {
+                (next_destination, next_source)
+            };
+            // Both balances and locality are validated before either owner or
+            // the event list changes. Zero balances leave no inventory entry.
+            set_inventory_count(
+                &mut state
+                    .world
+                    .storages
+                    .get_mut(storage)
+                    .expect("storage validated above")
+                    .inventory,
+                item,
+                next_storage,
+            );
+            set_inventory_count(&mut state.character.inventory, item, next_character);
+            events.push(Event {
+                turn,
+                kind: if withdrawing {
+                    EventKind::StorageItemTransferredToCharacter {
+                        storage: storage.clone(),
+                        item: item.clone(),
+                        count: *count,
+                    }
+                } else {
+                    EventKind::CharacterItemTransferredToStorage {
+                        storage: storage.clone(),
+                        item: item.clone(),
+                        count: *count,
+                    }
+                },
+            });
+        }
         Effect::ApplyRecipe { recipe } => {
             let definition = content
                 .recipe(recipe)
@@ -1499,6 +1637,14 @@ fn apply_effect(
     Ok(())
 }
 
+fn set_inventory_count(inventory: &mut BTreeMap<String, u32>, item: &str, count: u32) {
+    if count == 0 {
+        inventory.remove(item);
+    } else {
+        inventory.insert(item.to_owned(), count);
+    }
+}
+
 fn npc_knowledge_source(provenance: &KnowledgeProvenance) -> Option<&str> {
     match provenance {
         KnowledgeProvenance::Told { by } => Some(by),
@@ -1547,8 +1693,8 @@ mod tests {
 
     fn draft(actions: Vec<ActionDefinition>) -> ContentDraft {
         ContentDraft {
-            schema_version: "forge-schema-v9".to_owned(),
-            rules_version: "forge-rules-v7".to_owned(),
+            schema_version: "forge-schema-v10".to_owned(),
+            rules_version: "forge-rules-v8".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -1556,6 +1702,7 @@ mod tests {
             character_creation: None,
             supply_labels: Default::default(),
             recipes: Vec::new(),
+            storages: Vec::new(),
             locations: vec![
                 LocationDefinition {
                     id: "gate".to_owned(),
@@ -1632,9 +1779,21 @@ mod tests {
                 },
             );
         }
+        let mut world = WorldState::new("world-1", "gate", locations, npcs);
+        world.storages = content
+            .storages()
+            .map(|(id, definition)| {
+                (
+                    id.clone(),
+                    crate::StorageState {
+                        inventory: definition.inventory.clone(),
+                    },
+                )
+            })
+            .collect();
         GameState::new(
             content.build_id().to_owned(),
-            WorldState::new("world-1", "gate", locations, npcs),
+            world,
             character(),
             EntropyState::new(42),
         )
@@ -1735,6 +1894,670 @@ mod tests {
             .find(|action| action.definition_id == id)
             .unwrap_or_else(|| panic!("missing action {id}"));
         step(state, &action, content, &state.entropy).unwrap()
+    }
+
+    fn storage_draft(actions: Vec<ActionDefinition>, location: &str, count: u32) -> ContentDraft {
+        let mut source = draft(actions);
+        source.storages.push(crate::StorageDefinition {
+            id: "work.chest".to_owned(),
+            name: "Chest".to_owned(),
+            location: location.to_owned(),
+            inventory: if count == 0 {
+                BTreeMap::new()
+            } else {
+                BTreeMap::from([("work.ore".to_owned(), count)])
+            },
+        });
+        source
+    }
+
+    fn storage_transfer(withdraw: bool, item: &str, count: u32) -> Effect {
+        if withdraw {
+            Effect::TransferStorageItemToCharacter {
+                storage: "work.chest".to_owned(),
+                item: item.to_owned(),
+                count,
+            }
+        } else {
+            Effect::TransferCharacterItemToStorage {
+                storage: "work.chest".to_owned(),
+                item: item.to_owned(),
+                count,
+            }
+        }
+    }
+
+    fn move_character(location: &str) -> Effect {
+        Effect::MoveCharacter {
+            location: StringRef::Literal(location.to_owned()),
+        }
+    }
+
+    #[test]
+    fn storage_transfers_compose_with_recipes_in_exact_order_and_stale_reuse_is_inert() {
+        let mut source = storage_draft(
+            vec![simple_action(
+                "exchange",
+                Condition::Always,
+                vec![
+                    storage_transfer(false, "work.ore", 2),
+                    storage_transfer(true, "work.ore", 3),
+                    recipe_effect("work.refine"),
+                    storage_transfer(false, "work.ingot", 2),
+                    storage_transfer(true, "work.ingot", 1),
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            )],
+            "gate",
+            2,
+        );
+        source.recipes = vec![recipe(
+            "work.refine",
+            &[("work.ore", 4)],
+            &[("work.ingot", 2)],
+        )];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        initial.character.inventory.insert("work.ore".to_owned(), 3);
+        let before = initial.clone();
+        let transition = record_test_action(&initial, &content, "exchange");
+        assert_eq!(initial, before);
+        assert_eq!(
+            transition.state().world.storages["work.chest"].inventory,
+            BTreeMap::from([("work.ore".to_owned(), 1), ("work.ingot".to_owned(), 1)])
+        );
+        let mut expected_inventory = before.character.inventory.clone();
+        expected_inventory.remove("work.ore");
+        expected_inventory.insert("work.ingot".to_owned(), 1);
+        assert_eq!(transition.state().character.inventory, expected_inventory);
+        assert_eq!(transition.state().world.time, 1);
+        let transferred = |withdraw, item: &str, count| {
+            if withdraw {
+                EventKind::StorageItemTransferredToCharacter {
+                    storage: "work.chest".to_owned(),
+                    item: item.to_owned(),
+                    count,
+                }
+            } else {
+                EventKind::CharacterItemTransferredToStorage {
+                    storage: "work.chest".to_owned(),
+                    item: item.to_owned(),
+                    count,
+                }
+            }
+        };
+        let expected = vec![
+            transferred(false, "work.ore", 2),
+            transferred(true, "work.ore", 3),
+            EventKind::RecipeApplied {
+                recipe: "work.refine".to_owned(),
+                inputs: BTreeMap::from([("work.ore".to_owned(), 4)]),
+                outputs: BTreeMap::from([("work.ingot".to_owned(), 2)]),
+            },
+            transferred(false, "work.ingot", 2),
+            transferred(true, "work.ingot", 1),
+            EventKind::TimeAdvanced { ticks: 1 },
+        ]
+        .into_iter()
+        .map(|kind| Event { turn: 0, kind })
+        .collect::<Vec<_>>();
+        assert_eq!(transition.events(), expected);
+        assert_eq!(transition.entropy_after(), &before.entropy);
+        assert!(transition.entropy_draws().is_empty());
+        let next = transition.state().clone();
+        assert!(matches!(
+            step(&next, transition.action(), &content, &next.entropy),
+            Err(KernelError::StaleAction { .. })
+        ));
+        assert_eq!(transition.state(), &next);
+    }
+
+    #[test]
+    fn storage_stock_and_capacity_filters_account_for_transfer_order() {
+        let actions = vec![
+            simple_action(
+                "deposit",
+                Condition::Always,
+                vec![storage_transfer(false, "work.ore", 1)],
+            ),
+            simple_action(
+                "withdraw",
+                Condition::Always,
+                vec![storage_transfer(true, "work.ore", 1)],
+            ),
+            simple_action(
+                "withdraw-three",
+                Condition::Always,
+                vec![storage_transfer(true, "work.ore", 3)],
+            ),
+            simple_action(
+                "deposit-return",
+                Condition::Always,
+                vec![
+                    storage_transfer(false, "work.ore", 1),
+                    storage_transfer(true, "work.ore", 1),
+                ],
+            ),
+            simple_action(
+                "withdraw-return",
+                Condition::Always,
+                vec![
+                    storage_transfer(true, "work.ore", 1),
+                    storage_transfer(false, "work.ore", 1),
+                ],
+            ),
+        ];
+        for (stored, owned, expected) in [
+            (2, 0, vec!["withdraw", "withdraw-return"]),
+            (0, 1, vec!["deposit", "deposit-return"]),
+            (2, u32::MAX, vec!["deposit", "deposit-return"]),
+            (
+                u32::MAX,
+                1,
+                vec!["withdraw", "withdraw-return", "withdraw-three"],
+            ),
+        ] {
+            let content =
+                CompiledContent::try_compile(storage_draft(actions.clone(), "gate", stored))
+                    .unwrap();
+            let mut initial = state(&content);
+            if owned > 0 {
+                initial
+                    .character
+                    .inventory
+                    .insert("work.ore".to_owned(), owned);
+            }
+            assert_eq!(legal_ids(&initial, &content), expected);
+            for action in enumerate_legal_actions(&initial, &content).unwrap() {
+                let result = step(&initial, &action, &content, &initial.entropy).unwrap();
+                let total = |state: &GameState| {
+                    u64::from(
+                        state
+                            .character
+                            .inventory
+                            .get("work.ore")
+                            .copied()
+                            .unwrap_or(0),
+                    ) + u64::from(
+                        state.world.storages["work.chest"]
+                            .inventory
+                            .get("work.ore")
+                            .copied()
+                            .unwrap_or(0),
+                    )
+                };
+                assert_eq!(total(result.state()), total(&initial));
+            }
+        }
+    }
+
+    #[test]
+    fn storage_locality_is_checked_after_each_sequential_or_parameterized_move() {
+        let mut parameterized = simple_action(
+            "choose-arrival",
+            Condition::Always,
+            vec![
+                Effect::MoveCharacter {
+                    location: StringRef::Parameter("destination".to_owned()),
+                },
+                storage_transfer(true, "work.ore", 1),
+            ],
+        );
+        parameterized.parameters = vec![crate::ParameterSpec {
+            name: "destination".to_owned(),
+            domain: ParameterDomain::Values(vec!["gate".to_owned(), "yard".to_owned()]),
+        }];
+        let source = storage_draft(
+            vec![
+                simple_action(
+                    "remote",
+                    Condition::Always,
+                    vec![storage_transfer(true, "work.ore", 1)],
+                ),
+                simple_action(
+                    "arrive",
+                    Condition::Always,
+                    vec![
+                        move_character("yard"),
+                        storage_transfer(true, "work.ore", 1),
+                    ],
+                ),
+                simple_action(
+                    "too-late",
+                    Condition::Always,
+                    vec![
+                        storage_transfer(true, "work.ore", 1),
+                        move_character("yard"),
+                    ],
+                ),
+                simple_action(
+                    "leave-before",
+                    Condition::Always,
+                    vec![
+                        move_character("yard"),
+                        move_character("gate"),
+                        storage_transfer(true, "work.ore", 1),
+                    ],
+                ),
+                simple_action(
+                    "leave-after",
+                    Condition::Always,
+                    vec![
+                        move_character("yard"),
+                        storage_transfer(true, "work.ore", 1),
+                        move_character("gate"),
+                    ],
+                ),
+                parameterized,
+            ],
+            "yard",
+            1,
+        );
+        let content = CompiledContent::try_compile(source).unwrap();
+        let initial = state(&content);
+        assert_eq!(
+            legal_ids(&initial, &content),
+            ["arrive", "choose-arrival", "leave-after"]
+        );
+        let options = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(
+            options[1].parameters,
+            BTreeMap::from([("destination".to_owned(), "yard".to_owned())])
+        );
+        for action in options {
+            let next = step(&initial, &action, &content, &initial.entropy).unwrap();
+            assert_eq!(next.state().character.inventory["work.ore"], 1);
+            assert!(
+                next.state().world.storages["work.chest"]
+                    .inventory
+                    .is_empty()
+            );
+        }
+    }
+
+    #[test]
+    fn storage_random_locality_checks_every_reachable_branch_without_entropy_lookahead() {
+        let chance = |percent| Effect::RandomChance {
+            success_percent: percent,
+            on_success: Box::new(move_character("yard")),
+            on_failure: Box::new(move_character("gate")),
+        };
+        let source = storage_draft(
+            vec![
+                simple_action(
+                    "uncertain",
+                    Condition::Always,
+                    vec![chance(50), storage_transfer(true, "work.ore", 1)],
+                ),
+                simple_action(
+                    "certain",
+                    Condition::Always,
+                    vec![chance(100), storage_transfer(true, "work.ore", 1)],
+                ),
+                simple_action(
+                    "reset",
+                    Condition::Always,
+                    vec![
+                        chance(50),
+                        move_character("yard"),
+                        storage_transfer(true, "work.ore", 1),
+                    ],
+                ),
+                simple_action(
+                    "zero",
+                    Condition::Always,
+                    vec![
+                        Effect::RandomChance {
+                            success_percent: 0,
+                            on_success: Box::new(storage_transfer(true, "work.ore", 2)),
+                            on_failure: Box::new(move_character("yard")),
+                        },
+                        storage_transfer(true, "work.ore", 1),
+                    ],
+                ),
+            ],
+            "yard",
+            1,
+        );
+        let content = CompiledContent::try_compile(source).unwrap();
+        for seed in [0, 1, 27, 123, u64::MAX] {
+            let mut initial = state(&content);
+            initial.entropy = EntropyState::new(seed);
+            let before = initial.clone();
+            assert_eq!(legal_ids(&initial, &content), ["certain", "reset", "zero"]);
+            assert_eq!(initial, before);
+            for action in enumerate_legal_actions(&initial, &content).unwrap() {
+                let transition = step(&initial, &action, &content, &initial.entropy).unwrap();
+                assert_eq!(transition.entropy_draws().len(), 1);
+                assert_eq!(transition.state().character.inventory["work.ore"], 1);
+            }
+        }
+        let mut exhausted = state(&content);
+        exhausted.entropy.cursor = MAX_ENTROPY_CURSOR;
+        assert!(legal_ids(&exhausted, &content).is_empty());
+    }
+
+    #[test]
+    fn storage_random_stock_bounds_preserve_recipe_and_transfer_composition() {
+        let uncertain_deposit = Effect::RandomChance {
+            success_percent: 50,
+            on_success: Box::new(storage_transfer(false, "work.ore", 1)),
+            on_failure: Box::new(Effect::Noop),
+        };
+        let mut source = storage_draft(
+            vec![
+                simple_action(
+                    "guaranteed",
+                    Condition::Always,
+                    vec![
+                        uncertain_deposit.clone(),
+                        storage_transfer(true, "work.ore", 1),
+                        recipe_effect("work.refine"),
+                        storage_transfer(false, "work.ingot", 1),
+                    ],
+                ),
+                simple_action(
+                    "uncertain",
+                    Condition::Always,
+                    vec![uncertain_deposit, storage_transfer(true, "work.ore", 2)],
+                ),
+            ],
+            "gate",
+            1,
+        );
+        source.recipes = vec![recipe(
+            "work.refine",
+            &[("work.ore", 1)],
+            &[("work.ingot", 1)],
+        )];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut outcomes = BTreeSet::new();
+        for seed in 0..16 {
+            let mut initial = state(&content);
+            initial.character.inventory.insert("work.ore".to_owned(), 1);
+            initial.entropy = EntropyState::new(seed);
+            let before = initial.clone();
+            assert_eq!(legal_ids(&initial, &content), ["guaranteed"]);
+            assert_eq!(initial, before);
+            let transition = record_test_action(&initial, &content, "guaranteed");
+            let next = transition.state();
+            assert_eq!(next.world.storages["work.chest"].inventory["work.ingot"], 1);
+            assert!(!next.character.inventory.contains_key("work.ingot"));
+            let owned = next
+                .character
+                .inventory
+                .get("work.ore")
+                .copied()
+                .unwrap_or(0);
+            let stored = next.world.storages["work.chest"]
+                .inventory
+                .get("work.ore")
+                .copied()
+                .unwrap_or(0);
+            assert_eq!(owned + stored, 1);
+            outcomes.insert((owned, stored));
+        }
+        assert_eq!(outcomes, BTreeSet::from([(0, 1), (1, 0)]));
+    }
+
+    #[test]
+    fn storage_raw_failure_never_partially_changes_balances_events_or_entropy() {
+        let content = CompiledContent::try_compile(storage_draft(Vec::new(), "gate", 1)).unwrap();
+        for (withdraw, count, location, owned, stored) in [
+            (true, 0, "gate", 0, 1),
+            (false, 0, "gate", 1, 0),
+            (true, 2, "gate", 0, 1),
+            (false, 1, "gate", 0, 1),
+            (true, 1, "gate", u32::MAX, 1),
+            (false, 1, "gate", 1, u32::MAX),
+            (true, 1, "yard", 0, 1),
+            (false, 1, "yard", 1, 0),
+        ] {
+            let mut initial = state(&content);
+            initial.world.current_location = location.to_owned();
+            set_inventory_count(&mut initial.character.inventory, "work.ore", owned);
+            set_inventory_count(
+                &mut initial
+                    .world
+                    .storages
+                    .get_mut("work.chest")
+                    .unwrap()
+                    .inventory,
+                "work.ore",
+                stored,
+            );
+            let before = initial.clone();
+            let mut entropy = initial.entropy.clone();
+            let mut draws = Vec::new();
+            let mut events = Vec::new();
+            let result = apply_effect(
+                &mut initial,
+                &storage_transfer(withdraw, "work.ore", count),
+                &BTreeMap::new(),
+                &content,
+                &mut entropy,
+                &mut draws,
+                &mut events,
+            );
+            assert!(matches!(result, Err(KernelError::InvalidAction(_))));
+            assert_eq!(initial, before);
+            assert_eq!(entropy, before.entropy);
+            assert!(draws.is_empty() && events.is_empty());
+        }
+    }
+
+    #[test]
+    fn storage_later_locality_failure_rolls_back_transfers_and_random_draw() {
+        let content = CompiledContent::try_compile(storage_draft(
+            vec![simple_action(
+                "late-failure",
+                Condition::Always,
+                vec![
+                    storage_transfer(true, "work.ore", 1),
+                    Effect::RandomChance {
+                        success_percent: 50,
+                        on_success: Box::new(Effect::Noop),
+                        on_failure: Box::new(Effect::Noop),
+                    },
+                    move_character("yard"),
+                    storage_transfer(false, "work.ore", 1),
+                ],
+            )],
+            "gate",
+            1,
+        ))
+        .unwrap();
+        let initial = state(&content);
+        let before = initial.clone();
+        assert!(legal_ids(&initial, &content).is_empty());
+        let action = CanonicalAction::new(
+            content.build_id(),
+            initial.state_id(),
+            "late-failure",
+            BTreeMap::new(),
+        );
+        assert!(matches!(
+            step(&initial, &action, &content, &initial.entropy),
+            Err(KernelError::IllegalAction(_))
+        ));
+        assert!(
+            matches!(reduce_validated_action(&initial, &action, &content, &initial.entropy),
+            Err(KernelError::InvalidAction(message)) if message.contains("character must be at gate"))
+        );
+        assert_eq!(initial, before);
+    }
+
+    #[test]
+    fn storage_action_preflight_includes_due_movement_recipe_guards_and_late_failure() {
+        let mut source = storage_draft(
+            vec![
+                simple_action("schedule", Condition::Always, vec![schedule("z.consume")]),
+                simple_action(
+                    "withdraw-cross",
+                    Condition::Always,
+                    vec![
+                        storage_transfer(true, "work.ore", 1),
+                        Effect::AdvanceTime { ticks: 1 },
+                    ],
+                ),
+                simple_action(
+                    "empty-cross",
+                    Condition::Always,
+                    vec![Effect::AdvanceTime { ticks: 1 }],
+                ),
+                simple_action(
+                    "return-cross",
+                    Condition::Always,
+                    vec![
+                        storage_transfer(true, "work.ore", 1),
+                        storage_transfer(false, "work.ore", 1),
+                        Effect::AdvanceTime { ticks: 1 },
+                    ],
+                ),
+            ],
+            "gate",
+            1,
+        );
+        source.recipes = vec![recipe(
+            "work.refine",
+            &[("work.ore", 1)],
+            &[("work.ingot", 1)],
+        )];
+        source.timed_events = vec![TimedEventDefinition {
+            id: "a.move".to_owned(),
+            due_time: 1,
+            event_kind: "Move".to_owned(),
+            label: "Move due".to_owned(),
+            result: "The yard opens.".to_owned(),
+            condition: Condition::Always,
+            effects: vec![Effect::RandomChance {
+                success_percent: 50,
+                on_success: Box::new(move_character("yard")),
+                on_failure: Box::new(move_character("gate")),
+            }],
+        }];
+        source.deferred_events = vec![deferred(
+            "z.consume",
+            1,
+            Condition::AtLocation {
+                location: "yard".to_owned(),
+            },
+            vec![recipe_effect("work.refine")],
+        )];
+        let content = CompiledContent::try_compile(source).unwrap();
+        let mut initial = state(&content);
+        initial.world.scheduled_events = vec![crate::ScheduledEvent {
+            id: "a.move".to_owned(),
+            due_time: 1,
+            event_kind: "Move".to_owned(),
+        }];
+        initial = record_test_action(&initial, &content, "schedule").into_state();
+        let mut failures = 0;
+        let mut locations = BTreeSet::new();
+        for seed in 0..16 {
+            initial.entropy = EntropyState::new(seed);
+            let before = initial.clone();
+            assert_eq!(legal_ids(&initial, &content), ["withdraw-cross"]);
+            let transition = record_test_action(&initial, &content, "withdraw-cross");
+            let next = transition.state();
+            locations.insert(next.world.current_location.clone());
+            let consumed = next.world.current_location == "yard";
+            assert_eq!(
+                next.character
+                    .inventory
+                    .get("work.ingot")
+                    .copied()
+                    .unwrap_or(0),
+                u32::from(consumed)
+            );
+            assert_eq!(
+                next.character
+                    .inventory
+                    .get("work.ore")
+                    .copied()
+                    .unwrap_or(0),
+                u32::from(!consumed)
+            );
+            assert!(next.world.storages["work.chest"].inventory.is_empty());
+            assert!(matches!(
+                transition.events()[0].kind,
+                EventKind::StorageItemTransferredToCharacter { .. }
+            ));
+            assert_eq!(transition.events()[0].turn, 0);
+            assert!(
+                transition
+                    .events()
+                    .iter()
+                    .filter(|event| matches!(event.kind, EventKind::ScheduledEventResolved { .. }))
+                    .all(|event| event.turn == 1)
+            );
+            let action = CanonicalAction::new(
+                content.build_id(),
+                initial.state_id(),
+                "return-cross",
+                BTreeMap::new(),
+            );
+            if let Err(error) =
+                reduce_validated_action(&initial, &action, &content, &initial.entropy)
+            {
+                assert!(
+                    matches!(error, KernelError::InvalidAction(message) if message.contains("lacks 1 of item work.ore"))
+                );
+                failures += 1;
+            }
+            assert_eq!(initial, before);
+        }
+        assert_eq!(
+            locations,
+            BTreeSet::from(["gate".to_owned(), "yard".to_owned()])
+        );
+        assert!(failures > 0);
+    }
+
+    #[test]
+    fn storage_complete_catalog_preserves_more_than_256_independent_candidates() {
+        let mut actions = (0..301)
+            .map(|index| {
+                simple_action(
+                    &format!("take-{index:03}"),
+                    Condition::Always,
+                    vec![storage_transfer(true, "work.ore", 1)],
+                )
+            })
+            .collect::<Vec<_>>();
+        actions.push(simple_action(
+            "invalid-remote",
+            Condition::Always,
+            vec![
+                move_character("yard"),
+                storage_transfer(true, "work.ore", 1),
+            ],
+        ));
+        let content = CompiledContent::try_compile(storage_draft(actions, "gate", 1)).unwrap();
+        let initial = state(&content);
+        let catalog = enumerate_legal_actions(&initial, &content).unwrap();
+        assert_eq!(catalog.len(), 301);
+        let paged = (0..catalog.len())
+            .step_by(17)
+            .flat_map(|offset| content.action_page(&initial, offset, 17).unwrap().actions)
+            .map(|action| action.action_id)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            paged,
+            catalog
+                .iter()
+                .map(|action| action.action_id.clone())
+                .collect::<Vec<_>>()
+        );
+        for action in [&catalog[0], &catalog[300]] {
+            let transition = step(&initial, action, &content, &initial.entropy).unwrap();
+            assert_eq!(transition.state().character.inventory["work.ore"], 1);
+            assert!(
+                enumerate_legal_actions(transition.state(), &content)
+                    .unwrap()
+                    .is_empty()
+            );
+        }
     }
 
     fn batch_content() -> CompiledContent {
@@ -4433,8 +5256,8 @@ mod tests {
             terminal: true,
         }));
         let content = CompiledContent::try_compile(ContentDraft {
-            schema_version: "forge-schema-v9".to_owned(),
-            rules_version: "forge-rules-v7".to_owned(),
+            schema_version: "forge-schema-v10".to_owned(),
+            rules_version: "forge-rules-v8".to_owned(),
             world_id: "world-1".to_owned(),
             contract: crate::ContentContract::Fixture,
             start_location: "gate".to_owned(),
@@ -4443,6 +5266,7 @@ mod tests {
             supply_labels: Default::default(),
             recipes: Vec::new(),
             locations,
+            storages: Vec::new(),
             npcs: vec![NpcDefinition {
                 id: "sava".to_owned(),
                 name: "Sava".to_owned(),
