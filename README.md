@@ -38,9 +38,20 @@ cargo run -p forge-verify -- check-player rook.trace.json
 ./verify
 ```
 
+Test builds use optimization level 1 with debug assertions and integer overflow checks enabled. For diagnosis with unoptimized test builds through the same complete gate, run:
+
+```bash
+CARGO_PROFILE_TEST_OPT_LEVEL=0 \
+CARGO_PROFILE_TEST_DEBUG_ASSERTIONS=true \
+CARGO_PROFILE_TEST_OVERFLOW_CHECKS=true \
+./verify
+```
+
+The measured profile comparison and its build, memory, and disk costs are recorded in `PROJECT_STATE.md`.
+
 Catalog search includes the visible consequence previews. NPC information also has a delivery path: ringing Lowsail's warning teaches Oren, and relaying it from the levee teaches Edrik and unlocks his relief-channel help. Discovering a distant event does not automatically make an NPC know it.
 
-The Tide Key is a persistent item: taking it removes it from Yara's stock and opens `Calibrate Gate` at Red Sluice Floor. That provides another preparation route to Split Flow. Save/resume reconstructs the same ownership and calibration through canonical actions. Saves remain tied to their exact game build; this schema/rules change does not silently migrate older saves.
+The Tide Key is a persistent item: taking it removes it from Yara's stock and opens `Calibrate Gate` at Red Sluice Floor. That provides another preparation route to Split Flow. Save/resume reconstructs the same ownership and calibration through canonical actions. Saves remain tied to their exact game build, with no older-save migration.
 
 `Climb Hot Face` carries a qualified climber directly to Red Sluice Top in one tide step. It also exposes the destructive overload controls; the climb itself does not choose that outcome.
 

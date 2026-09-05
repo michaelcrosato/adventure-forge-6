@@ -1,5 +1,5 @@
 {
-  "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+  "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
   "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
   "advertised_definitions": [
     "checkpoint.ask_sava",
@@ -208,7 +208,7 @@
   ],
   "regression": {
     "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
-    "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+    "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
     "budget": {
       "max_depth": 13,
       "max_expanded_states": 4096,
@@ -460,8 +460,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "22436e023c9702012e85df581bf91df71831062a14e285f559cb3d7fbe24ba1d",
-        "state_id": "1296ef3e4d6b4063769e9745d8ed64457155b695b3f61341a18c3ddb9acd092e"
+        "final_receipt": "fbc85813e92f8be21432ca5c53ebd4044b768fa001c0fc40f6cf40bb75341e21",
+        "state_id": "2c963039f060789c82bdc3e2e977f61ba6e6c4d423fed2099dd44b343f2fed55"
       },
       {
         "label": "preset:rook",
@@ -471,11 +471,11 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "05796ebe4a280481edd5df73bd2c4eaa46380be682ccadb33fb359aac6ac42f7",
-        "state_id": "fc85c2401525ccf3d9a35500e0e2a586b088c014ab2bcf9bb39ab0ec4ea8c1ca"
+        "final_receipt": "d6fef0ee5ef7df7dd5e76952fa96663d848f6ae997cba38141d02dcaa4418b2b",
+        "state_id": "2875ac4e7e3f8d5651c6af8fb5b5195b52d526fd4281805a26c167f63a37c5da"
       }
     ],
-    "execution_receipt": "edf5258e6b7e0dc95924437efca21b994a33db8fe410a8c27ee2a031c1c5281b",
+    "execution_receipt": "be221369e1ec15bd47c920c647b01355366acb9a7d0a821625552579f3649d8b",
     "split_tide_projection": {
       "required_definitions": [
         "checkpoint.ask_sava",
@@ -603,7 +603,7 @@
   },
   "batchworks": {
     "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
-    "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+    "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 128,
@@ -769,8 +769,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "22436e023c9702012e85df581bf91df71831062a14e285f559cb3d7fbe24ba1d",
-        "state_id": "1296ef3e4d6b4063769e9745d8ed64457155b695b3f61341a18c3ddb9acd092e"
+        "final_receipt": "fbc85813e92f8be21432ca5c53ebd4044b768fa001c0fc40f6cf40bb75341e21",
+        "state_id": "2c963039f060789c82bdc3e2e977f61ba6e6c4d423fed2099dd44b343f2fed55"
       },
       {
         "label": "preset:rook",
@@ -780,8 +780,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "05796ebe4a280481edd5df73bd2c4eaa46380be682ccadb33fb359aac6ac42f7",
-        "state_id": "fc85c2401525ccf3d9a35500e0e2a586b088c014ab2bcf9bb39ab0ec4ea8c1ca"
+        "final_receipt": "d6fef0ee5ef7df7dd5e76952fa96663d848f6ae997cba38141d02dcaa4418b2b",
+        "state_id": "2875ac4e7e3f8d5651c6af8fb5b5195b52d526fd4281805a26c167f63a37c5da"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -791,15 +791,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "26cf6cbb6af063adfe86b7ab1a1562a67900cbc7b2c0dd32eaa7c3e3d59d5e5a",
-        "state_id": "c92a35bfd735e42545b6fa0d8f6cd7b4281339338478621ce4a074c8177a5c98"
+        "final_receipt": "e6d321e33afbe3e09681f68c38e87797ad0eb0f28040dd7c34b05db4cc3031b6",
+        "state_id": "eb9c07f9828515d4929985a6c79ade6571c0acb7a93eb242651b7b9b3d7a2ab4"
       }
     ],
-    "execution_receipt": "e94d91850d946a2280e14777b618842817b1894947adee8c754440a876979ea2"
+    "execution_receipt": "47557464448e4b7b4cfd1b757064917ef593500e78c95f9990a630cabd4f81ed"
   },
   "salvage": {
     "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
-    "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+    "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -966,8 +966,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "22436e023c9702012e85df581bf91df71831062a14e285f559cb3d7fbe24ba1d",
-        "state_id": "1296ef3e4d6b4063769e9745d8ed64457155b695b3f61341a18c3ddb9acd092e"
+        "final_receipt": "fbc85813e92f8be21432ca5c53ebd4044b768fa001c0fc40f6cf40bb75341e21",
+        "state_id": "2c963039f060789c82bdc3e2e977f61ba6e6c4d423fed2099dd44b343f2fed55"
       },
       {
         "label": "preset:rook",
@@ -977,8 +977,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "05796ebe4a280481edd5df73bd2c4eaa46380be682ccadb33fb359aac6ac42f7",
-        "state_id": "fc85c2401525ccf3d9a35500e0e2a586b088c014ab2bcf9bb39ab0ec4ea8c1ca"
+        "final_receipt": "d6fef0ee5ef7df7dd5e76952fa96663d848f6ae997cba38141d02dcaa4418b2b",
+        "state_id": "2875ac4e7e3f8d5651c6af8fb5b5195b52d526fd4281805a26c167f63a37c5da"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -988,15 +988,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "26cf6cbb6af063adfe86b7ab1a1562a67900cbc7b2c0dd32eaa7c3e3d59d5e5a",
-        "state_id": "c92a35bfd735e42545b6fa0d8f6cd7b4281339338478621ce4a074c8177a5c98"
+        "final_receipt": "e6d321e33afbe3e09681f68c38e87797ad0eb0f28040dd7c34b05db4cc3031b6",
+        "state_id": "eb9c07f9828515d4929985a6c79ade6571c0acb7a93eb242651b7b9b3d7a2ab4"
       }
     ],
-    "execution_receipt": "c2426fbee2d6c8af6298676e9e125d547674b14132ee6b74a7cd0c3e9d092e5c"
+    "execution_receipt": "1caac6492f0e287130e848b38a2fa8170de602962f011793f617a3233f6497b3"
   },
   "market_water": {
     "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
-    "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+    "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
     "budget": {
       "max_depth": 35,
       "max_expanded_states": 128,
@@ -1167,8 +1167,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "22436e023c9702012e85df581bf91df71831062a14e285f559cb3d7fbe24ba1d",
-        "state_id": "1296ef3e4d6b4063769e9745d8ed64457155b695b3f61341a18c3ddb9acd092e"
+        "final_receipt": "fbc85813e92f8be21432ca5c53ebd4044b768fa001c0fc40f6cf40bb75341e21",
+        "state_id": "2c963039f060789c82bdc3e2e977f61ba6e6c4d423fed2099dd44b343f2fed55"
       },
       {
         "label": "preset:rook",
@@ -1178,8 +1178,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "05796ebe4a280481edd5df73bd2c4eaa46380be682ccadb33fb359aac6ac42f7",
-        "state_id": "fc85c2401525ccf3d9a35500e0e2a586b088c014ab2bcf9bb39ab0ec4ea8c1ca"
+        "final_receipt": "d6fef0ee5ef7df7dd5e76952fa96663d848f6ae997cba38141d02dcaa4418b2b",
+        "state_id": "2875ac4e7e3f8d5651c6af8fb5b5195b52d526fd4281805a26c167f63a37c5da"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1189,15 +1189,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "26cf6cbb6af063adfe86b7ab1a1562a67900cbc7b2c0dd32eaa7c3e3d59d5e5a",
-        "state_id": "c92a35bfd735e42545b6fa0d8f6cd7b4281339338478621ce4a074c8177a5c98"
+        "final_receipt": "e6d321e33afbe3e09681f68c38e87797ad0eb0f28040dd7c34b05db4cc3031b6",
+        "state_id": "eb9c07f9828515d4929985a6c79ade6571c0acb7a93eb242651b7b9b3d7a2ab4"
       }
     ],
-    "execution_receipt": "a335d438dec01d3c18adc601f2960fba54529c3300454207c59c6871317d934f"
+    "execution_receipt": "cc9f1422407bdc638c8daceec1e76c8b1435f514165bf09e1442aafa5c750b0c"
   },
   "staffing": {
     "verifier_id": "3c774153a480a43b8e4f2bbfa54deb4e73d68612811ece45fc1dda783f407f2d",
-    "build_id": "36722d09be152230d8c2ff4e7ed16cfec3964423f989dade2903f9cfdd5cf752",
+    "build_id": "1c6db326be1357fc864c12258380fede44ea6ff632ea9a9ce56524d38658b3e9",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -1351,8 +1351,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "22436e023c9702012e85df581bf91df71831062a14e285f559cb3d7fbe24ba1d",
-        "state_id": "1296ef3e4d6b4063769e9745d8ed64457155b695b3f61341a18c3ddb9acd092e"
+        "final_receipt": "fbc85813e92f8be21432ca5c53ebd4044b768fa001c0fc40f6cf40bb75341e21",
+        "state_id": "2c963039f060789c82bdc3e2e977f61ba6e6c4d423fed2099dd44b343f2fed55"
       },
       {
         "label": "preset:rook",
@@ -1362,8 +1362,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "05796ebe4a280481edd5df73bd2c4eaa46380be682ccadb33fb359aac6ac42f7",
-        "state_id": "fc85c2401525ccf3d9a35500e0e2a586b088c014ab2bcf9bb39ab0ec4ea8c1ca"
+        "final_receipt": "d6fef0ee5ef7df7dd5e76952fa96663d848f6ae997cba38141d02dcaa4418b2b",
+        "state_id": "2875ac4e7e3f8d5651c6af8fb5b5195b52d526fd4281805a26c167f63a37c5da"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1373,10 +1373,10 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "26cf6cbb6af063adfe86b7ab1a1562a67900cbc7b2c0dd32eaa7c3e3d59d5e5a",
-        "state_id": "c92a35bfd735e42545b6fa0d8f6cd7b4281339338478621ce4a074c8177a5c98"
+        "final_receipt": "e6d321e33afbe3e09681f68c38e87797ad0eb0f28040dd7c34b05db4cc3031b6",
+        "state_id": "eb9c07f9828515d4929985a6c79ade6571c0acb7a93eb242651b7b9b3d7a2ab4"
       }
     ],
-    "execution_receipt": "b96558776957640393586a3d538cd4c438b197d41a6f81ed312a717c3ba377b1"
+    "execution_receipt": "07b48b215ccf9a057e6990ec419043ace4b9aeed74f10070f15d6709bd3a6bed"
   }
 }
