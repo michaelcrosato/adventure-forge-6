@@ -92,10 +92,29 @@ pub(super) const BATCHWORKS_ACTIONS: &[&str] = &[
     "fume_yards.inspect_spoiled_batch",
     "return.sell_filter",
 ];
+pub(super) const SALVAGE_ACTIONS: &[&str] = &[
+    "fume_yards.enter_ash_hatch",
+    "fume_yards.leave_ash_hatch",
+    "fume_yards.brace_rack",
+    "fume_yards.recover_braced_filter",
+    "fume_yards.thread_rack_filter",
+    "fume_yards.pull_rack_filter",
+    "fume_yards.report_with_daro",
+    "fume_yards.load_cold_freight",
+];
 
 pub(super) const BATCHWORKS_BUDGET: CrawlBudget = CrawlBudget {
     max_depth: 20,
     max_expanded_states: 128,
+    max_discovered_frontiers: 768,
+    max_action_executions: 2048,
+    catalog_page_size: 7,
+};
+// Declared before the first salvage run. This adds optional coverage without
+// enlarging any previous component's depth, state, frontier, or action limits.
+pub(super) const SALVAGE_BUDGET: CrawlBudget = CrawlBudget {
+    max_depth: 20,
+    max_expanded_states: 96,
     max_discovered_frontiers: 768,
     max_action_executions: 2048,
     catalog_page_size: 7,
@@ -122,8 +141,9 @@ pub struct RegressionCrawlReport {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 /// Combined coverage from independent crawls. The legacy regression keeps
-/// its original ceilings; batch work has its own explicit depth and work
-/// budget. Neither component claims exhaustive reachable-state coverage.
+/// its original ceilings; batch work and salvage have their own explicit
+/// budgets. Components do not claim exhaustive reachable-state coverage or
+/// admission of a complete new area.
 pub struct ProductionCrawlReport {
     pub build_id: String,
     pub verifier_id: String,
@@ -132,6 +152,7 @@ pub struct ProductionCrawlReport {
     pub reached_locations: BTreeSet<String>,
     pub regression: RegressionCrawlReport,
     pub batchworks: CrawlReport,
+    pub salvage: CrawlReport,
 }
 
 impl ProductionCrawlReport {
@@ -185,12 +206,10 @@ fn validate_expansion_catalog(content: &CompiledContent) -> Result<BTreeSet<Stri
         .actions()
         .map(|(id, _)| id.clone())
         .collect::<BTreeSet<_>>();
-    if authored
-        != regression_definitions()
-            .union(&ids(BATCHWORKS_ACTIONS))
-            .cloned()
-            .collect()
-    {
+    let mut reviewed = regression_definitions();
+    reviewed.extend(ids(BATCHWORKS_ACTIONS));
+    reviewed.extend(ids(SALVAGE_ACTIONS));
+    if authored != reviewed {
         return Err(VerifyError::new(
             "expansion crawl action contract contains unreviewed additions or omissions",
         ));
@@ -213,16 +232,18 @@ pub(super) fn crawl_regression(
 pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlReport, VerifyError> {
     let regression = crawl_regression(content, CrawlBudget::default())?;
     let batchworks = crawl_batchworks(content)?;
-    combine_crawls(content, regression, batchworks)
+    let salvage = crawl_salvage(content)?;
+    combine_crawls(content, regression, batchworks, salvage)
 }
 
 fn combine_crawls(
     content: &CompiledContent,
     regression: RegressionCrawlReport,
     batchworks: CrawlReport,
+    salvage: CrawlReport,
 ) -> Result<ProductionCrawlReport, VerifyError> {
     let advertised_definitions = validate_expansion_catalog(content)?;
-    for report in [&regression.crawl, &batchworks] {
+    for report in [&regression.crawl, &batchworks, &salvage] {
         if report.build_id != content.build_id()
             || report.verifier_id != crate::VERIFIER_ID
             || report.advertised_definitions != advertised_definitions
@@ -237,21 +258,21 @@ fn combine_crawls(
         || regression.crawl.budget != CrawlBudget::default()
         || batchworks.required_definitions != ids(BATCHWORKS_ACTIONS)
         || batchworks.budget != BATCHWORKS_BUDGET
+        || salvage.required_definitions != ids(SALVAGE_ACTIONS)
+        || salvage.budget != SALVAGE_BUDGET
     {
         return Err(VerifyError::new(
             "combined crawl component scope or budget differs from contract",
         ));
     }
-    let covered_definitions = regression
-        .crawl
-        .covered_definitions
-        .union(&batchworks.covered_definitions)
+    let covered_definitions = [&regression.crawl, &batchworks, &salvage]
+        .into_iter()
+        .flat_map(|report| &report.covered_definitions)
         .cloned()
         .collect();
-    let reached_locations = regression
-        .crawl
-        .reached_locations
-        .union(&batchworks.reached_locations)
+    let reached_locations = [&regression.crawl, &batchworks, &salvage]
+        .into_iter()
+        .flat_map(|report| &report.reached_locations)
         .cloned()
         .collect();
     let locations: BTreeSet<_> = content.locations().map(|(id, _)| id.clone()).collect();
@@ -268,6 +289,7 @@ fn combine_crawls(
         reached_locations,
         regression,
         batchworks,
+        salvage,
     })
 }
 
@@ -329,6 +351,29 @@ pub(super) fn crawl_batchworks(content: &CompiledContent) -> Result<CrawlReport,
     Ok(report)
 }
 
+pub(super) fn crawl_salvage(content: &CompiledContent) -> Result<CrawlReport, VerifyError> {
+    validate_expansion_catalog(content)?;
+    let report = crate::crawler::crawl_targets_with_scenarios(
+        content,
+        SALVAGE_BUDGET,
+        ids(SALVAGE_ACTIONS),
+        &["m1-outcome-hold-market"],
+    )?;
+    if ![
+        "fume_yards.ash_beds",
+        "fume_yards.kiln_bay",
+        "fume_yards.workshop",
+    ]
+    .iter()
+    .all(|id| report.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "salvage crawl missed a consequence location",
+        ));
+    }
+    Ok(report)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -342,7 +387,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 73);
+        assert_eq!(report.advertised_definitions.len(), 81);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -358,6 +403,33 @@ mod tests {
         assert!(report.successful_actions <= 2048);
         eprintln!(
             "batchworks: {} states, {} frontiers, {} actions",
+            report.expanded_states, report.discovered_frontiers, report.successful_actions
+        );
+    }
+
+    #[test]
+    fn salvage_crawl_covers_eight_targets_under_its_predeclared_budget() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let report = crawl_salvage(&content).unwrap();
+        assert_eq!(report.budget, SALVAGE_BUDGET);
+        assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
+        assert_eq!(report.required_definitions.len(), 8);
+        assert_eq!(report.advertised_definitions.len(), 81);
+        assert!(report.is_complete());
+        assert_eq!(report.starting_sessions.len(), 3);
+        assert_eq!(
+            report
+                .starting_sessions
+                .iter()
+                .map(|start| start.depth)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 7]
+        );
+        assert!(report.expanded_states <= 96);
+        assert!(report.discovered_frontiers <= 768);
+        assert!(report.successful_actions <= 2048);
+        eprintln!(
+            "salvage: {} states, {} frontiers, {} actions",
             report.expanded_states, report.discovered_frontiers, report.successful_actions
         );
     }
@@ -394,13 +466,20 @@ mod tests {
         ))
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
-        let combined = combine_crawls(&content, regression.clone(), batchworks.clone()).unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 73);
+        let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let combined = combine_crawls(
+            &content,
+            regression.clone(),
+            batchworks.clone(),
+            salvage.clone(),
+        )
+        .unwrap();
+        assert_eq!(combined.advertised_definitions.len(), 81);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions
         );
-        assert_eq!(combined.reached_locations.len(), 8);
+        assert_eq!(combined.reached_locations.len(), 9);
         for mutation in 0..6 {
             let mut changed = batchworks.clone();
             match mutation {
@@ -417,7 +496,9 @@ mod tests {
                     changed.advertised_definitions.remove("return.sell_filter");
                 }
             }
-            assert!(combine_crawls(&content, regression.clone(), changed).is_err());
+            assert!(
+                combine_crawls(&content, regression.clone(), changed, salvage.clone()).is_err()
+            );
         }
         let mut missing_location = regression.clone();
         missing_location
@@ -428,16 +509,85 @@ mod tests {
         missing_location_batch
             .reached_locations
             .remove("fume_yards.kiln_bay");
-        assert!(combine_crawls(&content, missing_location, missing_location_batch).is_err());
+        let mut missing_location_salvage = salvage.clone();
+        missing_location_salvage
+            .reached_locations
+            .remove("fume_yards.kiln_bay");
+        assert!(
+            combine_crawls(
+                &content,
+                missing_location,
+                missing_location_batch,
+                missing_location_salvage
+            )
+            .is_err()
+        );
         let mut omitted = regression;
         omitted.crawl.covered_definitions.remove("top.split_flow");
-        assert!(combine_crawls(&content, omitted, batchworks).is_err());
+        assert!(combine_crawls(&content, omitted, batchworks, salvage).is_err());
         let mut unreviewed = forge_content::parse(SOURCE).unwrap();
         let mut action = unreviewed.actions[0].clone();
         action.id = "test.unreviewed".to_owned();
         unreviewed.actions.push(action);
         let changed = forge_content::compile_production(unreviewed).unwrap();
         assert!(validate_expansion_catalog(&changed).is_err());
+    }
+
+    #[test]
+    fn combined_salvage_component_rejects_missing_coverage_identity_scope_budget_and_location() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let mut regression = preserve_split_tide(declared_report(
+            &content,
+            regression_definitions(),
+            CrawlBudget::default(),
+        ))
+        .unwrap();
+        let mut batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
+        let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        // Give only the salvage component the new location, so its loss cannot
+        // hide behind these deliberately synthetic aggregation fixtures.
+        regression
+            .crawl
+            .reached_locations
+            .remove("fume_yards.ash_beds");
+        batchworks.reached_locations.remove("fume_yards.ash_beds");
+        combine_crawls(
+            &content,
+            regression.clone(),
+            batchworks.clone(),
+            salvage.clone(),
+        )
+        .unwrap();
+        for mutation in 0..7 {
+            let mut changed = salvage.clone();
+            match mutation {
+                0 => {
+                    changed
+                        .covered_definitions
+                        .remove("fume_yards.pull_rack_filter");
+                }
+                1 => changed.build_id.push('x'),
+                2 => changed.verifier_id.push('x'),
+                3 => {
+                    changed
+                        .required_definitions
+                        .remove("fume_yards.pull_rack_filter");
+                }
+                4 => changed.budget.max_expanded_states += 1,
+                5 => {
+                    changed
+                        .advertised_definitions
+                        .remove("fume_yards.pull_rack_filter");
+                }
+                _ => {
+                    changed.reached_locations.remove("fume_yards.ash_beds");
+                }
+            }
+            assert!(
+                combine_crawls(&content, regression.clone(), batchworks.clone(), changed).is_err(),
+                "mutation {mutation} must not weaken combined coverage"
+            );
+        }
     }
 
     #[test]

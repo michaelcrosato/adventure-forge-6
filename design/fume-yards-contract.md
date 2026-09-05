@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: the cold pilot and controlled-manufacture slice are accepted through cycle 32. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, and physical salvage are accepted through cycle 33. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -125,7 +125,9 @@ A finite one-batch heat model can use typed flags for prepared, lit, ready, draw
 
 Recipe lineage now accounts for authored stock, NPC-to-player transfers, consumption, and production. This is structural state admission; trusted saves and evidence additionally reconstruct canonical actions through replay. Scheduling now reconstructs relative one-shot history alongside unchanged genesis-authored absolute events. Events cannot schedule events or advance time. Deferred recipe programs must prove their inputs from guards and reachable effect prefixes; runtime whole-program preflight remains atomic and considers every reachable random branch without inspecting entropy.
 
-## Implemented cold-crafting pilot
+## Implemented cold-crafting pilot (historical cycle 31 scope)
+
+This section records cycle 31 acceptance. The later amendments extend its geography, cast, and evidence.
 
 The first material-conversion slice implements **cold repair goods carried to Lowsail** before the timed furnace. Its acceptance obligations are:
 
@@ -139,7 +141,9 @@ The pilot's playable workshop does not count as the contracted district or a new
 
 The implemented location is `fume_yards.workshop`, with Nessa as its single inhabitant. Four recipes and nine action definitions supply the two competing products, finite handover, local freight, Lowsail repair/sorting, and direct resolved-tide visit. The generic levee road and existing aftermath relocation program connect it to the same world. It does not yet implement the three-location geography or four-person cast above. Twenty total production witnesses preserve the sixteen prior paths and add repair, screen, unscreened freight, and late repair. Separate production/replay checks cover all 64 custom starts, all five tide outcomes, deadline crossing during crafting, saves at transformation/install boundaries, and late entry after the existing 128-turn traversal regression.
 
-## Controlled-manufacture amendment (cycle 32 accepted)
+## Controlled-manufacture amendment (historical cycle 32 acceptance)
+
+This section records the accepted cycle 32 state. The cycle 33 amendment adds Ash Beds and an alternative to wet-screen protection.
 
 The implemented geography is the existing workshop plus a reciprocal road to Kiln Bay. No empty Freight Court or Ash Beds is added. Nessa stays in her workshop with the original clay/mesh stock. Brann and Pera start at Kiln Bay; Brann holds the sole fuel unit and Pera the sole water cask. This supersedes the proposed fuel custodian for this slice. The full district must preserve this lineage when extending routines and geography.
 
@@ -153,6 +157,20 @@ Acceptance adds nine independently specified witnesses for readiness, local inst
 
 The combined world report requires all 73 current definitions. Its regression component still requires the exact previous 60 under the old budgets, with the old 51-definition/six-location projection. The nine-action cold pilot retains its budget. A separate thirteen-action batch crawl has predeclared limits: depth 20, 128 expanded states, 768 frontiers, 2,048 action executions, and seven rows per catalog page. Both optional crawls disclose the same replayed seven-action Hold Market frontier; its actions consume depth and do not count as expanded coverage. Timer effects guide search priorities only; actual canonical waits and queue lineage establish reached states. No arbitrary world-state seed is allowed.
 
+## Physical-salvage amendment (accepted cycle 33)
+
+The existing workshop is the district's freight frontage. Preserve its identity, old routes, stock, and work. Add Ash Beds with an ordinary road to that workshop and an authored maintenance hatch to Kiln Bay. Opening the hatch establishes persistent rear rack access; entering the aftermath still uses the complete existing cast-return action. These are three occupied workplaces, not acceptance of the complete district.
+
+Daro starts at Ash Beds and owns its single trapped filter. He offers that filter as payment for clearing his blocked freight rack. This supersedes the proposed Pera custody for salvage; Pera retains her established cask and Kiln Bay position. Daro's future purchased collateral spare is a distinct, still-unimplemented stock source. A fixed rack prop costs two stamina to set and permits a second safe recovery action. No portable brace is created. The rear method combines Kilnborn heat-sense, lock-runner handling, and retained rope for one guaranteed recovery. Removing either character contribution must close that method while leaving ordinary handling viable.
+
+The direct pull advertises 75% intact and 25% broken. It transfers Daro's existing filter first, then consumes that item into one shard on failure. Both outcomes clear the rack; neither can retry. Literal seed-27 and seed-123 boundary witnesses must respectively prove draw residues 74 and 75, exact single entropy consumption, ownership, and save/replay parity. A failed recovery while carrying an earlier manufactured filter must leave that older filter and the new shard, with truthful prose.
+
+A salvaged filter uses the existing four-coin sale or local dust installation. Installed dust protection also permits firing without consuming the water cask. New cold loading pays the existing three-coin commission without stamina and closes the unlit kiln, sacrificing hot manufacture while retaining raw goods. Prepared charges still require firing or reclamation before loading. Active or spoiled freight cannot consume a filter for a nonexistent local benefit. Finite recovery guards account for remaining usable local and sale destinations.
+
+Daro witnesses every authorized rack recovery. Brann acquires no clearing fact remotely. A separate action physically brings Daro and the player through the opened hatch; present Daro then tells present Brann his established fact. Brann pays one coin for reopened freight access, once. Matched reported and unreported paths must bind exact movement, knowledge provenance and acquisition time, resources, and persistent rack state.
+
+Acceptance preserves all twenty-nine prior literal witness recipes and predicates, all seventy-three definitions, all prior coverage budgets, and all fifteen defect killers. Before its first trial, the separate eight-action salvage crawl is limited to depth 20, 96 expanded states, 768 frontiers, 2,048 executions, and seven rows per catalog page. Both presets and the unchanged canonical seven-step Hold Market frontier are its disclosed starts; prefix steps consume depth without counting as coverage. The strict below-100-word observation limit stays unchanged: correlated deferred events may receive a tighter compiler bound only with a canonical scheduling proof, conservative fallback, focused adversarial tests, and the unchanged actual-body rejection. The full gate, independent replay, and actual local-browser/save checks remain mandatory. Supply substitution, full crew staffing, market filtration, delivery routines, the remaining character comparisons, and the complete area matrix remain unfinished.
+
 ## Witness acceptance matrix
 
 The IDs below reserve intended claims. Before any claim ships, replace each recipe description with an exact reviewed start, seed, complete canonical action/parameter sequence, checkpoint set, and hidden predicates in the scenario registry. This document is not an executable witness and does not pre-approve future paths.
@@ -162,7 +180,7 @@ The IDs below reserve intended claims. Before any claim ships, replace each reci
 | `fume-yards-cold-repair` | Authored start, actual road entry, named stock transfer, recipe consumes clay 2 / mesh 1 and creates repair lot 1; return handover consumes lot; stand repaired; present Oren's dry-goods job pays coin +3 exactly once and retires; no filter exists; original tide selection unchanged; workshop stock remains depleted on revisit. |
 | `fume-yards-cold-screen` | Same initial stock as the repair witness; screen recipe consumes clay 2 / mesh 1 into screen 1; local installation consumes screen and leaves repair lot 0. Matched freight jobs pay coin +2 in both paths, cost stamina 0 with screen / 2 without, and retire; patch action absent and stale press inert. |
 | `fume-yards-manufacture` | Clay/mesh become prepared charge 1; ignition consumes charge/fuel into batch claim 1; ready due `t+2`, spoil due `t+5`; guarded draw consumes claim into filter 1; later spoil resolves once without loss; no duplicated charge or stock. |
-| `fume-yards-salvage` | Pera is present and her existing waste-rack filter changes owner exactly once; clean charge, fuel, and Daro's spare remain; hatch/carry route and handling cost match the advertised action path. A separately seeded broken shortcut consumes that transferred filter into one shard and cannot retry the depleted rack. |
+| `fume-yards-salvage` | Present Daro's existing rack filter changes owner exactly once under the cycle-33 custody amendment; clean charge and fuel remain; hatch/carry route and handling cost match the advertised action path. A separately seeded broken shortcut consumes that transferred filter into one shard and cannot retry the depleted rack. Purchased collateral remains a separate future stock obligation. |
 | `fume-yards-supply` | Buying costs exactly four coins and depletes Daro's spare; a matched one-coin-short state omits purchase; fuel settlement depletes its exact lot and closes firing; no fabricated free alternative. |
 | `fume-yards-shutdown` | Credible test transfer precedes delegated shutdown; furnace retires; Brann relocates and indexes agree; cold goods replace the charge; hot production cannot resume; local freight remains viable. |
 | `fume-yards-use-tradeoff` | Matched saves from the same owned filter choose local fit, market fit, or sale. Each consumes one filter; respectively prove loading surcharge 0, new market actions, or coin +4; forbid the two unchosen consequences. |
@@ -182,9 +200,9 @@ Every outcome claim uses a clean-process verifier bound to the exact candidate b
 
 ## Regression preservation and scope controls
 
-Keep all twenty pre-batch scenario IDs, starts, seeds, exact recipes, and semantic predicates. New authoritative content will change build/state/catalog hashes, so regenerate checked artifacts through trusted tooling; never weaken an old expectation merely because a new build changed hashes. Preserve the existing 128-turn relief path, deadline at 16, single outcome exclusivity, paid towline's three-coin charge and retained gear, key ownership, warning provenance, cast return continuity, catalog completeness, supply privacy, and save/replay behavior.
+Keep all thirty-eight accepted scenario IDs, starts, seeds, exact recipes, and semantic predicates, including the twenty pre-batch paths. New authoritative content will change build/state/catalog hashes, so regenerate checked artifacts through trusted tooling; never weaken an old expectation merely because a new build changed hashes. Preserve the existing 128-turn relief path, deadline at 16, single outcome exclusivity, paid towline's three-coin charge and retained gear, key ownership, warning provenance, cast return continuity, catalog completeness, supply privacy, and save/replay behavior.
 
-The existing crawl proves six locations and 51 action definitions under reviewed budgets. Do not silently raise those budgets until all new coverage fits. Keep an explicit old-definition/old-location coverage projection, and add a separately budgeted optional-district crawl with reviewed reachability and work bounds. A full-world report may then combine coverage without pretending the old 56-state crawl exhaustively proves the expansion. Keep the 500-location fixture labeled synthetic.
+The current combined report covers 81 definitions and nine locations through separately bounded regression, batch, and salvage components. The cold-pilot report remains separate. The exact legacy projection still proves six locations and 51 definitions under its reviewed budgets. Preserve every component target, ceiling, complete-catalog requirement, and canonical seed lineage. Future optional work needs a separately declared budget; the historical 56-state crawl does not establish expansion coverage. Keep the 500-location fixture labeled synthetic.
 
 Preserve browser retry/reload/import, process-instance recovery, exact full-width numbers, capability isolation, and bundle reproduction. The browser displays kernel observations and submits canonical IDs; it gains no recipe calculator, timer authority, local legality, or client-only consequence logic.
 

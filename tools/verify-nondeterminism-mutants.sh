@@ -9,6 +9,7 @@ MEMORY_PROSE_PATCH_PATH="$REPO_DIR/tools/mutants/memory-prose-env.patch"
 MANIFEST_PATCH_PATH="$REPO_DIR/tools/mutants/manifest-env.patch"
 RECIPE_PATCH_PATH="$REPO_DIR/tools/mutants/recipe-env.patch"
 DEFERRED_PATCH_PATH="$REPO_DIR/tools/mutants/deferred-env.patch"
+SALVAGE_PATCH_PATH="$REPO_DIR/tools/mutants/salvage-env.patch"
 MUTANT_TMP_PREFIX="${TMPDIR:-/tmp}/forge-nondeterminism-mutants."
 MUTANT_WORKSPACE=""
 MUTANT_SELECTORS=(
@@ -27,6 +28,7 @@ MUTANT_SELECTORS=(
     FORGE_MUTANT_RECIPE_OUTPUT
     FORGE_MUTANT_DEFERRED_ABSOLUTE_TIME
     FORGE_MUTANT_DEFERRED_REMOTE_PAUSE
+    FORGE_MUTANT_SALVAGE_CHANCE
 )
 MUTANT_UNSET_ARGS=()
 for selector in "${MUTANT_SELECTORS[@]}"; do
@@ -55,7 +57,7 @@ for command in cargo cat cp grep mkdir mktemp mv patch rm sed; do
 done
 [[ -f "$PATCH_PATH" ]] || fail "mutant patch is missing"
 [[ -f "$BOUNDARY_PATCH_PATH" ]] || fail "boundary mutant patch is missing"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH"; do
     [[ -f "$patch_path" ]] || fail "mutation patch is missing: $patch_path"
 done
 
@@ -81,7 +83,7 @@ patch \
     --batch \
     --forward \
     --input="$BOUNDARY_PATCH_PATH" >/dev/null || fail "could not apply the boundary mutant patch"
-for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH"; do
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH" "$RECIPE_PATCH_PATH" "$DEFERRED_PATCH_PATH" "$SALVAGE_PATCH_PATH"; do
     patch --directory="$MUTANT_WORKSPACE" --strip=1 --batch --forward \
         --input="$patch_path" >/dev/null || fail "could not apply mutation patch: $patch_path"
 done
@@ -141,6 +143,8 @@ run_neutral_test "recipes" "production_recipe_consumes_owned_inputs_once"
 run_neutral_test "recipes" "production_recipe_produces_exact_finished_quantity"
 run_neutral_test "deferred_events" "production_deferred_deadlines_use_ignition_world_time"
 run_neutral_test "deferred_events" "production_deferred_spoil_consumes_claim_away_from_kiln"
+
+run_neutral_test "salvage_entropy_boundary" "production_salvage_chance_respects_strict_75_percent_boundary"
 
 # Check actual incremental build sensitivity in this disposable copy. Updating
 # an existing source and adding an unreferenced source must both change the
@@ -280,4 +284,8 @@ assert_mutant_killed \
     "manifest-input" "FORGE_MUTANT_MANIFEST_INPUT" \
     "manifest" "generated_manifest_matches_independent_input_digests" \
     'manifest omitted authoritative kernel input'
-echo "PASS mutation corpus: 15/15 killed after 12 neutral controls and 4 incremental manifest probes"
+assert_mutant_killed \
+    "salvage-chance" "FORGE_MUTANT_SALVAGE_CHANCE" \
+    "salvage_entropy_boundary" "production_salvage_chance_respects_strict_75_percent_boundary" \
+    'salvage chance ignored its 75 percent boundary'
+echo "PASS mutation corpus: 16/16 killed after 13 neutral controls and 4 incremental manifest probes"

@@ -1,0 +1,585 @@
+{
+  "format_version": "forge-evidence-witness-v3",
+  "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
+  "scenario_id": "m2-fume-salvage-intact",
+  "scenario_binding": "3f4ff966c2bbad707caf7f3bb6f801f3d6499a7e27287e515c64995d1f45e97b",
+  "player_trace": {
+    "format_version": "forge-player-trace-v2",
+    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+    "start": {
+      "kind": "character_preset",
+      "character_preset_id": "ilyan",
+      "seed": 27
+    },
+    "action_ids": [
+      "ec6d07f35dbaf2f0221acd554394825ca844085a5cf5f42d3343f9d1075d2b57",
+      "48bb5810a7c46d2c7fe02f47950157797d6ec2fb2ac80ca248c37ec38b4352a8",
+      "8b0aa05d7d2f2bdeb55943e00e67c3b65e0734048508992a2ba0b31cae3f2af8",
+      "915f4b3c304daaddb492d71108bfba0d8e2aef62c815016ccdc2a0131d0d8556",
+      "d370b80d0ba71e6f15b12f501a976dc0575b65756c07c217a3ef52d7ee6fc2bd",
+      "8b7628c158c3ab72daeee4dbe52d675a61cd3b09465213c85bef573edaaea849",
+      "273f107e19a5676a4c096d9611f05ad1dc86240644185ba056d09532bff07b80",
+      "a5b516d394a44970a6f2b0906e25425b595e36b8d7ff5af1b0edf6f42ccdca2e",
+      "1b3f80010db8bd2609d149d10a482f676d718b4830f2b4795d31d8b279f1e044",
+      "6241c8dee6088a67ec62c40fc313edec8d9361acdb41294f85a782667d72e80b"
+    ],
+    "final_state_id": "387bc350f12875bac41e277748624c107eade00a33c21c7cd0a0396dfcc9de11",
+    "final_receipt": "40e73c54c79806fdc743ba22f453bc672454c92781e3ea85e6e863a413175fd2"
+  },
+  "initial_state_id": "edc8ce91fa37114a72b284739949bef98fac4567ffd16f3279ea69a3dc3efb8b",
+  "initial_observation": {
+    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+    "state_id": "edc8ce91fa37114a72b284739949bef98fac4567ffd16f3279ea69a3dc3efb8b",
+    "location_id": "lowsail_market",
+    "title": "Lowsail Checkpoint",
+    "text": "Sava lifts the chain for your council mark; redirect the next surge at Red Sluice.",
+    "supplies": {
+      "resources": [
+        {
+          "id": "coin",
+          "name": "Coin",
+          "amount": 10
+        },
+        {
+          "id": "stamina",
+          "name": "Stamina",
+          "amount": 3
+        }
+      ],
+      "items": [
+        {
+          "id": "rope",
+          "name": "Rope",
+          "count": 1
+        }
+      ]
+    },
+    "result": null,
+    "world_time": 0,
+    "upcoming_events": [
+      {
+        "label": "Lowsail surge",
+        "remaining_ticks": 16
+      }
+    ],
+    "action_set_digest": "3dd2e29d95753592a89e7236d5dad5d9ff424c3c0748b8c78ef6dc2d688b4066",
+    "action_count": 8
+  },
+  "initial_observation_hash": "061ff1a39ecd3fdd45ee455109537d022cbb3d103bc0059b6d6eb4b8175dc1b4",
+  "initial_receipt": "5372e80909c6a73736cf56aa7d10886e22a27723721cfea4cea45ecf71ca1099",
+  "steps": [
+    {
+      "step_index": 0,
+      "action_id": "ec6d07f35dbaf2f0221acd554394825ca844085a5cf5f42d3343f9d1075d2b57",
+      "action_definition_id": "checkpoint.show_charter",
+      "action_parameters": {},
+      "legal_action_set_digest": "3dd2e29d95753592a89e7236d5dad5d9ff424c3c0748b8c78ef6dc2d688b4066",
+      "pre_state_id": "edc8ce91fa37114a72b284739949bef98fac4567ffd16f3279ea69a3dc3efb8b",
+      "events_hash": "7759ca7348d932c1da9f74c96b3798307aed0ceb93f327c6b1a599f59457a507",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "a2dff1ae0278ec5aef0db67709cc421b4695b5cf14dad17d472991f30dc959eb",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "a2dff1ae0278ec5aef0db67709cc421b4695b5cf14dad17d472991f30dc959eb",
+        "location_id": "lowsail_market",
+        "title": "Lowsail Checkpoint",
+        "text": "Sava honors your charter, opening the Authority Path at Lowsail Levee. The chain stands open; Sava directs you to the Authority Path at Lowsail Levee.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Sava honors your charter, opening the Authority Path at Lowsail Levee.",
+        "world_time": 1,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 15
+          }
+        ],
+        "action_set_digest": "b9e65e4ce7b24121807879fa3cea67cb75e758bdd4650fb544bb75d30a675385",
+        "action_count": 7
+      },
+      "observation_hash": "481312f019f93bb24fd7aa0399e661da31ce220c6acee14ac3aa4adea20929e7",
+      "receipt": "fbad78b0c106b2f24ac42d8c42b2c642e1ab042ba168511ed4bd075c2538c0f3"
+    },
+    {
+      "step_index": 1,
+      "action_id": "48bb5810a7c46d2c7fe02f47950157797d6ec2fb2ac80ca248c37ec38b4352a8",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "lowsail.levee"
+      },
+      "legal_action_set_digest": "b9e65e4ce7b24121807879fa3cea67cb75e758bdd4650fb544bb75d30a675385",
+      "pre_state_id": "a2dff1ae0278ec5aef0db67709cc421b4695b5cf14dad17d472991f30dc959eb",
+      "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "e6bf9567c0b6ce76d03a64c71e75a9843ab4144084f6b6f7c2c382fb3a2bd246",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "e6bf9567c0b6ce76d03a64c71e75a9843ab4144084f6b6f7c2c382fb3a2bd246",
+        "location_id": "lowsail.levee",
+        "title": "Lowsail Levee",
+        "text": "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You move along the connected path.",
+        "world_time": 2,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 14
+          }
+        ],
+        "action_set_digest": "51432f22c60b07ce90a29b6148c0758f89f8fb88ce36d408b99983adfe1163be",
+        "action_count": 6
+      },
+      "observation_hash": "a1815e317cbaa8ecf485b247257f65eb55a1c55b8a269a72cc5b289345dba87d",
+      "receipt": "a1e85a2340111f6f7fd96b1c59c11e7edf8f3f1440f2a49c85c9eca2b8ecd0d0"
+    },
+    {
+      "step_index": 2,
+      "action_id": "8b0aa05d7d2f2bdeb55943e00e67c3b65e0734048508992a2ba0b31cae3f2af8",
+      "action_definition_id": "levee.authority_path",
+      "action_parameters": {},
+      "legal_action_set_digest": "51432f22c60b07ce90a29b6148c0758f89f8fb88ce36d408b99983adfe1163be",
+      "pre_state_id": "e6bf9567c0b6ce76d03a64c71e75a9843ab4144084f6b6f7c2c382fb3a2bd246",
+      "events_hash": "e52a1860ca653df18d928d726a1730f6f85473f073144a86c69461c36b8b47a5",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "243e645c08d85074680a251bb0c952bc427962cd42f3419ec91f0547ce2a5008",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "243e645c08d85074680a251bb0c952bc427962cd42f3419ec91f0547ce2a5008",
+        "location_id": "red_sluice.floor",
+        "title": "Red Sluice Floor",
+        "text": "The charter opens the guarded Sluice path. Water pounds the lower gate. Edrik holds a broken gauge above the intake.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "The charter opens the guarded Sluice path.",
+        "world_time": 3,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 13
+          }
+        ],
+        "action_set_digest": "f4204ff9561042d888f3219f3616205065eaf1df23615edc31b72594b3aaba58",
+        "action_count": 6
+      },
+      "observation_hash": "12fb90cfa50e4a63504be20d9e803a12ab4b3db688b709520b53f8d5833eb5d8",
+      "receipt": "f156a5eb5ee29a79062b87c4dc33b845f582d91db33f376231866d143b027fa3"
+    },
+    {
+      "step_index": 3,
+      "action_id": "915f4b3c304daaddb492d71108bfba0d8e2aef62c815016ccdc2a0131d0d8556",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "red_sluice.top"
+      },
+      "legal_action_set_digest": "f4204ff9561042d888f3219f3616205065eaf1df23615edc31b72594b3aaba58",
+      "pre_state_id": "243e645c08d85074680a251bb0c952bc427962cd42f3419ec91f0547ce2a5008",
+      "events_hash": "2a5d0f26ab75a1e10cddde3b26c8430bbb5b5a51dd20d53cbef3c7442d388007",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "8cb03e97db9f5030123b248401e493f65e31126db7f3d44dfa0be4c83c9f296c",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "8cb03e97db9f5030123b248401e493f65e31126db7f3d44dfa0be4c83c9f296c",
+        "location_id": "red_sluice.top",
+        "title": "Red Sluice Top",
+        "text": "You move along the connected path. Mira waits beside the control wheels. A hot service ladder climbs into steam.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You move along the connected path.",
+        "world_time": 4,
+        "upcoming_events": [
+          {
+            "label": "Lowsail surge",
+            "remaining_ticks": 12
+          }
+        ],
+        "action_set_digest": "25d10c734d47ea1499109646bb9a0e5a828736bf6782177ee544c49d8e4d587c",
+        "action_count": 5
+      },
+      "observation_hash": "b6fdbdd37c8b7f2d93f9fed297c3cdc9d2e31aac1eb0459019adb79f6561fabd",
+      "receipt": "8b009702e47eb63d9daa68598c4b3dc7782df8d6a993944b1a42d721dcb364de"
+    },
+    {
+      "step_index": 4,
+      "action_id": "d370b80d0ba71e6f15b12f501a976dc0575b65756c07c217a3ef52d7ee6fc2bd",
+      "action_definition_id": "top.hold_market",
+      "action_parameters": {},
+      "legal_action_set_digest": "25d10c734d47ea1499109646bb9a0e5a828736bf6782177ee544c49d8e4d587c",
+      "pre_state_id": "8cb03e97db9f5030123b248401e493f65e31126db7f3d44dfa0be4c83c9f296c",
+      "events_hash": "ec4c955e7ee08357bf88351a03c6e892dc95972404073841d4e7c62005168bb2",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "df9d6f384750880a02ba053bc16c6025751b370d03240b04a68b576cc7bc3181",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "df9d6f384750880a02ba053bc16c6025751b370d03240b04a68b576cc7bc3181",
+        "location_id": "red_sluice.top",
+        "title": "Red Sluice Top",
+        "text": "The market stays dry while the upland works lose water. This surge is settled; choose Return to Lowsail to see the result.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "The market stays dry while the upland works lose water.",
+        "world_time": 5,
+        "upcoming_events": [],
+        "action_set_digest": "eabdba79f6e4e9beb319cd8b62dbcda8fd993f7246ac78622d2253a977373cf6",
+        "action_count": 3
+      },
+      "observation_hash": "0218decb976baac6f3e0423c60a767ec929cb943e9ce34ec99c82bd0b6bb0c94",
+      "receipt": "f73f4381d03c807695ca9d9b13c1a8703c948393937a092682b088a8289ed8e5"
+    },
+    {
+      "step_index": 5,
+      "action_id": "8b7628c158c3ab72daeee4dbe52d675a61cd3b09465213c85bef573edaaea849",
+      "action_definition_id": "world.enter_aftermath",
+      "action_parameters": {},
+      "legal_action_set_digest": "eabdba79f6e4e9beb319cd8b62dbcda8fd993f7246ac78622d2253a977373cf6",
+      "pre_state_id": "df9d6f384750880a02ba053bc16c6025751b370d03240b04a68b576cc7bc3181",
+      "events_hash": "6d6c6c6f75b14417f3c8b4e99ea4947c1e332b5367509a86da6b9dc993812c56",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "80c04a45593b3a03133dbe630ff9da86ec26a3fedd7f7b25bff54d175442a7c0",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "80c04a45593b3a03133dbe630ff9da86ec26a3fedd7f7b25bff54d175442a7c0",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "You return to Lowsail's changed market. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You return to Lowsail's changed market.",
+        "world_time": 6,
+        "upcoming_events": [],
+        "action_set_digest": "1c903f836d879dc7ad6a05331f1e863a55c5e743b266be4e353af4c9a7dbd657",
+        "action_count": 7
+      },
+      "observation_hash": "68966765dbb1663c00f0ec903810f2b607c32df86f638d48507984a1fb5d4c1f",
+      "receipt": "4423b608742deedadd7e1444038030ad3c19f3b58e947debc97ac8702731b1e9"
+    },
+    {
+      "step_index": 6,
+      "action_id": "273f107e19a5676a4c096d9611f05ad1dc86240644185ba056d09532bff07b80",
+      "action_definition_id": "return.count_dry_stalls",
+      "action_parameters": {},
+      "legal_action_set_digest": "1c903f836d879dc7ad6a05331f1e863a55c5e743b266be4e353af4c9a7dbd657",
+      "pre_state_id": "80c04a45593b3a03133dbe630ff9da86ec26a3fedd7f7b25bff54d175442a7c0",
+      "events_hash": "f1ce899e30b2329ea809e21b78a126b9b6c55eb63000f1edccf01adaa2357e5b",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "e3eb836119eaf0e4ad8ac3c75b12a871fd3fefcca09fe60bb2a8f84ecb59030e",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "e3eb836119eaf0e4ad8ac3c75b12a871fd3fefcca09fe60bb2a8f84ecb59030e",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "You enforce council control while the upland works absorb the loss. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You enforce council control while the upland works absorb the loss.",
+        "world_time": 7,
+        "upcoming_events": [],
+        "action_set_digest": "b263a98374ffc6680eff0e30075713ebba281bfb5f46d77516ea4547b704873f",
+        "action_count": 6
+      },
+      "observation_hash": "869c3470897a789ffe44e54413a471b187d0a1899956d26d33f86f6c899faa48",
+      "receipt": "df1fb625329c4f93d482faf2de6435c12054a9ed216df072d0d4e6b59efc76b7"
+    },
+    {
+      "step_index": 7,
+      "action_id": "a5b516d394a44970a6f2b0906e25425b595e36b8d7ff5af1b0edf6f42ccdca2e",
+      "action_definition_id": "return.visit_workshop",
+      "action_parameters": {},
+      "legal_action_set_digest": "b263a98374ffc6680eff0e30075713ebba281bfb5f46d77516ea4547b704873f",
+      "pre_state_id": "e3eb836119eaf0e4ad8ac3c75b12a871fd3fefcca09fe60bb2a8f84ecb59030e",
+      "events_hash": "284698fa100d122249057138ff77ee7f4e9c42aad6bcc0060ba390db24908579",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "bf6af011ab151f7d97e096e4c77c509a20681c65031ff8b3df7d19359267d0fc",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "bf6af011ab151f7d97e096e4c77c509a20681c65031ff8b3df7d19359267d0fc",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You follow the raised road to Nessa's workshop. Nessa offers two clay and one mesh for plugs or screening; optional work uses tide steps. Plugs unlock Lowsail's three-coin sorting job after the tide; screening saves two stamina loading freight.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You follow the raised road to Nessa's workshop.",
+        "world_time": 8,
+        "upcoming_events": [],
+        "action_set_digest": "b585c44bf4ddf20fcf5dc9272cec4509e384c3362536ebf04f72ce7224e0671e",
+        "action_count": 7
+      },
+      "observation_hash": "ffc4d669febaf58e090aba1204f08348f11c7b32630341c0179431f5d1dcc6ee",
+      "receipt": "1254a784a6ca5ebf6603ffc31e430cc6351fe7a738eaa65d893bfeb748a210c5"
+    },
+    {
+      "step_index": 8,
+      "action_id": "1b3f80010db8bd2609d149d10a482f676d718b4830f2b4795d31d8b279f1e044",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.ash_beds"
+      },
+      "legal_action_set_digest": "b585c44bf4ddf20fcf5dc9272cec4509e384c3362536ebf04f72ce7224e0671e",
+      "pre_state_id": "bf6af011ab151f7d97e096e4c77c509a20681c65031ff8b3df7d19359267d0fc",
+      "events_hash": "b8a92547151438cf6646de4b3d06a2b9505789a429f0846c4a27f4b2e65c72c2",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "post_state_id": "8efec9559e61384f0c42dee4d2f76fcc2f17f5c056b146346ed33ceab68db330",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "8efec9559e61384f0c42dee4d2f76fcc2f17f5c056b146346ed33ceab68db330",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You move along the connected path. Daro offers the trapped filter for clearing his rack; safe bracing costs two stamina. Pulling quickly risks a 25% chance of breakage.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You move along the connected path.",
+        "world_time": 9,
+        "upcoming_events": [],
+        "action_set_digest": "938887f685a0efa48a4f3a34faebc03dfae3b47f2bf562dffade5ad6a7772fb1",
+        "action_count": 5
+      },
+      "observation_hash": "dc8ea048f5a75f0833f7c62eb221081032b01762a2f6c1015dc0f4a583dd0dfa",
+      "receipt": "44a242c9af1b23648e351316518df0cfac422d5ec5894fd3d0a0fd828613ece2"
+    },
+    {
+      "step_index": 9,
+      "action_id": "6241c8dee6088a67ec62c40fc313edec8d9361acdb41294f85a782667d72e80b",
+      "action_definition_id": "fume_yards.pull_rack_filter",
+      "action_parameters": {},
+      "legal_action_set_digest": "938887f685a0efa48a4f3a34faebc03dfae3b47f2bf562dffade5ad6a7772fb1",
+      "pre_state_id": "8efec9559e61384f0c42dee4d2f76fcc2f17f5c056b146346ed33ceab68db330",
+      "events_hash": "448f78eaf08e7b7ad239826def7c5af40f8cdf8c7f2280c0eabed4f777acb676",
+      "entropy_before_hash": "4b8e4bcd0fef451dcedc631a52ae07a5c84d0e6b470b0bec17a680a40b2df308",
+      "entropy_draws_hash": "1f349588781d0906d1166435b5c76fb6ff84a84c576fefa6eee89c369db0d7a7",
+      "entropy_after_hash": "83d0d91c1f13c1f4690ff4a3449cf8406b84754f4e4ed2f7eb33ab37f13e3656",
+      "post_state_id": "387bc350f12875bac41e277748624c107eade00a33c21c7cd0a0396dfcc9de11",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "387bc350f12875bac41e277748624c107eade00a33c21c7cd0a0396dfcc9de11",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You pull the rack clear; the filter comes free intact. Via Workshop, use Kiln Bay's Ash Hatch, then report with Daro for one coin.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You pull the rack clear; the filter comes free intact.",
+        "world_time": 10,
+        "upcoming_events": [],
+        "action_set_digest": "1922d6910813e7591528dbca8f6a3060885b2853db02d4351b58139fafda1e1e",
+        "action_count": 3
+      },
+      "observation_hash": "0c41be2d5ba4396c7e625e13464a6f1a37b8c99eb1a2d939c2f685fae7205525",
+      "receipt": "40e73c54c79806fdc743ba22f453bc672454c92781e3ea85e6e863a413175fd2"
+    }
+  ],
+  "final_state_id": "387bc350f12875bac41e277748624c107eade00a33c21c7cd0a0396dfcc9de11",
+  "final_receipt": "40e73c54c79806fdc743ba22f453bc672454c92781e3ea85e6e863a413175fd2"
+}

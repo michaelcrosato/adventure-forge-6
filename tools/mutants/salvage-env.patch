@@ -1,0 +1,18 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -1474,7 +1474,13 @@
+                 ));
+             }
+             let draw = entropy.draw()?;
+-            let success = draw.value % 100 < u64::from(*success_percent);
++            let success = if std::env::var_os("FORGE_MUTANT_SALVAGE_CHANCE").is_some()
++                && *success_percent == 75
++            {
++                !(draw.value % 100 < u64::from(*success_percent))
++            } else {
++                draw.value % 100 < u64::from(*success_percent)
++            };
+             events.push(Event {
+                 turn,
+                 kind: EventKind::RandomDraw {

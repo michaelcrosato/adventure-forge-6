@@ -1,8 +1,8 @@
 {
   "format_version": "forge-evidence-witness-v3",
   "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
-  "scenario_id": "m2-fume-unscreened-freight",
-  "scenario_binding": "e78ffb543f222bda266d4cf3126d45a6a4bd324bffba7240f434f754c14339d5",
+  "scenario_id": "m2-fume-salvage-safe-sale",
+  "scenario_binding": "c9068f4a3ec02fb74d1b0f53e46ffa40173e617ce6a7dec0b29cb9ae6f35be00",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
     "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
@@ -20,13 +20,14 @@
       "2f023ed652d433467190cc6dbebdd5a46539f3754e300c49cbf66bfac661f9a2",
       "76da08fd1c0ea3952d27d01ba1061c92edc55f912674fbf1970ec463cd6b2de4",
       "a90413685d4e940d07d96475afc670d679b879dd4be0cf6d0435f03cf02d2941",
-      "e4e84e52fcf22fabf42c0d16c46de0c5170e5ca7c3a2d4095735aba7636704b7",
-      "cc2c71e7e3748cd96218b9f36a94b768f5902e34cd28dced4cd2ea04c4a78c4c",
-      "bd66ddd209307e53089e77261ef4d2f802244e6c3e802f5d77d239345b0a3d94",
-      "b0f5173016353cb8d66814055e5417c4d53418d1c0b1ed94047bd99157d703d8"
+      "214872e7babcdb9362d03971d0198bc524791fc46d82f7b4108c2b8c4d42b972",
+      "30b6f8c023e8df877f3e116e1d3fe5b4907a8ccf0f70b3b38679ca8f9ac594d9",
+      "b5ad37222816930fb24a4024f8e68a220f99ab765f8e95a2400e89de62b7157a",
+      "eef863cb0af078fbb826fbb7f49121e22e1e5ae7962f4b67925702592ada7c01",
+      "6198e76b14ef5a1482dadcc5d54b6f0959c8f80eeaedd009cf37c56ab3020c7a"
     ],
-    "final_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-    "final_receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+    "final_state_id": "77e3d725538b3dcdbace6dbf4a5344c0bfe203e3d61ddb725394d7cf57f61d34",
+    "final_receipt": "79b20150e27c609dee4de5662242f5e2f9bfcef2410ea1c6ff5845e0e2d13045"
   },
   "initial_state_id": "0b6a320c6f0e475b79f2336ea4546462b279a8d2a8bbb2680ad1a179e70c63b8",
   "initial_observation": {
@@ -480,22 +481,24 @@
     },
     {
       "step_index": 8,
-      "action_id": "e4e84e52fcf22fabf42c0d16c46de0c5170e5ca7c3a2d4095735aba7636704b7",
-      "action_definition_id": "fume_yards.take_stock",
-      "action_parameters": {},
+      "action_id": "214872e7babcdb9362d03971d0198bc524791fc46d82f7b4108c2b8c4d42b972",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.ash_beds"
+      },
       "legal_action_set_digest": "7b3df147773b3ac0679e24f7c599913b0caa23bdd2792c03a5328db73596f279",
       "pre_state_id": "18c4bb95d11663d50d6d6ae7b3a9f843387ab6e63edac5f2d35f7a309c088b43",
-      "events_hash": "e384a816e2f3bb48b1eb2d78bc05f17b639d462f1f935ff60b5b591bd5b5e556",
+      "events_hash": "b8a92547151438cf6646de4b3d06a2b9505789a429f0846c4a27f4b2e65c72c2",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
+      "post_state_id": "9d1adf3e9b7269c7985c8152e537e42fca3cef41b429fc00d04e67d3730019eb",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "Nessa hands over two clay and one mesh, enough for one product. Two clay and one mesh: plugs unlock three-coin sorting after Lowsail's tide; screening saves two stamina locally.",
+        "state_id": "9d1adf3e9b7269c7985c8152e537e42fca3cef41b429fc00d04e67d3730019eb",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You move along the connected path. Daro offers the trapped filter for clearing his rack; safe bracing costs two stamina. Pulling quickly risks a 25% chance of breakage.",
         "supplies": {
           "resources": [
             {
@@ -511,55 +514,45 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
-              "count": 1
-            },
-            {
               "id": "rope",
               "name": "Rope",
               "count": 1
             }
           ]
         },
-        "result": "Nessa hands over two clay and one mesh, enough for one product.",
+        "result": "You move along the connected path.",
         "world_time": 9,
         "upcoming_events": [],
-        "action_set_digest": "5a510be092a022018c0a1e01d2568f002cf893c0636cd6ae1de5e01516a395a2",
-        "action_count": 8
+        "action_set_digest": "b1fe3618f27aef07ef51f0d29466e43e814bfad69972542dd568e381df09c0bf",
+        "action_count": 5
       },
-      "observation_hash": "6f3d2b32e1b633538e9b1eeee317565b5bc52015aa820c520db9337ccc0499d9",
-      "receipt": "10831f02d454ce52eaf50d1ac6c7d9a7544071042c667e71c6c8b29a7406f560"
+      "observation_hash": "6e1d93d2facb0d93ed8e16190e6ef2f2912f3872fb4dfd4075e88e3842b9bb89",
+      "receipt": "f349c54260ad4ca0e18876783fc0308cabdf3029d2a970936e731bf389c2ba5d"
     },
     {
       "step_index": 9,
-      "action_id": "cc2c71e7e3748cd96218b9f36a94b768f5902e34cd28dced4cd2ea04c4a78c4c",
-      "action_definition_id": "fume_yards.load_freight",
+      "action_id": "30b6f8c023e8df877f3e116e1d3fe5b4907a8ccf0f70b3b38679ca8f9ac594d9",
+      "action_definition_id": "fume_yards.brace_rack",
       "action_parameters": {},
-      "legal_action_set_digest": "5a510be092a022018c0a1e01d2568f002cf893c0636cd6ae1de5e01516a395a2",
-      "pre_state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
-      "events_hash": "898619b8a1edca8b37eb0d670100127a2ac9016d8987a646d916abdd053fa517",
+      "legal_action_set_digest": "b1fe3618f27aef07ef51f0d29466e43e814bfad69972542dd568e381df09c0bf",
+      "pre_state_id": "9d1adf3e9b7269c7985c8152e537e42fca3cef41b429fc00d04e67d3730019eb",
+      "events_hash": "0f77a38c3136156cb4c343ae254c21aa957beabbe62bc4eb761b1f7ccf5293fe",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
+      "post_state_id": "7b1be6b559f4ebddb435ea0b97d62f14d909eb3e55dab8b619994f68e8250efd",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished. Nessa's freight job is finished; Press Repair Plugs uses your remaining materials for Lowsail's three-coin sorting.",
+        "state_id": "7b1be6b559f4ebddb435ea0b97d62f14d909eb3e55dab8b619994f68e8250efd",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You spend two stamina setting fixed props beneath the rack. Recovery is now safe. The fixed props hold; recover the filter safely without spending further stamina.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
@@ -569,13 +562,56 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You spend two stamina setting fixed props beneath the rack. Recovery is now safe.",
+        "world_time": 10,
+        "upcoming_events": [],
+        "action_set_digest": "ef4d091685acc01f39badf06f4f9956f9a9362e98292697687c228a772ea35a9",
+        "action_count": 4
+      },
+      "observation_hash": "cfc273cf6038117a83d6741d298da8d22a8236ce504badf97c6c041f13d9c30f",
+      "receipt": "05f97f31b70f3034882edecc11ba329efb49886fc85c08f71876cb9f35b7eb4d"
+    },
+    {
+      "step_index": 10,
+      "action_id": "b5ad37222816930fb24a4024f8e68a220f99ab765f8e95a2400e89de62b7157a",
+      "action_definition_id": "fume_yards.recover_braced_filter",
+      "action_parameters": {},
+      "legal_action_set_digest": "ef4d091685acc01f39badf06f4f9956f9a9362e98292697687c228a772ea35a9",
+      "pre_state_id": "7b1be6b559f4ebddb435ea0b97d62f14d909eb3e55dab8b619994f68e8250efd",
+      "events_hash": "4c32e963f0ce41c53dbeaa0c24b9ff530a2a3a2300d6b460bf385a898012d778",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "a197aa021a02ec8d0d7f77de84ec16f311046ac6c12605ec2fa79c670a6d4a79",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "a197aa021a02ec8d0d7f77de84ec16f311046ac6c12605ec2fa79c670a6d4a79",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You recover the filter intact; Daro accepts the cleared rack and pays it to you. Via Workshop, use Kiln Bay's Ash Hatch, then report with Daro for one coin.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
             },
             {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 1
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
               "count": 1
             },
             {
@@ -585,30 +621,30 @@
             }
           ]
         },
-        "result": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished.",
-        "world_time": 10,
+        "result": "You recover the filter intact; Daro accepts the cleared rack and pays it to you.",
+        "world_time": 11,
         "upcoming_events": [],
-        "action_set_digest": "a45777875655fe163194abe90ff599b76c976a18b9e30e7ac2766ff513fde68b",
-        "action_count": 6
+        "action_set_digest": "1e476c89996e7ee897e27ed178557f14ea1f6d733c95e613c52a85933f129720",
+        "action_count": 3
       },
-      "observation_hash": "584932773bf1a9d5e3ba4c4cea9cb3474ab63afcb201a93a3403bf1a28c4e8b2",
-      "receipt": "e56fedd9e643bd83ded178fa265d2582c61a556c2630845ac32ccfeaed93b69c"
+      "observation_hash": "1e9abb562f81d62a1e93f5fbf5eeefe26f954e0961e6437e51ce7a8b26452c0a",
+      "receipt": "82710375e2c439125a6cac4fc2dcd1bb50d5c35d165e092861f92104338c8490"
     },
     {
-      "step_index": 10,
-      "action_id": "bd66ddd209307e53089e77261ef4d2f802244e6c3e802f5d77d239345b0a3d94",
+      "step_index": 11,
+      "action_id": "eef863cb0af078fbb826fbb7f49121e22e1e5ae7962f4b67925702592ada7c01",
       "action_definition_id": "world.enter_aftermath",
       "action_parameters": {},
-      "legal_action_set_digest": "a45777875655fe163194abe90ff599b76c976a18b9e30e7ac2766ff513fde68b",
-      "pre_state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
-      "events_hash": "6f317f0035d4692c3068e1c526dced55c1579836f9a399296708b5ec873aa6ec",
+      "legal_action_set_digest": "1e476c89996e7ee897e27ed178557f14ea1f6d733c95e613c52a85933f129720",
+      "pre_state_id": "a197aa021a02ec8d0d7f77de84ec16f311046ac6c12605ec2fa79c670a6d4a79",
+      "events_hash": "4aa59f56195318f5f28622d755a57bade551fd76bf92d4b678499ef2864ef790",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
+      "post_state_id": "0a8f7e8c16d6ebffc058e3d5a1764460c64f98e0fe46c86f1f5b07c1fd158201",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
+        "state_id": "0a8f7e8c16d6ebffc058e3d5a1764460c64f98e0fe46c86f1f5b07c1fd158201",
         "location_id": "lowsail.return",
         "title": "Lowsail Return",
         "text": "You return to Lowsail's changed market. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
@@ -617,7 +653,7 @@
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
@@ -627,13 +663,8 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
+              "id": "fume_yards.filter",
+              "name": "Filter",
               "count": 1
             },
             {
@@ -644,38 +675,38 @@
           ]
         },
         "result": "You return to Lowsail's changed market.",
-        "world_time": 11,
+        "world_time": 12,
         "upcoming_events": [],
-        "action_set_digest": "b6120a0ab4275d1c6c9d92972108f17ac29c1e0ac036886e095fa0b58d43b0d4",
-        "action_count": 6
+        "action_set_digest": "53f99354c690a7f6ab302ac5ce5a61280ff6df6507be904612172203cd31c045",
+        "action_count": 7
       },
-      "observation_hash": "85bfdcde2e35f75b07e8d39670a842f1be3aa42ccb80de9bfc90149e15a7da35",
-      "receipt": "137042d58771d52a7e1346c3fdb88ba4ebd8fc37b5d9214ee560c802b08c065e"
+      "observation_hash": "1d540a0a2af570e53874944fce4b2e1837f2c6315700352d720ff59cc2d16ecc",
+      "receipt": "a2563785a0bd7166cb8dd52ff8a8cb24690f7e03914f5086724be92b8c625c4d"
     },
     {
-      "step_index": 11,
-      "action_id": "b0f5173016353cb8d66814055e5417c4d53418d1c0b1ed94047bd99157d703d8",
-      "action_definition_id": "return.visit_workshop",
+      "step_index": 12,
+      "action_id": "6198e76b14ef5a1482dadcc5d54b6f0959c8f80eeaedd009cf37c56ab3020c7a",
+      "action_definition_id": "return.sell_filter",
       "action_parameters": {},
-      "legal_action_set_digest": "b6120a0ab4275d1c6c9d92972108f17ac29c1e0ac036886e095fa0b58d43b0d4",
-      "pre_state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
-      "events_hash": "a98f60221d67dce6274c93f25b258acf694491326f2395e8e4dce0db899d56e9",
+      "legal_action_set_digest": "53f99354c690a7f6ab302ac5ce5a61280ff6df6507be904612172203cd31c045",
+      "pre_state_id": "0a8f7e8c16d6ebffc058e3d5a1764460c64f98e0fe46c86f1f5b07c1fd158201",
+      "events_hash": "1522eeccc293bdf14ac31fdc3f22c96af70d4406d6252a997d932ee171d6cb46",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
+      "post_state_id": "77e3d725538b3dcdbace6dbf4a5344c0bfe203e3d61ddb725394d7cf57f61d34",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You follow the raised road to Nessa's workshop. Nessa's freight job is finished; Press Repair Plugs uses your remaining materials for Lowsail's three-coin sorting.",
+        "state_id": "77e3d725538b3dcdbace6dbf4a5344c0bfe203e3d61ddb725394d7cf57f61d34",
+        "location_id": "lowsail.return",
+        "title": "Lowsail Return",
+        "text": "Oren buys your filter for four coins. The sale does not install a dust or water filter. Oren remembers buying your filter in dry Lowsail; the upland works still lack water.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 14
             },
             {
               "id": "stamina",
@@ -685,32 +716,22 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
-              "count": 1
-            },
-            {
               "id": "rope",
               "name": "Rope",
               "count": 1
             }
           ]
         },
-        "result": "You follow the raised road to Nessa's workshop.",
-        "world_time": 12,
+        "result": "Oren buys your filter for four coins. The sale does not install a dust or water filter.",
+        "world_time": 13,
         "upcoming_events": [],
-        "action_set_digest": "a9231858753f19cf3d8ed39566e4f6431a5d77df9c5607b9d13090f0d89b73ec",
+        "action_set_digest": "6e14a76b03668d1fc30a7b9715fbe3f451a42f4b49ac70db16dccda86d1e0470",
         "action_count": 6
       },
-      "observation_hash": "d97d6eba9e01a2452b3782475ed34096f22aeb2f138082f8f181e79480ccc3f3",
-      "receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+      "observation_hash": "4d2b9daefe5408d4168caebc825be22243cee8886aa0f4f1411a228f263fb5fc",
+      "receipt": "79b20150e27c609dee4de5662242f5e2f9bfcef2410ea1c6ff5845e0e2d13045"
     }
   ],
-  "final_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-  "final_receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+  "final_state_id": "77e3d725538b3dcdbace6dbf4a5344c0bfe203e3d61ddb725394d7cf57f61d34",
+  "final_receipt": "79b20150e27c609dee4de5662242f5e2f9bfcef2410ea1c6ff5845e0e2d13045"
 }

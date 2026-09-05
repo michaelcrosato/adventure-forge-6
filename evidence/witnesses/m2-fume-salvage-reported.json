@@ -1,8 +1,8 @@
 {
   "format_version": "forge-evidence-witness-v3",
   "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
-  "scenario_id": "m2-fume-unscreened-freight",
-  "scenario_binding": "e78ffb543f222bda266d4cf3126d45a6a4bd324bffba7240f434f754c14339d5",
+  "scenario_id": "m2-fume-salvage-reported",
+  "scenario_binding": "b544b3418d7ef3800f16ec9ce2622f4473955153dbefb862be9260fe35889dfa",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
     "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
@@ -20,13 +20,15 @@
       "2f023ed652d433467190cc6dbebdd5a46539f3754e300c49cbf66bfac661f9a2",
       "76da08fd1c0ea3952d27d01ba1061c92edc55f912674fbf1970ec463cd6b2de4",
       "a90413685d4e940d07d96475afc670d679b879dd4be0cf6d0435f03cf02d2941",
-      "e4e84e52fcf22fabf42c0d16c46de0c5170e5ca7c3a2d4095735aba7636704b7",
-      "cc2c71e7e3748cd96218b9f36a94b768f5902e34cd28dced4cd2ea04c4a78c4c",
-      "bd66ddd209307e53089e77261ef4d2f802244e6c3e802f5d77d239345b0a3d94",
-      "b0f5173016353cb8d66814055e5417c4d53418d1c0b1ed94047bd99157d703d8"
+      "6d7f6aa3860da5711510e75f8efde2f3b7e2c9f956538c0f562f8fd6e8eeee74",
+      "298f89d58674cead8fcc9c867f621ceac879e6d1499fa2d7a614228c925bff67",
+      "05d4becf330556f184a0ab7927e6eee01e7dd3c552401c5ca2c90c57bfcab907",
+      "29eec0d2b9aec9148fed6d218ccd9f426a125467abd1b0d0aa02b7c0589320f5",
+      "58fd34b17b920aa71d9c518f9117a0c14d686483d42e084b945d71fe553b4ee6",
+      "bca1eb50eddb29a996f934343c3d97123b788930396b33276a1879f0cf1cfd66"
     ],
-    "final_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-    "final_receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+    "final_state_id": "39b46da66ef73d4b2bd722db5f1f07e5b82183aef75cde6b19b89e73eb57c310",
+    "final_receipt": "2acdc26e5a0646be1daeccf8b8144c7b05b9f39fc7d55d6072acb4f84d50bfec"
   },
   "initial_state_id": "0b6a320c6f0e475b79f2336ea4546462b279a8d2a8bbb2680ad1a179e70c63b8",
   "initial_observation": {
@@ -480,22 +482,24 @@
     },
     {
       "step_index": 8,
-      "action_id": "e4e84e52fcf22fabf42c0d16c46de0c5170e5ca7c3a2d4095735aba7636704b7",
-      "action_definition_id": "fume_yards.take_stock",
-      "action_parameters": {},
+      "action_id": "6d7f6aa3860da5711510e75f8efde2f3b7e2c9f956538c0f562f8fd6e8eeee74",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.kiln_bay"
+      },
       "legal_action_set_digest": "7b3df147773b3ac0679e24f7c599913b0caa23bdd2792c03a5328db73596f279",
       "pre_state_id": "18c4bb95d11663d50d6d6ae7b3a9f843387ab6e63edac5f2d35f7a309c088b43",
-      "events_hash": "e384a816e2f3bb48b1eb2d78bc05f17b639d462f1f935ff60b5b591bd5b5e556",
+      "events_hash": "2cec3decda6017c75c4c0adb68b614a1859642b8cf8406c1910535cd234541e6",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
+      "post_state_id": "a03cd2972bc475709025273a0bfed537be2080c038f064c07dc91ae7b89d13f0",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "Nessa hands over two clay and one mesh, enough for one product. Two clay and one mesh: plugs unlock three-coin sorting after Lowsail's tide; screening saves two stamina locally.",
+        "state_id": "a03cd2972bc475709025273a0bfed537be2080c038f064c07dc91ae7b89d13f0",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You move along the connected path. Two clay, one mesh, fuel, and wet screening fire a filter. Oren pays four coins; Brann's filter saves two stamina.",
         "supplies": {
           "resources": [
             {
@@ -511,73 +515,53 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
-              "count": 1
-            },
-            {
               "id": "rope",
               "name": "Rope",
               "count": 1
             }
           ]
         },
-        "result": "Nessa hands over two clay and one mesh, enough for one product.",
+        "result": "You move along the connected path.",
         "world_time": 9,
         "upcoming_events": [],
-        "action_set_digest": "5a510be092a022018c0a1e01d2568f002cf893c0636cd6ae1de5e01516a395a2",
-        "action_count": 8
+        "action_set_digest": "53369838c54064a3d026afcb96f2667da90f2df8c9bee3daad707b810e190065",
+        "action_count": 6
       },
-      "observation_hash": "6f3d2b32e1b633538e9b1eeee317565b5bc52015aa820c520db9337ccc0499d9",
-      "receipt": "10831f02d454ce52eaf50d1ac6c7d9a7544071042c667e71c6c8b29a7406f560"
+      "observation_hash": "68a7b3347fbddbf6110c49aaf5a9aaec352226ade86e74ca1b8d5eabd348e5a9",
+      "receipt": "3e78fabcf282e14f2994e2ab2321cf795ec7e18e035ec94e50294cff134c886e"
     },
     {
       "step_index": 9,
-      "action_id": "cc2c71e7e3748cd96218b9f36a94b768f5902e34cd28dced4cd2ea04c4a78c4c",
-      "action_definition_id": "fume_yards.load_freight",
+      "action_id": "298f89d58674cead8fcc9c867f621ceac879e6d1499fa2d7a614228c925bff67",
+      "action_definition_id": "fume_yards.enter_ash_hatch",
       "action_parameters": {},
-      "legal_action_set_digest": "5a510be092a022018c0a1e01d2568f002cf893c0636cd6ae1de5e01516a395a2",
-      "pre_state_id": "11c26167d5979745262650c151f5bc4197b40a768a3089a7467176a5b9233e4b",
-      "events_hash": "898619b8a1edca8b37eb0d670100127a2ac9016d8987a646d916abdd053fa517",
+      "legal_action_set_digest": "53369838c54064a3d026afcb96f2667da90f2df8c9bee3daad707b810e190065",
+      "pre_state_id": "a03cd2972bc475709025273a0bfed537be2080c038f064c07dc91ae7b89d13f0",
+      "events_hash": "932a561321b16b2d74248a645098877d5fa3ca41b32d65d6b8fc370efb08c89d",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
+      "post_state_id": "baeb80f6dd5c23d40262f6ec03f289183b668e39eaeac294bb5e082838afe7df",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished. Nessa's freight job is finished; Press Repair Plugs uses your remaining materials for Lowsail's three-coin sorting.",
+        "state_id": "baeb80f6dd5c23d40262f6ec03f289183b668e39eaeac294bb5e082838afe7df",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You take the maintenance hatch to the rack's rear. Daro offers the trapped filter for clearing his rack; safe bracing costs two stamina. Pulling quickly risks a 25% chance of breakage.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
               "name": "Stamina",
-              "amount": 1
+              "amount": 3
             }
           ],
           "items": [
-            {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
-              "count": 1
-            },
             {
               "id": "rope",
               "name": "Rope",
@@ -585,39 +569,39 @@
             }
           ]
         },
-        "result": "You load the freight and clear loose ash, spending two stamina. Nessa pays two coins; this job is finished.",
+        "result": "You take the maintenance hatch to the rack's rear.",
         "world_time": 10,
         "upcoming_events": [],
-        "action_set_digest": "a45777875655fe163194abe90ff599b76c976a18b9e30e7ac2766ff513fde68b",
+        "action_set_digest": "213c136892b4811a12606f12ac21e2e8288f8f1ccaf2756e1275afcb6b78417b",
         "action_count": 6
       },
-      "observation_hash": "584932773bf1a9d5e3ba4c4cea9cb3474ab63afcb201a93a3403bf1a28c4e8b2",
-      "receipt": "e56fedd9e643bd83ded178fa265d2582c61a556c2630845ac32ccfeaed93b69c"
+      "observation_hash": "14adafe799246859fbce38742254286ed0c7871015cf02c50dd091faea3af111",
+      "receipt": "0c9092cbef6d579ed01ef5e2597ecc7f77f5d1867b2d2d428577cb27df77855c"
     },
     {
       "step_index": 10,
-      "action_id": "bd66ddd209307e53089e77261ef4d2f802244e6c3e802f5d77d239345b0a3d94",
-      "action_definition_id": "world.enter_aftermath",
+      "action_id": "05d4becf330556f184a0ab7927e6eee01e7dd3c552401c5ca2c90c57bfcab907",
+      "action_definition_id": "fume_yards.brace_rack",
       "action_parameters": {},
-      "legal_action_set_digest": "a45777875655fe163194abe90ff599b76c976a18b9e30e7ac2766ff513fde68b",
-      "pre_state_id": "bde5bc2a320b032bec6bdda505ac2d2cdbcf7ee6382e8024d905e4315b5e8eb0",
-      "events_hash": "6f317f0035d4692c3068e1c526dced55c1579836f9a399296708b5ec873aa6ec",
+      "legal_action_set_digest": "213c136892b4811a12606f12ac21e2e8288f8f1ccaf2756e1275afcb6b78417b",
+      "pre_state_id": "baeb80f6dd5c23d40262f6ec03f289183b668e39eaeac294bb5e082838afe7df",
+      "events_hash": "5578621b0e839a4a2f9b6dac60af866122dd3463620a7717bfb7639b8d6ca8bb",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
+      "post_state_id": "7cd56887370599b1ad437bd52641b8195e0676dfff57569826b787dbf9d18d03",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
-        "location_id": "lowsail.return",
-        "title": "Lowsail Return",
-        "text": "You return to Lowsail's changed market. Oren, Sava, and Mira survey dry Lowsail while the upland works lose their water.",
+        "state_id": "7cd56887370599b1ad437bd52641b8195e0676dfff57569826b787dbf9d18d03",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You spend two stamina setting fixed props beneath the rack. Recovery is now safe. The fixed props hold; recover the filter safely without spending further stamina.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
@@ -627,55 +611,45 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
-              "count": 1
-            },
-            {
               "id": "rope",
               "name": "Rope",
               "count": 1
             }
           ]
         },
-        "result": "You return to Lowsail's changed market.",
+        "result": "You spend two stamina setting fixed props beneath the rack. Recovery is now safe.",
         "world_time": 11,
         "upcoming_events": [],
-        "action_set_digest": "b6120a0ab4275d1c6c9d92972108f17ac29c1e0ac036886e095fa0b58d43b0d4",
-        "action_count": 6
+        "action_set_digest": "2ee1412fa35e9ce9d2665ced15f11961c5c6d74683e04400c1a710fd2269d092",
+        "action_count": 5
       },
-      "observation_hash": "85bfdcde2e35f75b07e8d39670a842f1be3aa42ccb80de9bfc90149e15a7da35",
-      "receipt": "137042d58771d52a7e1346c3fdb88ba4ebd8fc37b5d9214ee560c802b08c065e"
+      "observation_hash": "7bafb352b3997642a83efaa6ab596f39e38389667c69cb320fbdacaa673eebda",
+      "receipt": "63503fb4a7f745c371e27a14f553d195aa44df50d59b9839ece8f31de62951f3"
     },
     {
       "step_index": 11,
-      "action_id": "b0f5173016353cb8d66814055e5417c4d53418d1c0b1ed94047bd99157d703d8",
-      "action_definition_id": "return.visit_workshop",
+      "action_id": "29eec0d2b9aec9148fed6d218ccd9f426a125467abd1b0d0aa02b7c0589320f5",
+      "action_definition_id": "fume_yards.recover_braced_filter",
       "action_parameters": {},
-      "legal_action_set_digest": "b6120a0ab4275d1c6c9d92972108f17ac29c1e0ac036886e095fa0b58d43b0d4",
-      "pre_state_id": "c047249a8d6ae7d10d12c995d6ba29593efb4119fdd06ce675c72747a2e571b1",
-      "events_hash": "a98f60221d67dce6274c93f25b258acf694491326f2395e8e4dce0db899d56e9",
+      "legal_action_set_digest": "2ee1412fa35e9ce9d2665ced15f11961c5c6d74683e04400c1a710fd2269d092",
+      "pre_state_id": "7cd56887370599b1ad437bd52641b8195e0676dfff57569826b787dbf9d18d03",
+      "events_hash": "242a488596213a2d1673efc65bdbaed790368e0970e4e1a06a3b935723480573",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
+      "post_state_id": "e60fec7116887652a68b5092cabe788961c4cf965199159e437f074166a89cf4",
       "observation": {
         "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
-        "state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-        "location_id": "fume_yards.workshop",
-        "title": "Fume Yards Workshop",
-        "text": "You follow the raised road to Nessa's workshop. Nessa's freight job is finished; Press Repair Plugs uses your remaining materials for Lowsail's three-coin sorting.",
+        "state_id": "e60fec7116887652a68b5092cabe788961c4cf965199159e437f074166a89cf4",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "You recover the filter intact; Daro accepts the cleared rack and pays it to you. The rack is clear; reporting with Daro through the rear hatch earns one coin.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 12
+              "amount": 10
             },
             {
               "id": "stamina",
@@ -685,13 +659,8 @@
           ],
           "items": [
             {
-              "id": "fume_yards.clay",
-              "name": "Clay",
-              "count": 2
-            },
-            {
-              "id": "fume_yards.mesh",
-              "name": "Mesh",
+              "id": "fume_yards.filter",
+              "name": "Filter",
               "count": 1
             },
             {
@@ -701,16 +670,122 @@
             }
           ]
         },
-        "result": "You follow the raised road to Nessa's workshop.",
+        "result": "You recover the filter intact; Daro accepts the cleared rack and pays it to you.",
         "world_time": 12,
         "upcoming_events": [],
-        "action_set_digest": "a9231858753f19cf3d8ed39566e4f6431a5d77df9c5607b9d13090f0d89b73ec",
-        "action_count": 6
+        "action_set_digest": "e6b5eeadb1ea5ceb021265c32e2aab073d7fdb7577146d32e7ede01a8fef451c",
+        "action_count": 5
       },
-      "observation_hash": "d97d6eba9e01a2452b3782475ed34096f22aeb2f138082f8f181e79480ccc3f3",
-      "receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+      "observation_hash": "38c21e0710c14ec0c45fe0f67cf21f8e0c79b91607ae6de1e49e925d7d49ab40",
+      "receipt": "7d4ddd5d7f4e8db7bd0a417da204de9f98101ed26114b037388a8c54520d49f8"
+    },
+    {
+      "step_index": 12,
+      "action_id": "58fd34b17b920aa71d9c518f9117a0c14d686483d42e084b945d71fe553b4ee6",
+      "action_definition_id": "fume_yards.report_with_daro",
+      "action_parameters": {},
+      "legal_action_set_digest": "e6b5eeadb1ea5ceb021265c32e2aab073d7fdb7577146d32e7ede01a8fef451c",
+      "pre_state_id": "e60fec7116887652a68b5092cabe788961c4cf965199159e437f074166a89cf4",
+      "events_hash": "e3c9a9093cb150571f212d3591727024fd724fdbe93bde75a1830a9338d39ed0",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "8bbfcfe469363834a63b441511629c2c2382306f0d03334591378096cc48d519",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "8bbfcfe469363834a63b441511629c2c2382306f0d03334591378096cc48d519",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "Daro follows you to Brann and confirms the rack is clear. Brann pays one coin for restored access. Fit your filter here: loading saves two stamina; Oren at Lowsail pays four coins instead.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 11
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 1
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Daro follows you to Brann and confirms the rack is clear. Brann pays one coin for restored access.",
+        "world_time": 13,
+        "upcoming_events": [],
+        "action_set_digest": "9508866f27d98a79e38b87bb1d80cbd5626ab3b2e790193263e0e1c18d4d7bd6",
+        "action_count": 7
+      },
+      "observation_hash": "a6cdb6031f9997c17024eec82c54ca4abfda0cc68084935642b8038d6ddd87b5",
+      "receipt": "44ccec17f2df3585c586a7436ff2e5c4c5c44d6047fb1dadaf02fbb4e22bedf7"
+    },
+    {
+      "step_index": 13,
+      "action_id": "bca1eb50eddb29a996f934343c3d97123b788930396b33276a1879f0cf1cfd66",
+      "action_definition_id": "wait_tide",
+      "action_parameters": {},
+      "legal_action_set_digest": "9508866f27d98a79e38b87bb1d80cbd5626ab3b2e790193263e0e1c18d4d7bd6",
+      "pre_state_id": "8bbfcfe469363834a63b441511629c2c2382306f0d03334591378096cc48d519",
+      "events_hash": "46f2e075b05998ec02136a4a09ac84aa15d9a9d46ad5f4332e4177da0e48a68a",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "39b46da66ef73d4b2bd722db5f1f07e5b82183aef75cde6b19b89e73eb57c310",
+      "observation": {
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "39b46da66ef73d4b2bd722db5f1f07e5b82183aef75cde6b19b89e73eb57c310",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "The tide shifts one step. Fit your filter here: loading saves two stamina; Oren at Lowsail pays four coins instead.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 11
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 1
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "The tide shifts one step.",
+        "world_time": 14,
+        "upcoming_events": [],
+        "action_set_digest": "28e71f035c2c4d4cf41d21861d9203fa98547385abca6590607a223ab63de0c9",
+        "action_count": 7
+      },
+      "observation_hash": "7729e714ea234eec6430b660ce5f7114a947b6044cc716422dd25e0499b86496",
+      "receipt": "2acdc26e5a0646be1daeccf8b8144c7b05b9f39fc7d55d6072acb4f84d50bfec"
     }
   ],
-  "final_state_id": "f568ea2ed2aa7f5dd244bed0d834f251bff3cb80ceecd174b2588fde971d6c07",
-  "final_receipt": "2447bbf79628658772362453257de04dfab38bcb86093f2b1720635b652de93e"
+  "final_state_id": "39b46da66ef73d4b2bd722db5f1f07e5b82183aef75cde6b19b89e73eb57c310",
+  "final_receipt": "2acdc26e5a0646be1daeccf8b8144c7b05b9f39fc7d55d6072acb4f84d50bfec"
 }

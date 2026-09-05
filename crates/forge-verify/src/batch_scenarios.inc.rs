@@ -382,6 +382,7 @@ const fn batch_expectations(
             "fume_yards.spoiled_charge"
         ),
         recipe_events: &[],
+        entropy_draws: &[],
         deferred_events: &[],
         pending_deferred_events: &[],
         required_legal_definitions: &["wait_tide"],
@@ -536,6 +537,7 @@ const BATCH_READY_SPEC: ScenarioSpec = batch_spec(
         ),
         required_npc_memories: batch_memories!(8, 10, 11, 12, 13, 14;),
         recipe_events: BATCH_BASE_RECIPES,
+        entropy_draws: &[],
         deferred_events: BATCH_READY_HISTORY,
         pending_deferred_events: BATCH_PENDING_SPOIL,
         required_legal_definitions: &[
@@ -585,6 +587,7 @@ const BATCH_LOCAL_SPEC: ScenarioSpec = batch_spec(
         ],
         required_npc_memories: batch_memories!(8, 10, 11, 12, 13, 14; batch_memory("fume_yards.brann_coil", "fume_yards.filter_drawn", 16), batch_memory("fume_yards.brann_coil", "fume_yards.dust_filter_fitted", 17), batch_memory("fume_yards.brann_coil", "fume_yards.kiln_freight_paid", 18)),
         recipe_events: BATCH_LOCAL_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: BATCH_DRAWN_HISTORY,
         forbidden_legal_definitions: &[
             "fume_yards.draw_filter",
@@ -633,6 +636,7 @@ const BATCH_SALE_SPEC: ScenarioSpec = batch_spec(
         ],
         required_npc_memories: batch_memories!(8, 10, 11, 12, 13, 14; batch_memory("fume_yards.brann_coil", "fume_yards.filter_drawn", 16), batch_memory("oren_pell", "fume_yards.filter_bought", 18)),
         recipe_events: BATCH_SALE_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: BATCH_DRAWN_HISTORY,
         forbidden_legal_definitions: &[
             "return.sell_filter",
@@ -693,6 +697,7 @@ const BATCH_BARE_SPEC: ScenarioSpec = batch_spec(
         ),
         required_npc_memories: batch_memories!(8, 10, 11, 12, 13, 14; batch_memory("fume_yards.brann_coil", "fume_yards.filter_drawn", 16), batch_memory("fume_yards.brann_coil", "fume_yards.kiln_freight_paid", 17)),
         recipe_events: BATCH_BARE_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: BATCH_READY_HISTORY,
         pending_deferred_events: BATCH_PENDING_SPOIL,
         required_legal_definitions: &["wait_tide"],
@@ -747,6 +752,7 @@ const BATCH_REMOTE_SPEC: ScenarioSpec = batch_spec(
         ),
         required_npc_memories: batch_memories!(8, 10, 11, 12, 13, 14;),
         recipe_events: BATCH_REMOTE_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: BATCH_REMOTE_DEFERRED_EVENTS,
         ..batch_expectations(19, "lowsail.docks", "travel_adjacent", "Batch spoiled.")
     },
@@ -796,6 +802,7 @@ const BATCH_BANK_SPEC: ScenarioSpec = batch_spec(
         ),
         required_npc_memories: batch_memories!(3, 5, 6, 7, 8, 9; batch_memory("fume_yards.brann_coil", "fume_yards.kiln_banked", 10), batch_memory("fume_yards.brann_coil", "fume_yards.kiln_freight_paid", 20)),
         recipe_events: BATCH_BANK_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: &[
             batch_schedule(9, "fume_yards.batch_ready", 11),
             batch_schedule(9, "fume_yards.batch_spoil", 14),
@@ -868,6 +875,7 @@ const BATCH_MISSED_SPEC: ScenarioSpec = batch_spec(
         ],
         required_npc_memories: batch_memories!(3, 5, 6, 7, 8, 9; batch_memory("fume_yards.brann_coil", "fume_yards.filter_drawn", 11), batch_memory("oren_pell", "fume_yards.filter_bought", 18)),
         recipe_events: BATCH_MISSED_RECIPE_EVENTS,
+        entropy_draws: &[],
         deferred_events: &[
             batch_schedule(9, "fume_yards.batch_ready", 11),
             batch_schedule(9, "fume_yards.batch_spoil", 14),
@@ -991,6 +999,7 @@ const BATCH_LATE_SPEC: ScenarioSpec = ScenarioSpec {
                     &[],
                 ),
             ],
+            entropy_draws: &[],
             deferred_events: &[
                 batch_schedule(135, "fume_yards.batch_ready", 137),
                 batch_schedule(135, "fume_yards.batch_spoil", 140),

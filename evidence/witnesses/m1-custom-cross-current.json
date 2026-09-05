@@ -1,11 +1,11 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "1098f187201bbb0ffcf39e90cba5e17257252947c6258e367fa509a44132a5ba",
+  "verifier_id": "9f3dde0ab609130920e36a100fdbd3bd46a4713e7ed168f7a672ff3fdf43b976",
   "scenario_id": "m1-custom-cross-current",
-  "scenario_binding": "fbcb6014d5358dffdcd0589b28faf4bb48d0177b9950ddd4b8150af12d4bca5a",
+  "scenario_binding": "821f6f61a1e4a5d4f88841c3c68e4a819f2e08cd6fa49ae2b13c0d3fd32db1b9",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
+    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
     "start": {
       "kind": "character_creation",
       "selection": {
@@ -40,17 +40,17 @@
       "seed": 71
     },
     "action_ids": [
-      "16bf556f40247372a6ea8f680608ebbbb233513832901b9077be590e1bb8c817",
-      "32fdfd2d8bfc32d45ac424cb58a043e86ec6037008ec5dbf084a597a4783b570",
-      "77bd287f2a7cd67300f11bbc665694442717565664b3d170ece962d5cbcfdd53"
+      "67ce9ad6da46f37ec3a6687cdd7c29abecee6d122e02264ee7f0411085558bd1",
+      "6f613023bd975facce6d384dced92430860d08f9ba3de4342b044fe6749f8e43",
+      "dd39f9252fea86795eba97274ec414142ebf1ee71ae476039b2ed152ed430cf7"
     ],
-    "final_state_id": "af7508b62125b9a16e7526c316406329fb4b64a909822d0913676e14077412a4",
-    "final_receipt": "a172f1dd2bb591c452450261801a60ae352914f1785c38c6ddd7d458787b2445"
+    "final_state_id": "5a367c75295c69e52708d0abe7d5eeecc578cb669f64627639e8d1fb62687a52",
+    "final_receipt": "db5bd1031b18eb556fc0bd53435d1f7960a031e63b4ef016b355aa3406554449"
   },
-  "initial_state_id": "b707207599aeb145cd9dcdf37b572d62f04b78c603e653169b533bcb7092387c",
+  "initial_state_id": "4741af7c62f4f9acbeb7a33ba7b99d53fb8b4762bb9f85620cc03e73d1d01b4e",
   "initial_observation": {
-    "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-    "state_id": "b707207599aeb145cd9dcdf37b572d62f04b78c603e653169b533bcb7092387c",
+    "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+    "state_id": "4741af7c62f4f9acbeb7a33ba7b99d53fb8b4762bb9f85620cc03e73d1d01b4e",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "Sava lifts the chain for your council mark; redirect the next surge at Red Sluice.",
@@ -83,27 +83,27 @@
         "remaining_ticks": 16
       }
     ],
-    "action_set_digest": "f7d68a426031fd17cb7a4d891d434fcfca813765e3ba1f5c0212693a9d2d148e",
+    "action_set_digest": "a2c29ced452db99413617f6ec342eb625e023c974820a1b1009d5d15a0a8ab4d",
     "action_count": 8
   },
-  "initial_observation_hash": "8e5a1d0e62dfada1a77c2a952cd4de8e4cc13afed21bec627e6737acf71f0f0c",
-  "initial_receipt": "e4e44f34452ede8395ff895acff5238a42334f32d5998503f1ba12a1b0f2d980",
+  "initial_observation_hash": "d8dcc35853cf814e981159031227e9cf689e83b190855e52f3e990921da2714a",
+  "initial_receipt": "c1c59d37cd0e1839ee59edbe81ee53883338e15a30895a12669f7278287c3927",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "16bf556f40247372a6ea8f680608ebbbb233513832901b9077be590e1bb8c817",
+      "action_id": "67ce9ad6da46f37ec3a6687cdd7c29abecee6d122e02264ee7f0411085558bd1",
       "action_definition_id": "checkpoint.audit_order",
       "action_parameters": {},
-      "legal_action_set_digest": "f7d68a426031fd17cb7a4d891d434fcfca813765e3ba1f5c0212693a9d2d148e",
-      "pre_state_id": "b707207599aeb145cd9dcdf37b572d62f04b78c603e653169b533bcb7092387c",
+      "legal_action_set_digest": "a2c29ced452db99413617f6ec342eb625e023c974820a1b1009d5d15a0a8ab4d",
+      "pre_state_id": "4741af7c62f4f9acbeb7a33ba7b99d53fb8b4762bb9f85620cc03e73d1d01b4e",
       "events_hash": "987138a38047ef23006d4c699a6addbea54e335fa7dec7c016cb67f58394ef21",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "8521103a4d1f615aa55dd0bb8707f52c8894d300daf9bbff95eca9e6d4174813",
+      "post_state_id": "cf209f91f6296d5f122647289ca4a845711b4e6c567c7ca87bda8c2c00a475d3",
       "observation": {
-        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "8521103a4d1f615aa55dd0bb8707f52c8894d300daf9bbff95eca9e6d4174813",
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "cf209f91f6296d5f122647289ca4a845711b4e6c567c7ca87bda8c2c00a475d3",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "Your council mark exposes the forged water order, and Sava accepts your proof. Sava studies the forged order beside the raised chain; Red Sluice still needs your answer.",
@@ -136,27 +136,27 @@
             "remaining_ticks": 15
           }
         ],
-        "action_set_digest": "c6b669d475bfee95de11e60489d9f2e2f371553d81aaa4fdabcfe0321ac43084",
+        "action_set_digest": "f7f478b0730157d24b341b402311687dc2b7555ade79b9461582c9fa48e1464f",
         "action_count": 7
       },
-      "observation_hash": "523dd2e0da1ad66bdf6de7180ccef59d931c39f22122e536e2d57430cb83dae3",
-      "receipt": "d61ce1a4ca32b24994ae85598e99f551efdbd89d94579ace20346b2945fce742"
+      "observation_hash": "24c9237698b5fc9da54eb5e74940612143508186e07c787ea355e2622aed17e1",
+      "receipt": "efc33b82a2403a01708f34ee31e6f1f5b962cd2375c83964852f071748ad423f"
     },
     {
       "step_index": 1,
-      "action_id": "32fdfd2d8bfc32d45ac424cb58a043e86ec6037008ec5dbf084a597a4783b570",
+      "action_id": "6f613023bd975facce6d384dced92430860d08f9ba3de4342b044fe6749f8e43",
       "action_definition_id": "checkpoint.use_stolen_permit",
       "action_parameters": {},
-      "legal_action_set_digest": "c6b669d475bfee95de11e60489d9f2e2f371553d81aaa4fdabcfe0321ac43084",
-      "pre_state_id": "8521103a4d1f615aa55dd0bb8707f52c8894d300daf9bbff95eca9e6d4174813",
+      "legal_action_set_digest": "f7f478b0730157d24b341b402311687dc2b7555ade79b9461582c9fa48e1464f",
+      "pre_state_id": "cf209f91f6296d5f122647289ca4a845711b4e6c567c7ca87bda8c2c00a475d3",
       "events_hash": "d25727cc0b5c2366b8d8688afe3efa267015137d5c8b1dd3dfcd0346b35784a3",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "84dac372c99bbc5b6e12c4e90eb56ac9dd1a639c966e232025284e62962fdfce",
+      "post_state_id": "eadda6d53b4e9f1ce16ec972f3a73b83e405b9266a2fe0b63472e07cb45fb014",
       "observation": {
-        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "84dac372c99bbc5b6e12c4e90eb56ac9dd1a639c966e232025284e62962fdfce",
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "eadda6d53b4e9f1ce16ec972f3a73b83e405b9266a2fe0b63472e07cb45fb014",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "Your permit opens Take Stolen Path at Lowsail Levee; Sava marks you as a risk. Sava studies the forged order beside the raised chain; Red Sluice still needs your answer.",
@@ -189,29 +189,29 @@
             "remaining_ticks": 14
           }
         ],
-        "action_set_digest": "b130cb5a056712ef1aaf0c65f5dfb499137d99a3a7e049e7cbacdb69fccd7363",
+        "action_set_digest": "3bca615ec59846a28d659b67024420f8c71fd45c63d5144334a7d3cb43e7eec1",
         "action_count": 6
       },
-      "observation_hash": "90271d308542e38827e738e23db433fc2e8f1a94e5320c6b2bd040cfa85429fe",
-      "receipt": "edf957d9ed14b710784ad740316f17c10db758527e206a7a3615c2b5872da1f6"
+      "observation_hash": "0dddd8c3e2d2ca0f7adbd8a29f45cf066ea7ddcaf2d36e27fec943224009dd0c",
+      "receipt": "cebeb11a1575ea3f5ae4146a56830a3fa2f80f2ac39788ba696a2e852ce62330"
     },
     {
       "step_index": 2,
-      "action_id": "77bd287f2a7cd67300f11bbc665694442717565664b3d170ece962d5cbcfdd53",
+      "action_id": "dd39f9252fea86795eba97274ec414142ebf1ee71ae476039b2ed152ed430cf7",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.levee"
       },
-      "legal_action_set_digest": "b130cb5a056712ef1aaf0c65f5dfb499137d99a3a7e049e7cbacdb69fccd7363",
-      "pre_state_id": "84dac372c99bbc5b6e12c4e90eb56ac9dd1a639c966e232025284e62962fdfce",
+      "legal_action_set_digest": "3bca615ec59846a28d659b67024420f8c71fd45c63d5144334a7d3cb43e7eec1",
+      "pre_state_id": "eadda6d53b4e9f1ce16ec972f3a73b83e405b9266a2fe0b63472e07cb45fb014",
       "events_hash": "9dedffac2dafbef09b151f46a60d59aefaeba20511632907e17a0667139d995e",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "af7508b62125b9a16e7526c316406329fb4b64a909822d0913676e14077412a4",
+      "post_state_id": "5a367c75295c69e52708d0abe7d5eeecc578cb669f64627639e8d1fb62687a52",
       "observation": {
-        "build_id": "5fb003314629d0792eda178be53fa16d51b02e24556206fb05bb929d49b15107",
-        "state_id": "af7508b62125b9a16e7526c316406329fb4b64a909822d0913676e14077412a4",
+        "build_id": "8a5831e101f0c73804433d31fe39645f7bb89bdc4db1d25eca33e0553f375b05",
+        "state_id": "5a367c75295c69e52708d0abe7d5eeecc578cb669f64627639e8d1fb62687a52",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment.",
@@ -244,13 +244,13 @@
             "remaining_ticks": 13
           }
         ],
-        "action_set_digest": "99a9b3611122137f8b0faba9c7fd32985ddb0748596deb4a2ce0099a2a78c608",
+        "action_set_digest": "5225fc8d84ad269b6f176de197fd31c1e4908e22efea9976a5c287e22187222b",
         "action_count": 7
       },
-      "observation_hash": "4ff50091301aaa969c13aa41a860e78bf9c44c8701e4fb32627fc694f8ca6414",
-      "receipt": "a172f1dd2bb591c452450261801a60ae352914f1785c38c6ddd7d458787b2445"
+      "observation_hash": "a74b79b0cad79f3a838d1788a1d3b62b9049484d22ea9c431b6a34af3f262bbd",
+      "receipt": "db5bd1031b18eb556fc0bd53435d1f7960a031e63b4ef016b355aa3406554449"
     }
   ],
-  "final_state_id": "af7508b62125b9a16e7526c316406329fb4b64a909822d0913676e14077412a4",
-  "final_receipt": "a172f1dd2bb591c452450261801a60ae352914f1785c38c6ddd7d458787b2445"
+  "final_state_id": "5a367c75295c69e52708d0abe7d5eeecc578cb669f64627639e8d1fb62687a52",
+  "final_receipt": "db5bd1031b18eb556fc0bd53435d1f7960a031e63b4ef016b355aa3406554449"
 }

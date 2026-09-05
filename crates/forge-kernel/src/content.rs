@@ -2775,14 +2775,6 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
         .map(|event| (event.due_time, word_count(&event.result)))
         .collect();
     timed_words.sort_unstable();
-    // Relative templates may be scheduled at different times and coincide
-    // with one another or any absolute deadline. Count all of them for every
-    // advancing action; positive delays exclude zero-time resolutions.
-    let deferred_words = draft
-        .deferred_events
-        .iter()
-        .map(|event| word_count(&event.result))
-        .sum::<usize>();
     let mut event_budget_by_ticks = BTreeMap::new();
     let supply_words = if draft.contract == ContentContract::Production {
         potential_supply_summary_words(draft)
@@ -2804,11 +2796,7 @@ fn validate_observation_budgets(draft: &ContentDraft, errors: &mut ContentValida
             .entry(time_cost.maximum_ticks)
             .or_insert_with(|| {
                 maximum_event_words(&timed_words, time_cost.maximum_ticks).saturating_add(
-                    if time_cost.maximum_ticks > 0 {
-                        deferred_words
-                    } else {
-                        0
-                    },
+                    crate::deferred_budget::maximum_result_words(draft, time_cost.maximum_ticks),
                 )
             });
         let result = if action.result.trim().is_empty() {
@@ -6285,6 +6273,157 @@ mod tests {
         assert!(
             resources.contains("test.water"),
             "deferred resource outputs must enter supply budgets"
+        );
+    }
+
+    #[test]
+    fn deferred_cohort_bound_preserves_canonical_bodies_and_rejects_forged_alignment() {
+        let mut source = observation_budget_draft(1, &[]);
+        source.deferred_events = [deferred("test.first", 2), deferred("test.second", 5)]
+            .into_iter()
+            .map(|mut event| {
+                event.result = budget_text(3);
+                event
+            })
+            .collect();
+        source.actions.push(action(
+            "schedule",
+            Condition::Always,
+            vec![
+                Effect::ScheduleEvent {
+                    event: "test.first".to_owned(),
+                },
+                Effect::ScheduleEvent {
+                    event: "test.second".to_owned(),
+                },
+            ],
+        ));
+        let content = compile(source).expect("one cohort result keeps the maximum at 99");
+        let initial = content.new_game("hero", 9).unwrap();
+        let mut canonical = initial.clone();
+        let mut resolved = 0;
+        for definition in ["schedule", "wait", "wait", "wait", "wait", "wait"] {
+            let action = crate::enumerate_legal_actions(&canonical, &content)
+                .unwrap()
+                .into_iter()
+                .find(|action| action.definition_id == definition)
+                .unwrap();
+            let transition =
+                crate::step(&canonical, &action, &content, &canonical.entropy).unwrap();
+            let observation = content.observe_after_transition(&transition).unwrap();
+            if transition
+                .events()
+                .iter()
+                .any(|event| matches!(event.kind, EventKind::ScheduledEventResolved { .. }))
+            {
+                resolved += 1;
+                assert_eq!(word_count(&observation.text), 99);
+            }
+            assert!(
+                word_count(&observation.text) + word_count(&observation.supplies.summary()) < 100
+            );
+            canonical = transition.into_state();
+        }
+        assert_eq!(resolved, 2);
+
+        // Each scheduling record is structurally credible, but these times
+        // cannot result from the sole canonical action that schedules both.
+        let mut forged = initial;
+        forged.world.time = 4;
+        forged.event_log = [("test.second", 0), ("test.first", 3)]
+            .into_iter()
+            .map(|(id, turn)| crate::Event {
+                turn,
+                kind: EventKind::EventScheduled {
+                    event_id: id.to_owned(),
+                    event_kind: "batch".to_owned(),
+                    due_time: 5,
+                },
+            })
+            .collect();
+        forged.world.scheduled_events = ["test.first", "test.second"]
+            .into_iter()
+            .map(|id| ScheduledEvent {
+                id: id.to_owned(),
+                event_kind: "batch".to_owned(),
+                due_time: 5,
+            })
+            .collect();
+        content
+            .validate_state(&forged)
+            .expect("admission is structural, not canonical replay");
+        let wait = crate::enumerate_legal_actions(&forged, &content)
+            .unwrap()
+            .into_iter()
+            .find(|action| action.definition_id == "wait")
+            .unwrap();
+        let transition = crate::step(&forged, &wait, &content, &forged.entropy).unwrap();
+        assert!(
+            content
+                .observe_after_transition(&transition)
+                .unwrap_err()
+                .to_string()
+                .contains("combined routine observation must stay below 100 words")
+        );
+    }
+
+    #[test]
+    fn production_deferred_cohort_fits_one_salvage_filter_and_unstocked_shard() {
+        let mut source: ContentDraft =
+            serde_json::from_str(include_str!("../../../content/split-tide.json")).unwrap();
+        let stock = |item: &str| {
+            source
+                .npcs
+                .iter()
+                .map(|npc| u64::from(*npc.inventory.get(item).unwrap_or(&0)))
+                .sum::<u64>()
+        };
+        assert_eq!(stock("fume_yards.filter"), 1);
+        assert_eq!(stock("fume_yards.shard"), 0);
+        assert_eq!(source.supply_labels.items["fume_yards.shard"], "Shard");
+        assert_eq!(potential_supply_summary_words(&source), 29);
+        assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 2);
+        let location_words = source
+            .locations
+            .iter()
+            .map(|location| {
+                maximum_text_words(&location.description, &location.description_variants)
+            })
+            .max()
+            .unwrap();
+        let result_words = source
+            .actions
+            .iter()
+            .map(|action| maximum_text_words(&action.result, &action.result_variants))
+            .max()
+            .unwrap();
+        assert_eq!((location_words, result_words), (31, 28));
+        assert_eq!(location_words + result_words + 9 + 2 + 29, 99);
+        compile(source.clone()).expect("actual production with finite salvage remains below 100");
+
+        // Even a certain random arm is deliberately outside the cohort proof.
+        // Losing that proof restores both results and rejects the 101-word bound.
+        let scheduling_action = source
+            .actions
+            .iter_mut()
+            .find(|action| {
+                action.effects.iter().any(|effect| {
+                    matches!(effect,
+                Effect::ScheduleEvent { event } if event == "fume_yards.batch_ready")
+                })
+            })
+            .unwrap();
+        scheduling_action.effects.push(Effect::RandomChance {
+            success_percent: 100,
+            on_success: Box::new(Effect::Noop),
+            on_failure: Box::new(Effect::Noop),
+        });
+        assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 4);
+        assert!(
+            compile(source)
+                .unwrap_err()
+                .to_string()
+                .contains("may reach 101 words")
         );
     }
 

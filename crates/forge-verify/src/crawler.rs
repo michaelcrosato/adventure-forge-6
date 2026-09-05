@@ -163,7 +163,7 @@ type FrontierScore = (
     Reverse<usize>,
     usize,
     Reverse<u64>,
-    usize,
+    (usize, usize, Reverse<usize>),
     usize,
     Reverse<usize>,
     usize,
@@ -521,12 +521,22 @@ fn frontier_score(
     let immediate_targets = immediate_movement_targets(&frontier.state, content)?;
     let npc_arrivals = immediate_npc_arrival_projections(&frontier.state, content)?;
     let deferred_flags = pending_deferred_flag_projections(&frontier.state, content)?;
+    let mut relevant_flags = BTreeSet::new();
+    for (id, action) in content.actions() {
+        if report.required_definitions.contains(id) && !report.covered_definitions.contains(id) {
+            collect_condition_flags(&action.condition, &mut relevant_flags);
+        }
+    }
+    let producer_flags =
+        potential_flag_producer_projections(&frontier.state, content, &relevant_flags)?;
     let mut uncovered_here = 0usize;
     let mut ready_one_move = 0usize;
     let mut ready_uncovered = 0usize;
     let mut nearest_ready_target = usize::MAX;
     let mut deferred_ready = 0usize;
     let mut nearest_deferred_ready = u64::MAX;
+    let mut producer_ready = 0usize;
+    let mut nearest_producer = usize::MAX;
     let mut total_progress = 0usize;
     let mut best_partial = (0usize, Reverse(usize::MAX));
     for (definition_id, definition) in content.actions() {
@@ -543,6 +553,21 @@ fn frontier_score(
                     nearest_deferred_ready = nearest_deferred_ready.min(*remaining);
                     break;
                 }
+            }
+            let producer_distance = producer_flags
+                .iter()
+                .filter_map(|(distance, projection)| {
+                    ((definition.locations.is_empty()
+                        || definition
+                            .locations
+                            .contains(&projection.world.current_location))
+                        && definition.condition.evaluate(projection))
+                    .then_some(*distance)
+                })
+                .min();
+            if let Some(distance) = producer_distance {
+                producer_ready += 1;
+                nearest_producer = nearest_producer.min(distance);
             }
         }
         let ready_on_arrival = npc_arrivals.iter().any(|arrival| {
@@ -610,13 +635,154 @@ fn frontier_score(
         Reverse(nearest_ready_target),
         deferred_ready,
         Reverse(nearest_deferred_ready),
-        total_progress,
+        (total_progress, producer_ready, Reverse(nearest_producer)),
         best_partial.0,
         Reverse(frontier.depth.saturating_add((best_partial.1).0)),
         state_progress(&frontier.state),
         !report.reached_locations.contains(location),
         Reverse(frontier.ordinal),
     ))
+}
+
+/// Identify a possible local flag-producing action after an available walk.
+/// The current-location case requires a kernel-enumerated action. Distant
+/// cases use existing condition-gated graph hints and remain only potential:
+/// movement effects, inventory consumption, time, and NPC facts are not
+/// simulated. Complete direct flag writes preserve negative target clauses.
+/// No projection is admitted, reduced, hashed, enqueued, or counted as coverage.
+fn potential_flag_producer_projections(
+    state: &GameState,
+    content: &CompiledContent,
+    relevant_flags: &BTreeSet<&str>,
+) -> Result<Vec<(usize, GameState)>, VerifyError> {
+    let mut projections = Vec::new();
+    let mut local_catalog: Option<BTreeSet<String>> = None;
+    for (_, action) in content.actions() {
+        if action.movement || !action.parameters.is_empty() {
+            continue;
+        }
+        let mut has_flag = false;
+        let supported = action.effects.iter().all(|effect| match effect {
+            Effect::SetFlag { flag, .. }
+            | Effect::SetWorldFlag { flag, .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Literal(_),
+                flag,
+                ..
+            } => {
+                has_flag |= relevant_flags.contains(flag.as_str());
+                true
+            }
+            Effect::RandomChance { .. }
+            | Effect::ScheduleEvent { .. }
+            | Effect::MoveCharacter { .. }
+            | Effect::MoveNpc { .. }
+            | Effect::SetLocationFlag {
+                location: StringRef::Parameter(_),
+                ..
+            } => false,
+            Effect::Noop
+            | Effect::AdjustResource { .. }
+            | Effect::AdjustNpcRelationship { .. }
+            | Effect::AddNpcMemory { .. }
+            | Effect::TeachNpc { .. }
+            | Effect::TransferNpcItemToCharacter { .. }
+            | Effect::ApplyRecipe { .. }
+            | Effect::AddCharacterDeed { .. }
+            | Effect::AdvanceTime { .. } => true,
+        });
+        if !supported || !has_flag {
+            continue;
+        }
+        let locations = if action.locations.is_empty() {
+            std::slice::from_ref(&state.world.current_location)
+        } else {
+            action.locations.as_slice()
+        };
+        for location in locations {
+            let mut projection = state.clone();
+            projection.world.current_location.clone_from(location);
+            if !action.condition.evaluate(&projection) {
+                continue;
+            }
+            let distance = location_distance(
+                content,
+                &state.world.current_location,
+                location,
+                Some(state),
+            )?;
+            if distance == usize::MAX {
+                continue;
+            }
+            if distance == 0 {
+                if local_catalog.is_none() {
+                    local_catalog = Some(
+                        enumerate_legal_actions(state, content)
+                            .map_err(|_| {
+                                VerifyError::new(
+                                    "crawler could not enumerate flag producer candidates",
+                                )
+                            })?
+                            .into_iter()
+                            .map(|action| action.definition_id)
+                            .collect(),
+                    );
+                }
+                if !local_catalog.as_ref().unwrap().contains(&action.id) {
+                    continue;
+                }
+            }
+            for effect in &action.effects {
+                let (flags, flag, value) = match effect {
+                    Effect::SetFlag { flag, value } | Effect::SetWorldFlag { flag, value } => {
+                        (&mut projection.world.flags, flag, value)
+                    }
+                    Effect::SetLocationFlag {
+                        location: StringRef::Literal(location),
+                        flag,
+                        value,
+                    } => (
+                        &mut projection
+                            .world
+                            .locations
+                            .get_mut(location)
+                            .ok_or_else(|| {
+                                VerifyError::new("flag producer references an unknown location")
+                            })?
+                            .flags,
+                        flag,
+                        value,
+                    ),
+                    _ => continue,
+                };
+                if *value {
+                    flags.insert(flag.clone());
+                } else {
+                    flags.remove(flag);
+                }
+            }
+            projections.try_reserve(1).map_err(|_| {
+                VerifyError::new("crawler flag producer planning allocation failed")
+            })?;
+            projections.push((distance.saturating_add(1), projection));
+        }
+    }
+    Ok(projections)
+}
+
+fn collect_condition_flags<'a>(condition: &'a Condition, flags: &mut BTreeSet<&'a str>) {
+    match condition {
+        Condition::WorldFlag { flag } | Condition::LocationFlag { flag, .. } => {
+            flags.insert(flag.as_str());
+        }
+        Condition::All { conditions } | Condition::Any { conditions } => {
+            for condition in conditions {
+                collect_condition_flags(condition, flags);
+            }
+        }
+        Condition::Not { condition } => collect_condition_flags(condition, flags),
+        _ => {}
+    }
 }
 
 /// Prioritize the flag consequences of currently guarded deferred events.
@@ -1210,6 +1376,270 @@ mod tests {
 
     const SPLIT_TIDE: &str = include_str!("../../../content/split-tide.json");
 
+    fn fixture_producer_hints(
+        state: &GameState,
+        content: &CompiledContent,
+    ) -> Result<Vec<(usize, GameState)>, VerifyError> {
+        let mut flags = BTreeSet::new();
+        collect_condition_flags(&content.action("test.use").unwrap().condition, &mut flags);
+        super::potential_flag_producer_projections(state, content, &flags)
+    }
+
+    fn flag_producer_fixture() -> forge_kernel::ContentDraft {
+        let mut draft = parse(SPLIT_TIDE).unwrap();
+        draft.contract = forge_kernel::ContentContract::Fixture;
+        draft.character_presets.truncate(1);
+        draft.character_presets[0].character.inventory =
+            BTreeMap::from([("test.part".to_owned(), 1)]);
+        draft.character_creation = None;
+        draft.timed_events.clear();
+        draft.deferred_events.clear();
+        draft.npcs.retain(|npc| npc.id == "sava_rusk");
+        draft
+            .locations
+            .retain(|location| ["lowsail_market", "lowsail.docks"].contains(&location.id.as_str()));
+        for location in &mut draft.locations {
+            location.terminal = true;
+            location.description = "A workbench stands here.".to_owned();
+            location.description_variants.clear();
+            location.exits = vec![
+                if location.id == "lowsail_market" {
+                    "lowsail.docks"
+                } else {
+                    "lowsail_market"
+                }
+                .to_owned(),
+            ];
+        }
+        draft.recipes = vec![forge_kernel::RecipeDefinition {
+            id: "test.install".to_owned(),
+            inputs: BTreeMap::from([("test.part".to_owned(), 1)]),
+            outputs: BTreeMap::new(),
+        }];
+        let flag = |name: &str| Condition::WorldFlag {
+            flag: name.to_owned(),
+        };
+        let absent = |name: &str| Condition::Not {
+            condition: Box::new(flag(name)),
+        };
+        let action = |id: &str, condition, effects| ActionDefinition {
+            id: id.to_owned(),
+            label: "Act".to_owned(),
+            category: "Work".to_owned(),
+            result: "Done.".to_owned(),
+            result_variants: Vec::new(),
+            locations: vec!["lowsail.docks".to_owned()],
+            condition,
+            effects,
+            parameters: Vec::new(),
+            meaningful: true,
+            movement: false,
+        };
+        let mut walk = action(
+            "test.walk",
+            Condition::Always,
+            vec![
+                Effect::MoveCharacter {
+                    location: StringRef::Parameter("destination".to_owned()),
+                },
+                Effect::AdvanceTime { ticks: 1 },
+            ],
+        );
+        walk.locations.clear();
+        walk.movement = true;
+        walk.parameters = vec![forge_kernel::ParameterSpec {
+            name: "destination".to_owned(),
+            domain: ParameterDomain::LocationsAdjacent,
+        }];
+        draft.actions = vec![
+            walk,
+            action(
+                "test.fit",
+                Condition::All {
+                    conditions: vec![
+                        Condition::HasItem {
+                            item: "test.part".to_owned(),
+                            count: 1,
+                        },
+                        absent("test.ready"),
+                    ],
+                },
+                vec![
+                    Effect::ApplyRecipe {
+                        recipe: "test.install".to_owned(),
+                    },
+                    Effect::SetWorldFlag {
+                        flag: "test.ready".to_owned(),
+                        value: true,
+                    },
+                    Effect::SetWorldFlag {
+                        flag: "test.closed".to_owned(),
+                        value: false,
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+            action(
+                "test.use",
+                Condition::All {
+                    conditions: vec![
+                        flag("test.ready"),
+                        absent("test.closed"),
+                        absent("test.done"),
+                    ],
+                },
+                vec![
+                    Effect::SetWorldFlag {
+                        flag: "test.done".to_owned(),
+                        value: true,
+                    },
+                    Effect::AdvanceTime { ticks: 1 },
+                ],
+            ),
+        ];
+        draft
+    }
+
+    #[test]
+    fn flag_producer_hints_guide_a_real_walk_and_require_complete_canonical_execution() {
+        let content = forge_content::compile(flag_producer_fixture()).unwrap();
+        let initial = content.new_game("ilyan", 71).unwrap();
+        let before = initial.clone();
+        let hints = fixture_producer_hints(&initial, &content).unwrap();
+        let goal = content.action("test.use").unwrap();
+        assert_eq!(hints.len(), 1);
+        assert_eq!(
+            hints[0].0, 2,
+            "one actual walk precedes the possible installation"
+        );
+        assert!(goal.condition.evaluate(&hints[0].1));
+        assert_eq!(initial, before);
+        assert_eq!(hints[0].1.event_log, before.event_log);
+        assert_eq!(hints[0].1.entropy, before.entropy);
+        assert_eq!(hints[0].1.character.inventory, before.character.inventory);
+        assert_eq!(hints[0].1.world.npcs, before.world.npcs);
+        assert_eq!(hints[0].1.world.time, before.world.time);
+        assert!(
+            !enumerate_legal_actions(&initial, &content)
+                .unwrap()
+                .iter()
+                .any(|action| action.definition_id == "test.use")
+        );
+
+        let report = crawl_targets(
+            &content,
+            CrawlBudget {
+                max_depth: 3,
+                max_expanded_states: 3,
+                max_discovered_frontiers: 16,
+                max_action_executions: 5,
+                catalog_page_size: 1,
+            },
+            BTreeSet::from(["test.use".to_owned()]),
+        )
+        .unwrap();
+        assert_eq!(report.expanded_states, 3);
+        assert_eq!(
+            report.successful_actions, 5,
+            "both complete two-action workbench catalogs must execute"
+        );
+        assert_eq!(
+            report.covered_definitions,
+            BTreeSet::from([
+                "test.walk".to_owned(),
+                "test.fit".to_owned(),
+                "test.use".to_owned()
+            ])
+        );
+
+        let mut session = Session::new_game("ilyan", 71, &content).unwrap();
+        for id in ["test.walk", "test.fit", "test.use"] {
+            let action = enumerate_legal_actions(session.state(), &content)
+                .unwrap()
+                .into_iter()
+                .find(|action| action.definition_id == id)
+                .unwrap();
+            session.record(&action).unwrap();
+        }
+        assert!(
+            !session
+                .state()
+                .character
+                .inventory
+                .contains_key("test.part")
+        );
+        assert!(session.state().world.flags.contains("test.done"));
+        assert_eq!(
+            forge_replay::verify(session.trace(), &content).unwrap(),
+            *session.state()
+        );
+    }
+
+    #[test]
+    fn flag_producer_hints_reject_false_guards_negative_targets_randomness_and_unavailable_stock() {
+        let original = flag_producer_fixture();
+        let content = forge_content::compile(original.clone()).unwrap();
+        let mut no_part = content.new_game("ilyan", 71).unwrap();
+        no_part.character.inventory.clear();
+        assert!(
+            fixture_producer_hints(&no_part, &content)
+                .unwrap()
+                .is_empty()
+        );
+
+        let mut closes = original.clone();
+        closes.actions[1].effects.push(Effect::SetWorldFlag {
+            flag: "test.closed".to_owned(),
+            value: true,
+        });
+        let content = forge_content::compile(closes).unwrap();
+        let initial = content.new_game("ilyan", 71).unwrap();
+        assert!(
+            !fixture_producer_hints(&initial, &content)
+                .unwrap()
+                .iter()
+                .any(|(_, hint)| content.action("test.use").unwrap().condition.evaluate(hint)),
+            "all ordered flag writes, including negative prerequisites, matter"
+        );
+
+        let mut random = original.clone();
+        random.actions[1].effects.push(Effect::RandomChance {
+            success_percent: 100,
+            on_success: Box::new(Effect::Noop),
+            on_failure: Box::new(Effect::Noop),
+        });
+        let content = forge_content::compile(random).unwrap();
+        assert!(
+            fixture_producer_hints(&content.new_game("ilyan", 71).unwrap(), &content)
+                .unwrap()
+                .is_empty()
+        );
+
+        let mut unavailable = original;
+        unavailable.recipes[0]
+            .inputs
+            .insert("test.part".to_owned(), 2);
+        let content = forge_content::compile(unavailable).unwrap();
+        let initial = content.new_game("ilyan", 71).unwrap();
+        let walk = enumerate_legal_actions(&initial, &content)
+            .unwrap()
+            .remove(0);
+        let local = step(&initial, &walk, &content, &initial.entropy)
+            .unwrap()
+            .into_state();
+        assert!(
+            content
+                .action("test.fit")
+                .unwrap()
+                .condition
+                .evaluate(&local)
+        );
+        assert!(
+            fixture_producer_hints(&local, &content).unwrap().is_empty(),
+            "actual local catalog must reject a recipe whose input bound is unavailable"
+        );
+    }
+
     #[test]
     fn deferred_hints_preserve_real_state_and_repeated_waits_use_canonical_actions() {
         let mut draft = parse(SPLIT_TIDE).unwrap();
@@ -1523,7 +1953,7 @@ mod tests {
             .crawl;
         assert!(report.is_complete());
         assert_eq!(report.required_definitions.len(), 60);
-        assert_eq!(report.advertised_definitions.len(), 73);
+        assert_eq!(report.advertised_definitions.len(), 81);
         assert!(report.reached_locations.len() >= 7);
         assert!(report.successful_actions >= report.required_definitions.len());
         assert_eq!(report.starting_sessions.len(), 2);

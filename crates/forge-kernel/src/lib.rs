@@ -7,6 +7,7 @@
 
 mod build_manifest;
 mod content;
+mod deferred_budget;
 mod entropy;
 mod hash;
 mod model;

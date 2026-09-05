@@ -18,7 +18,8 @@
       "fume_yards.prepared_charge": "Charge",
       "fume_yards.batch_claim": "Batch Claim",
       "fume_yards.filter": "Filter",
-      "fume_yards.spoiled_charge": "Rejects"
+      "fume_yards.spoiled_charge": "Rejects",
+      "fume_yards.shard": "Shard"
     },
     "resources": {
       "coin": "Coin",
@@ -136,6 +137,15 @@
         "fume_yards.filter": 1
       },
       "outputs": {}
+    },
+    {
+      "id": "fume_yards.break_filter",
+      "inputs": {
+        "fume_yards.filter": 1
+      },
+      "outputs": {
+        "fume_yards.shard": 1
+      }
     }
   ],
   "character_presets": [
@@ -1105,8 +1115,15 @@
                   "count": 1
                 }
               },
-            {"kind": "not", "condition": {"kind": "has_item", "item": "fume_yards.repair_lot", "count": 1}}
-          ]
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.repair_lot",
+                  "count": 1
+                }
+              }
+            ]
           },
           "text": "Nessa's clay, mesh, and freight job are spent; your workshop work remains finished."
         },
@@ -1240,7 +1257,8 @@
       ],
       "exits": [
         "lowsail.levee",
-        "fume_yards.kiln_bay"
+        "fume_yards.kiln_bay",
+        "fume_yards.ash_beds"
       ],
       "terminal": false
     },
@@ -1521,6 +1539,725 @@
             ]
           },
           "text": "Your filter left the kiln; Brann's remaining freight pays three coins and costs two stamina."
+        },
+        {
+          "id": "salvage_ready",
+          "priority": 180,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.batch_active"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.batch_claim",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.batch_ready"
+              },
+              {
+                "kind": "any",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.dust_filter_fitted"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.filter",
+                    "count": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "text": "Draw your filter or bank to save freight; spoilage loses the filter and three-coin commission."
+        },
+        {
+          "id": "salvage_heating",
+          "priority": 175,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.batch_active"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.batch_claim",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "any",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.dust_filter_fitted"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.filter",
+                    "count": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "text": "Wait for the filter, or bank to save freight; spoilage loses the filter and three-coin commission."
+        },
+        {
+          "id": "cold_job_done",
+          "priority": 160,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.cold_work_chosen"
+          },
+          "text": "Cold freight is finished; the unfired kiln stays closed."
+        },
+        {
+          "id": "protected_prepared",
+          "priority": 155,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.prepared_charge",
+                "count": 1
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              }
+            ]
+          },
+          "text": "Your filter protects this charge; fire it or reclaim repair plugs."
+        },
+        {
+          "id": "protected_choice",
+          "priority": 150,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.charge_prepared"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              },
+              {
+                "kind": "any",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.workshop",
+                      "flag": "fume_yards.stock_given"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "has_item",
+                        "item": "fume_yards.clay",
+                        "count": 2
+                      },
+                      {
+                        "kind": "has_item",
+                        "item": "fume_yards.mesh",
+                        "count": 1
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.prepared_charge",
+                    "count": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "text": "Your filter protects the kiln; load cold freight and close firing, or prepare a batch."
+        },
+        {
+          "id": "protected_spare",
+          "priority": 145,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.filter",
+                "count": 1
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_active"
+                }
+              }
+            ]
+          },
+          "text": "Your installed filter stays in its housing; sell the spare to Oren for four coins."
+        },
+        {
+          "id": "protected_cold_only",
+          "priority": 150,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "fume_yards.kiln_bay",
+                    "flag": "fume_yards.dust_filter_fitted"
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.charge_prepared"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_ignited"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_closed"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "any",
+                  "conditions": [
+                    {
+                      "kind": "not",
+                      "condition": {
+                        "kind": "location_flag",
+                        "location": "fume_yards.workshop",
+                        "flag": "fume_yards.stock_given"
+                      }
+                    },
+                    {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.clay",
+                          "count": 2
+                        },
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.mesh",
+                          "count": 1
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "has_item",
+                      "item": "fume_yards.prepared_charge",
+                      "count": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "text": "Your filter catches cold-loading dust; unload for three coins without spending stamina."
+        },
+        {
+          "id": "salvage_spoiled_owned",
+          "priority": 200,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.freight_spoiled"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.filter",
+                "count": 1
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "lowsail.return",
+                  "flag": "fume_yards.filter_sold"
+                }
+              }
+            ]
+          },
+          "text": "Spoilage ruined Brann's freight commission; sell your surviving filter to Oren for four coins."
+        },
+        {
+          "id": "salvage_spoiled_installed",
+          "priority": 195,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.freight_spoiled"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              }
+            ]
+          },
+          "text": "The batch spoiled; your dust filter remains installed, but the three-coin freight commission is lost."
+        }
+      ],
+      "exits": [
+        "fume_yards.workshop"
+      ],
+      "terminal": false
+    },
+    {
+      "id": "fume_yards.ash_beds",
+      "name": "Fume Yards Ash Beds",
+      "description": "Daro offers the trapped filter for clearing his rack; safe bracing costs two stamina. Pulling quickly risks a 25% chance of breakage.",
+      "description_variants": [
+        {
+          "id": "reported_broken",
+          "priority": 130,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.report_paid"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.shard",
+                "count": 1
+              }
+            ]
+          },
+          "text": "The rack filter broke; Daro has reported the cleared access to Brann and left with you."
+        },
+        {
+          "id": "reported_intact",
+          "priority": 125,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.report_paid"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "has_item",
+                  "item": "fume_yards.shard",
+                  "count": 1
+                }
+              }
+            ]
+          },
+          "text": "The rack stays empty; Daro has reported the cleared access to Brann and left with you."
+        },
+        {
+          "id": "broken",
+          "priority": 120,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.shard",
+                "count": 1
+              }
+            ]
+          },
+          "text": "The rack filter broke; Daro can report cleared access through the hatch for a one-coin wage."
+        },
+        {
+          "id": "no_outlets",
+          "priority": 105,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_cleared"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "any",
+                  "conditions": [
+                    {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "location_flag",
+                            "location": "lowsail.return",
+                            "flag": "fume_yards.filter_sold"
+                          }
+                        },
+                        {
+                          "kind": "all",
+                          "conditions": [
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.dust_filter_fitted"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.kiln_freight_loaded"
+                              }
+                            },
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "fume_yards.kiln_bay",
+                                "flag": "fume_yards.freight_spoiled"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "has_item",
+                            "item": "fume_yards.filter",
+                            "count": 2
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "any",
+                          "conditions": [
+                            {
+                              "kind": "not",
+                              "condition": {
+                                "kind": "location_flag",
+                                "location": "lowsail.return",
+                                "flag": "fume_yards.filter_sold"
+                              }
+                            },
+                            {
+                              "kind": "all",
+                              "conditions": [
+                                {
+                                  "kind": "not",
+                                  "condition": {
+                                    "kind": "location_flag",
+                                    "location": "fume_yards.kiln_bay",
+                                    "flag": "fume_yards.dust_filter_fitted"
+                                  }
+                                },
+                                {
+                                  "kind": "not",
+                                  "condition": {
+                                    "kind": "location_flag",
+                                    "location": "fume_yards.kiln_bay",
+                                    "flag": "fume_yards.kiln_freight_loaded"
+                                  }
+                                },
+                                {
+                                  "kind": "not",
+                                  "condition": {
+                                    "kind": "location_flag",
+                                    "location": "fume_yards.kiln_bay",
+                                    "flag": "fume_yards.freight_spoiled"
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "kind": "not",
+                          "condition": {
+                            "kind": "has_item",
+                            "item": "fume_yards.filter",
+                            "count": 1
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "text": "Your remaining filter needs are covered; the rack stock stays unclaimed."
+        },
+        {
+          "id": "braced",
+          "priority": 90,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_braced"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_cleared"
+                }
+              }
+            ]
+          },
+          "text": "The fixed props hold; recover the filter safely without spending further stamina."
+        },
+        {
+          "id": "skilled",
+          "priority": 80,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_rear_open"
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "facet_equals",
+                    "axis": "lineage",
+                    "value": {
+                      "kind": "text",
+                      "value": "kilnborn"
+                    }
+                  },
+                  {
+                    "kind": "facet_equals",
+                    "axis": "background",
+                    "value": {
+                      "kind": "text",
+                      "value": "lock-runner"
+                    }
+                  },
+                  {
+                    "kind": "has_tag",
+                    "tag": "heat-sense"
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "rope",
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_cleared"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_braced"
+                }
+              }
+            ]
+          },
+          "text": "Your heat sense and lock-runner handling let you thread your rope safely, spending no stamina."
+        },
+        {
+          "id": "recovered",
+          "priority": 115,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_cleared"
+          },
+          "text": "The rack is clear; reporting with Daro through the rear hatch earns one coin."
+        },
+        {
+          "id": "cleared_front_broken",
+          "priority": 123,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_rear_open"
+                }
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.shard",
+                "count": 1
+              }
+            ]
+          },
+          "text": "The rack filter broke; via Workshop, open Kiln Bay's Ash Hatch to report with Daro."
+        },
+        {
+          "id": "cleared_front",
+          "priority": 122,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.ash_beds",
+                "flag": "fume_yards.rack_cleared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_rear_open"
+                }
+              }
+            ]
+          },
+          "text": "Via Workshop, use Kiln Bay's Ash Hatch, then report with Daro for one coin."
         }
       ],
       "exits": [
@@ -1630,6 +2367,26 @@
       "tags": [
         "carter",
         "water_custodian"
+      ]
+    },
+    {
+      "id": "fume_yards.daro_venn",
+      "name": "Daro Venn",
+      "location": "fume_yards.ash_beds",
+      "inventory": {
+        "fume_yards.filter": 1
+      },
+      "goals": [
+        "fume_yards.clear_freight_rack",
+        "fume_yards.restore_cart_access"
+      ],
+      "values": [
+        "profit",
+        "fair_payment"
+      ],
+      "tags": [
+        "freight_factor",
+        "rack_custodian"
       ]
     }
   ],
@@ -2814,16 +3571,65 @@
       "label": "Return to Lowsail",
       "category": "Travel",
       "result": "You return to Lowsail's changed market.",
-      "locations": ["lowsail_market", "lowsail.docks", "lowsail.levee", "red_sluice.floor", "red_sluice.top", "fume_yards.workshop",
-        "fume_yards.kiln_bay"
+      "locations": [
+        "lowsail_market",
+        "lowsail.docks",
+        "lowsail.levee",
+        "red_sluice.floor",
+        "red_sluice.top",
+        "fume_yards.workshop",
+        "fume_yards.kiln_bay",
+        "fume_yards.ash_beds"
       ],
-      "condition": {"kind": "world_flag", "flag": "sluice_outcome_chosen"},
+      "condition": {
+        "kind": "world_flag",
+        "flag": "sluice_outcome_chosen"
+      },
       "effects": [
-        {"kind": "move_npc", "npc": {"kind": "literal", "value": "oren_pell"}, "location": {"kind": "literal", "value": "lowsail.return"}},
-        {"kind": "move_npc", "npc": {"kind": "literal", "value": "sava_rusk"}, "location": {"kind": "literal", "value": "lowsail.return"}},
-        {"kind": "move_npc", "npc": {"kind": "literal", "value": "mira_kett"}, "location": {"kind": "literal", "value": "lowsail.return"}},
-        {"kind": "move_character", "location": {"kind": "literal", "value": "lowsail.return"}},
-        {"kind": "advance_time", "ticks": 1}
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "sava_rusk"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "mira_kett"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
       ],
       "parameters": [],
       "meaningful": true,
@@ -3899,6 +4705,14 @@
                 "count": 1
               }
             ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.dust_filter_fitted"
+            }
           }
         ]
       },
@@ -4111,6 +4925,14 @@
                 "count": 1
               }
             ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.dust_filter_fitted"
+            }
           }
         ]
       },
@@ -4188,9 +5010,19 @@
             "count": 1
           },
           {
-            "kind": "location_flag",
-            "location": "fume_yards.kiln_bay",
-            "flag": "fume_yards.wet_screen_fitted"
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.wet_screen_fitted"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.dust_filter_fitted"
+              }
+            ]
           },
           {
             "kind": "not",
@@ -4592,6 +5424,22 @@
               "location": "fume_yards.kiln_bay",
               "flag": "fume_yards.kiln_freight_loaded"
             }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.freight_spoiled"
+            }
           }
         ]
       },
@@ -4628,7 +5476,182 @@
       ],
       "parameters": [],
       "meaningful": true,
-      "movement": false
+      "movement": false,
+      "result_variants": [
+        {
+          "id": "prepared_protection",
+          "priority": 20,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.kiln_bay",
+                "flag": "fume_yards.charge_prepared"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              }
+            ]
+          },
+          "text": "Your filter protects the prepared charge; fire it or reclaim repair plugs."
+        },
+        {
+          "id": "cold_or_fire",
+          "priority": 10,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.charge_prepared"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.batch_ignited"
+                }
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.kiln_bay",
+                  "flag": "fume_yards.kiln_closed"
+                }
+              },
+              {
+                "kind": "any",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.workshop",
+                      "flag": "fume_yards.stock_given"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "has_item",
+                        "item": "fume_yards.clay",
+                        "count": 2
+                      },
+                      {
+                        "kind": "has_item",
+                        "item": "fume_yards.mesh",
+                        "count": 1
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "has_item",
+                    "item": "fume_yards.prepared_charge",
+                    "count": 1
+                  }
+                ]
+              }
+            ]
+          },
+          "text": "Your filter protects the kiln; cold loading pays three coins but closes firing, while preparing preserves it."
+        },
+        {
+          "id": "cold_materials_spent",
+          "priority": 15,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.charge_prepared"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.batch_ignited"
+                    }
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "fume_yards.kiln_bay",
+                      "flag": "fume_yards.kiln_closed"
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "any",
+                  "conditions": [
+                    {
+                      "kind": "not",
+                      "condition": {
+                        "kind": "location_flag",
+                        "location": "fume_yards.workshop",
+                        "flag": "fume_yards.stock_given"
+                      }
+                    },
+                    {
+                      "kind": "all",
+                      "conditions": [
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.clay",
+                          "count": 2
+                        },
+                        {
+                          "kind": "has_item",
+                          "item": "fume_yards.mesh",
+                          "count": 1
+                        }
+                      ]
+                    },
+                    {
+                      "kind": "has_item",
+                      "item": "fume_yards.prepared_charge",
+                      "count": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "text": "Your filter catches cold-loading dust; unload for three coins without spending stamina."
+        }
+      ]
     },
     {
       "id": "fume_yards.load_kiln_freight",
@@ -4986,6 +6009,1224 @@
           },
           "memory_id": "fume_yards.filter_bought",
           "subject": "Oren bought one fired filter from the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.enter_ash_hatch",
+      "label": "Use Ash Hatch",
+      "category": "Travel",
+      "result": "You take the maintenance hatch to the rack's rear.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "always"
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_rear_open",
+          "value": true
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.leave_ash_hatch",
+      "label": "Return Through Hatch",
+      "category": "Travel",
+      "result": "You return through the open hatch to Kiln Bay.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_rear_open"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.brace_rack",
+      "label": "Brace Rack (-2 stamina)",
+      "category": "Salvage",
+      "result": "You spend two stamina setting fixed props beneath the rack. Recovery is now safe.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_cleared"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "lowsail.return",
+                      "flag": "fume_yards.filter_sold"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.dust_filter_fitted"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.kiln_freight_loaded"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.freight_spoiled"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "any",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "lowsail.return",
+                          "flag": "fume_yards.filter_sold"
+                        }
+                      },
+                      {
+                        "kind": "all",
+                        "conditions": [
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.dust_filter_fitted"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.kiln_freight_loaded"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.freight_spoiled"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_braced"
+            }
+          },
+          {
+            "kind": "resource_at_least",
+            "resource": "stamina",
+            "amount": 2
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "stamina",
+          "amount": -2
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_braced",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_braced",
+          "subject": "Daro watched the player brace his jammed rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.recover_braced_filter",
+      "label": "Recover Braced Filter",
+      "category": "Salvage",
+      "result": "You recover the filter intact; Daro accepts the cleared rack and pays it to you.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_cleared"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "lowsail.return",
+                      "flag": "fume_yards.filter_sold"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.dust_filter_fitted"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.kiln_freight_loaded"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.freight_spoiled"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "any",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "lowsail.return",
+                          "flag": "fume_yards.filter_sold"
+                        }
+                      },
+                      {
+                        "kind": "all",
+                        "conditions": [
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.dust_filter_fitted"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.kiln_freight_loaded"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.freight_spoiled"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_braced"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "item": "fume_yards.filter",
+          "count": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_cleared",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "knowledge_id": "fume_yards.rack_cleared",
+          "subject": "Daro watched the player clear his jammed freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_cleared",
+          "subject": "Daro paid salvage rights for clearing his freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.thread_rack_filter",
+      "label": "Thread Rope Safely",
+      "category": "Salvage",
+      "result": "You feel safe contact points and thread your rope through them. The filter comes free; you retain the rope.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_cleared"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "lowsail.return",
+                      "flag": "fume_yards.filter_sold"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.dust_filter_fitted"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.kiln_freight_loaded"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.freight_spoiled"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "any",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "lowsail.return",
+                          "flag": "fume_yards.filter_sold"
+                        }
+                      },
+                      {
+                        "kind": "all",
+                        "conditions": [
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.dust_filter_fitted"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.kiln_freight_loaded"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.freight_spoiled"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_rear_open"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_braced"
+            }
+          },
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "facet_equals",
+                "axis": "lineage",
+                "value": {
+                  "kind": "text",
+                  "value": "kilnborn"
+                }
+              },
+              {
+                "kind": "facet_equals",
+                "axis": "background",
+                "value": {
+                  "kind": "text",
+                  "value": "lock-runner"
+                }
+              },
+              {
+                "kind": "has_tag",
+                "tag": "heat-sense"
+              },
+              {
+                "kind": "has_item",
+                "item": "rope",
+                "count": 1
+              }
+            ]
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "item": "fume_yards.filter",
+          "count": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_cleared",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "knowledge_id": "fume_yards.rack_cleared",
+          "subject": "Daro watched the player clear his jammed freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_cleared",
+          "subject": "Daro paid salvage rights for clearing his freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_threaded",
+          "subject": "Daro watched heat sense and rope handling protect the filter.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.pull_rack_filter",
+      "label": "Pull Filter (25% break)",
+      "category": "Salvage",
+      "result": "You pull the rack clear; the filter comes free intact.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_cleared"
+            }
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "location_flag",
+                      "location": "lowsail.return",
+                      "flag": "fume_yards.filter_sold"
+                    }
+                  },
+                  {
+                    "kind": "all",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.dust_filter_fitted"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.kiln_freight_loaded"
+                        }
+                      },
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "fume_yards.kiln_bay",
+                          "flag": "fume_yards.freight_spoiled"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 2
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "any",
+                    "conditions": [
+                      {
+                        "kind": "not",
+                        "condition": {
+                          "kind": "location_flag",
+                          "location": "lowsail.return",
+                          "flag": "fume_yards.filter_sold"
+                        }
+                      },
+                      {
+                        "kind": "all",
+                        "conditions": [
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.dust_filter_fitted"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.kiln_freight_loaded"
+                            }
+                          },
+                          {
+                            "kind": "not",
+                            "condition": {
+                              "kind": "location_flag",
+                              "location": "fume_yards.kiln_bay",
+                              "flag": "fume_yards.freight_spoiled"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "not",
+                    "condition": {
+                      "kind": "has_item",
+                      "item": "fume_yards.filter",
+                      "count": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_braced"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "all",
+              "conditions": [
+                {
+                  "kind": "location_flag",
+                  "location": "fume_yards.ash_beds",
+                  "flag": "fume_yards.rack_rear_open"
+                },
+                {
+                  "kind": "all",
+                  "conditions": [
+                    {
+                      "kind": "facet_equals",
+                      "axis": "lineage",
+                      "value": {
+                        "kind": "text",
+                        "value": "kilnborn"
+                      }
+                    },
+                    {
+                      "kind": "facet_equals",
+                      "axis": "background",
+                      "value": {
+                        "kind": "text",
+                        "value": "lock-runner"
+                      }
+                    },
+                    {
+                      "kind": "has_tag",
+                      "tag": "heat-sense"
+                    },
+                    {
+                      "kind": "has_item",
+                      "item": "rope",
+                      "count": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "item": "fume_yards.filter",
+          "count": 1
+        },
+        {
+          "kind": "random_chance",
+          "success_percent": 75,
+          "on_success": {
+            "kind": "noop"
+          },
+          "on_failure": {
+            "kind": "apply_recipe",
+            "recipe": "fume_yards.break_filter"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_cleared",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "knowledge_id": "fume_yards.rack_cleared",
+          "subject": "Daro watched the player clear his jammed freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_cleared",
+          "subject": "Daro paid salvage rights for clearing his freight rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false,
+      "result_variants": [
+        {
+          "id": "rack_broke",
+          "priority": 10,
+          "condition": {
+            "kind": "has_item",
+            "item": "fume_yards.shard",
+            "count": 1
+          },
+          "text": "The rack filter broke as you pulled it free; Daro accepts the cleared rack."
+        }
+      ]
+    },
+    {
+      "id": "fume_yards.report_with_daro",
+      "label": "Report With Daro",
+      "category": "Report",
+      "result": "Daro follows you to Brann and confirms the rack is clear. Brann pays one coin for restored access.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_cleared"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.rack_rear_open"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.report_paid"
+            }
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.daro_venn",
+            "knowledge_id": "fume_yards.rack_cleared",
+            "provenance": "witnessed"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "knowledge_id": "fume_yards.rack_cleared",
+          "subject": "Daro reported the cleared freight rack to Brann.",
+          "provenance": {
+            "kind": "told",
+            "by": "fume_yards.daro_venn"
+          }
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 1
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.report_paid",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.rack_report_paid",
+          "subject": "Brann paid one coin for the witnessed access-clearing report.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.rack_reported",
+          "subject": "Daro reported the cleared rack to Brann in person.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.load_cold_freight",
+      "label": "Load Cold Freight (+3 coin)",
+      "category": "Work",
+      "result": "You unload the banked kiln without spending stamina. Brann pays three coins; cold work closes firing.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.charge_prepared"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_ignited"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_closed"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.freight_spoiled"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_freight_loaded",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.kiln_closed",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          },
+          "flag": "fume_yards.cold_work_chosen",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.kiln_freight_paid",
+          "subject": "Brann paid the player three coins for loading kiln freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.cold_work_chosen",
+          "subject": "Brann watched cold loading close the unfired kiln.",
           "provenance": {
             "kind": "witnessed"
           }

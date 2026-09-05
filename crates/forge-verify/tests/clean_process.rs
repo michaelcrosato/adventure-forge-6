@@ -39,6 +39,21 @@ fn pilot_definitions() -> std::collections::BTreeSet<&'static str> {
     .collect()
 }
 
+fn salvage_definitions() -> std::collections::BTreeSet<&'static str> {
+    [
+        "fume_yards.enter_ash_hatch",
+        "fume_yards.leave_ash_hatch",
+        "fume_yards.brace_rack",
+        "fume_yards.recover_braced_filter",
+        "fume_yards.thread_rack_filter",
+        "fume_yards.pull_rack_filter",
+        "fume_yards.report_with_daro",
+        "fume_yards.load_cold_freight",
+    ]
+    .into_iter()
+    .collect()
+}
+
 #[test]
 fn clean_process_outputs_match_each_other_and_checked_witnesses() {
     let expected_files: Vec<_> = scenario_ids()
@@ -106,16 +121,17 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     );
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        73
+        81
     );
-    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 8);
+    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 9);
     let regression = &report["regression"];
     let batchworks = &report["batchworks"];
+    let salvage = &report["salvage"];
     assert_eq!(
         regression["required_definitions"].as_array().unwrap().len(),
         60
     );
-    for component in [regression, batchworks] {
+    for component in [regression, batchworks, salvage] {
         assert_eq!(component["build_id"], report["build_id"]);
         assert_eq!(component["verifier_id"], report["verifier_id"]);
         assert_eq!(
@@ -132,7 +148,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         );
     }
     let union = |field: &str| {
-        [regression, batchworks]
+        [regression, batchworks, salvage]
             .into_iter()
             .flat_map(|component| component[field].as_array().unwrap())
             .map(|value| value.as_str().unwrap())
@@ -167,6 +183,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         assert_eq!(starts[index]["depth"], 0);
     }
     assert_batchworks_scope(batchworks);
+    assert_salvage_scope(salvage);
     let core = &regression["split_tide_projection"];
     assert_eq!(core["required_definitions"], core["covered_definitions"]);
     assert_eq!(core["required_locations"], core["reached_locations"]);
@@ -256,7 +273,7 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        73
+        81
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -295,7 +312,7 @@ fn assert_batchworks_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        73
+        81
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -328,4 +345,65 @@ fn clean_process_batchworks_crawls_match_checked_report() {
     );
     let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
     assert_batchworks_scope(&report);
+}
+
+fn assert_salvage_scope(report: &serde_json::Value) {
+    let required = report["required_definitions"].as_array().unwrap();
+    let covered = report["covered_definitions"].as_array().unwrap();
+    assert_eq!(required.len(), 8);
+    assert_eq!(
+        required
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>(),
+        salvage_definitions()
+    );
+    assert!(required.iter().all(|id| covered.contains(id)));
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        81
+    );
+    let locations = report["reached_locations"].as_array().unwrap();
+    for location in [
+        "fume_yards.ash_beds",
+        "fume_yards.kiln_bay",
+        "fume_yards.workshop",
+    ] {
+        assert!(
+            locations
+                .iter()
+                .any(|value| value.as_str() == Some(location))
+        );
+    }
+    assert_eq!(report["budget"]["max_depth"], 20);
+    assert_eq!(report["budget"]["max_expanded_states"], 96);
+    assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
+    assert_eq!(report["budget"]["max_action_executions"], 2048);
+    assert_eq!(report["budget"]["catalog_page_size"], 7);
+    assert_aftermath_starts(report);
+}
+
+#[test]
+fn clean_process_salvage_crawls_match_checked_report() {
+    let first = verifier(&["crawl-salvage"]);
+    let second = verifier(&["crawl-salvage"]);
+    assert!(
+        first.status.success(),
+        "first salvage crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(second.status.success(), "second salvage crawl failed");
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process salvage crawls diverged"
+    );
+    let path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/fume-yards-salvage.json");
+    assert_eq!(
+        first.stdout,
+        std::fs::read(path).expect("checked salvage report exists"),
+        "checked salvage report is stale"
+    );
+    let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_salvage_scope(&report);
 }

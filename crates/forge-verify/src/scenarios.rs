@@ -10,12 +10,24 @@ use crate::deferred_evidence::{
     DeferredEventExpectation, PendingEventExpectation, validate_deferred_expectations,
     validate_deferred_history,
 };
+use crate::entropy_evidence::{
+    EntropyExpectation, validate_entropy_expectations, validate_entropy_history,
+};
 use crate::{VerifyError, replay_error};
 
 const SCENARIO_BINDING_FORMAT: &str = "forge-scenario-spec-v1";
 const RECIPE_BINDING_FORMAT: &str = "forge-scenario-recipe-v1";
 
 const REQUIRED_SCENARIO_IDS: &[&str] = &[
+    "m2-fume-salvage-safe-sale",
+    "m2-fume-salvage-safe-local",
+    "m2-fume-salvage-skilled",
+    "m2-fume-salvage-intact",
+    "m2-fume-salvage-broken",
+    "m2-fume-salvage-prior-filter-broken",
+    "m2-fume-salvage-protected-production",
+    "m2-fume-salvage-reported",
+    "m2-fume-salvage-unreported",
     "m2-fume-batch-ready",
     "m2-fume-manufacture-local",
     "m2-fume-manufacture-sale",
@@ -65,6 +77,7 @@ pub(super) struct ScenarioStep {
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum ScenarioKnowledgeProvenance {
     Witnessed,
+    Told { by: &'static str },
     Rumor { from: &'static str },
 }
 
@@ -153,6 +166,7 @@ pub(super) struct ScenarioExpectations {
     forbidden_npc_inventory: &'static [ScenarioNpcInventoryAbsence],
     forbidden_character_inventory: &'static [&'static str],
     recipe_events: &'static [ScenarioRecipeExpectation],
+    entropy_draws: &'static [EntropyExpectation],
     deferred_events: &'static [DeferredEventExpectation],
     pending_deferred_events: &'static [PendingEventExpectation],
     required_legal_definitions: &'static [&'static str],
@@ -623,6 +637,7 @@ const PILOT_EMPTY_NESSA: &[ScenarioNpcInventoryAbsence] = &[
 ];
 
 include!("batch_scenarios.inc.rs");
+include!("salvage_scenarios.inc.rs");
 
 const SCENARIOS: &[ScenarioSpec] = &[
     ScenarioSpec {
@@ -656,6 +671,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -693,6 +709,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -731,6 +748,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -769,6 +787,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -820,6 +839,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -881,6 +901,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -943,6 +964,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -985,6 +1007,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1030,6 +1053,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &["floor.open_relief"],
@@ -1093,6 +1117,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1153,6 +1178,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1215,6 +1241,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1286,6 +1313,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1361,6 +1389,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1429,6 +1458,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: TIDE_KEY_YARA_INVENTORY_ABSENCE,
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1494,6 +1524,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: &[],
             forbidden_character_inventory: &[],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1579,6 +1610,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_REPAIR_EVENTS,
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1662,6 +1694,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_SCREEN_EVENTS,
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1753,6 +1786,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: &["fume_yards.repair_lot", "fume_yards.catch_screen"],
             recipe_events: &[],
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &["fume_yards.press_repair_plugs"],
@@ -1842,6 +1876,7 @@ const SCENARIOS: &[ScenarioSpec] = &[
             forbidden_npc_inventory: PILOT_EMPTY_NESSA,
             forbidden_character_inventory: PILOT_SPENT_ITEMS,
             recipe_events: PILOT_LATE_EVENTS,
+            entropy_draws: &[],
             deferred_events: &[],
             pending_deferred_events: &[],
             required_legal_definitions: &[],
@@ -1866,6 +1901,15 @@ const SCENARIOS: &[ScenarioSpec] = &[
     BATCH_MISSED_SPEC,
     BATCH_LATE_SPEC,
     BATCH_RECLAIM_SPEC,
+    SALVAGE_SAFE_SALE_SPEC,
+    SALVAGE_SAFE_LOCAL_SPEC,
+    SALVAGE_SKILLED_SPEC,
+    SALVAGE_INTACT_SPEC,
+    SALVAGE_BROKEN_SPEC,
+    SALVAGE_PRIOR_FILTER_BROKEN_SPEC,
+    SALVAGE_PROTECTED_PRODUCTION_SPEC,
+    SALVAGE_REPORTED_SPEC,
+    SALVAGE_UNREPORTED_SPEC,
 ];
 
 #[derive(Serialize)]
@@ -2059,6 +2103,7 @@ pub(super) fn validate_session(
         }
     }
     validate_recipe_events(state, expected.recipe_events)?;
+    validate_entropy_history(state, expected.entropy_draws)?;
     validate_deferred_history(
         state,
         expected.deferred_events,
@@ -2371,6 +2416,10 @@ fn knowledge_provenance_matches(
             true
         }
         (
+            ScenarioKnowledgeProvenance::Told { by },
+            forge_kernel::KnowledgeProvenance::Told { by: actual_by },
+        ) => actual_by == by,
+        (
             ScenarioKnowledgeProvenance::Rumor {
                 from: expected_from,
             },
@@ -2597,6 +2646,10 @@ fn validate_specs(specs: &[ScenarioSpec]) -> Result<(), VerifyError> {
                 ));
             }
         }
+        validate_entropy_expectations(
+            spec.expectations.entropy_draws,
+            spec.expectations.final_world_time,
+        )?;
         validate_deferred_expectations(
             spec.expectations.deferred_events,
             spec.expectations.pending_deferred_events,

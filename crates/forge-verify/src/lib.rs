@@ -13,6 +13,7 @@ use std::fmt::{Display, Formatter};
 
 mod crawler;
 mod deferred_evidence;
+mod entropy_evidence;
 mod expansion;
 mod scale;
 mod scenarios;
@@ -133,6 +134,10 @@ pub fn generate_optional_crawl_report() -> Result<CrawlReport, VerifyError> {
 
 pub fn generate_batchworks_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_batchworks(&load_content()?)
+}
+
+pub fn generate_salvage_crawl_report() -> Result<CrawlReport, VerifyError> {
+    expansion::crawl_salvage(&load_content()?)
 }
 
 pub fn check_player_trace(
@@ -321,7 +326,7 @@ mod tests {
     #[test]
     fn character_scenarios_are_deterministic_and_materially_distinct() {
         let ids: Vec<_> = scenario_ids().collect();
-        assert_eq!(ids.len(), 29);
+        assert_eq!(ids.len(), 38);
         for scenario in ids {
             let first = generate_witness(scenario).unwrap();
             let second = generate_witness(scenario).unwrap();
