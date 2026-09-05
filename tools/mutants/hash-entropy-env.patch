@@ -1,0 +1,34 @@
+diff --git a/crates/forge-kernel/src/hash.rs b/crates/forge-kernel/src/hash.rs
+--- a/crates/forge-kernel/src/hash.rs
++++ b/crates/forge-kernel/src/hash.rs
+@@ -41,7 +41,13 @@ fn canonicalize(value: Value) -> Value {
+             }
+             Value::Object(sorted)
+         }
+-        Value::Array(values) => Value::Array(values.into_iter().map(canonicalize).collect()),
++        Value::Array(values) => {
++            let mut values: Vec<_> = values.into_iter().map(canonicalize).collect();
++            if std::env::var_os("FORGE_MUTANT_HASH_CANONICALIZATION").is_some() {
++                values.sort_by_key(Value::to_string);
++            }
++            Value::Array(values)
++        }
+         other => other,
+     }
+ }
+diff --git a/crates/forge-kernel/src/entropy.rs b/crates/forge-kernel/src/entropy.rs
+--- a/crates/forge-kernel/src/entropy.rs
++++ b/crates/forge-kernel/src/entropy.rs
+@@ -73,7 +73,11 @@ impl EntropyState {
+         let input = self
+             .seed
+             .wrapping_add(self.cursor.wrapping_mul(0x9e37_79b9_7f4a_7c15));
+-        let value = splitmix64(input);
++        let value = if std::env::var_os("FORGE_MUTANT_ENTROPY").is_some() {
++            splitmix64(self.seed)
++        } else {
++            splitmix64(input)
++        };
+         let mut next = self.clone();
+         next.cursor += 1;
+         Ok((next, value))

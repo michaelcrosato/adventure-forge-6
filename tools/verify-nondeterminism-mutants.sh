@@ -4,6 +4,9 @@ set -euo pipefail
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 PATCH_PATH="$REPO_DIR/tools/mutants/nondeterminism-env.patch"
 BOUNDARY_PATCH_PATH="$REPO_DIR/tools/mutants/boundary-env.patch"
+HASH_ENTROPY_PATCH_PATH="$REPO_DIR/tools/mutants/hash-entropy-env.patch"
+MEMORY_PROSE_PATCH_PATH="$REPO_DIR/tools/mutants/memory-prose-env.patch"
+MANIFEST_PATCH_PATH="$REPO_DIR/tools/mutants/manifest-env.patch"
 MUTANT_TMP_PREFIX="${TMPDIR:-/tmp}/forge-nondeterminism-mutants."
 MUTANT_WORKSPACE=""
 MUTANT_SELECTORS=(
@@ -13,6 +16,11 @@ MUTANT_SELECTORS=(
     FORGE_MUTANT_PROCESS_RECEIPT
     FORGE_MUTANT_STALE_ACTION
     FORGE_MUTANT_SUPPLY_LEAK
+    FORGE_MUTANT_HASH_CANONICALIZATION
+    FORGE_MUTANT_ENTROPY
+    FORGE_MUTANT_REMOTE_MEMORY
+    FORGE_MUTANT_PROSE
+    FORGE_MUTANT_MANIFEST_INPUT
 )
 MUTANT_UNSET_ARGS=()
 for selector in "${MUTANT_SELECTORS[@]}"; do
@@ -36,11 +44,14 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-for command in cargo cp grep mkdir mktemp mv patch rm sed; do
+for command in cargo cat cp grep mkdir mktemp mv patch rm sed; do
     command -v "$command" >/dev/null 2>&1 || fail "required command is unavailable: $command"
 done
 [[ -f "$PATCH_PATH" ]] || fail "mutant patch is missing"
 [[ -f "$BOUNDARY_PATCH_PATH" ]] || fail "boundary mutant patch is missing"
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH"; do
+    [[ -f "$patch_path" ]] || fail "mutation patch is missing: $patch_path"
+done
 
 MUTANT_WORKSPACE="$(mktemp -d "${MUTANT_TMP_PREFIX}XXXXXX")"
 cp -- \
@@ -64,6 +75,10 @@ patch \
     --batch \
     --forward \
     --input="$BOUNDARY_PATCH_PATH" >/dev/null || fail "could not apply the boundary mutant patch"
+for patch_path in "$HASH_ENTROPY_PATCH_PATH" "$MEMORY_PROSE_PATCH_PATH" "$MANIFEST_PATCH_PATH"; do
+    patch --directory="$MUTANT_WORKSPACE" --strip=1 --batch --forward \
+        --input="$patch_path" >/dev/null || fail "could not apply mutation patch: $patch_path"
+done
 
 unset "${MUTANT_SELECTORS[@]}"
 MUTANT_TARGET="$REPO_DIR/target/nondeterminism-mutants"
@@ -77,8 +92,8 @@ export CARGO_INCREMENTAL=0
 MUTANT_VERIFIER="$MUTANT_TARGET/debug/forge-verify"
 [[ -x "$MUTANT_VERIFIER" ]] || fail "mutated verifier binary was not built"
 
-# Regenerate the crawl fixture with the mutated source but neither ambient
-# selector. This neutralizes build/verifier identity changes as a reason for
+# Regenerate the crawl fixture with the mutated source and every selector
+# absent. This neutralizes build/verifier identity changes as a reason for
 # later failures, so only the activated behavior change can kill a mutant.
 BASELINE_REPORT="$MUTANT_WORKSPACE/evidence/crawls/split-tide.json.next"
 env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" crawl >"$BASELINE_REPORT"
@@ -92,7 +107,7 @@ run_neutral_test() {
     if ! (
         cd -- "$MUTANT_WORKSPACE"
         env "${MUTANT_UNSET_ARGS[@]}" \
-            cargo test --locked -p forge-verify --test "$test_target" "$test_name" -- --exact
+            cargo test --locked -p forge-verify --test "$test_target" "$test_name" -- --exact --nocapture
     ) >"$log_path" 2>&1; then
         sed -n '1,220p' "$log_path" >&2
         fail "neutral control did not pass: $test_target/$test_name"
@@ -106,6 +121,57 @@ run_neutral_test() {
 run_neutral_test "clean_process" "clean_process_crawls_match_each_other_and_checked_report"
 run_neutral_test "boundaries" "stale_action_rejection_preserves_session"
 run_neutral_test "boundaries" "public_observation_excludes_npc_stock"
+run_neutral_test "hash_entropy" "canonical_hash_preserves_order_and_authoritative_inputs"
+run_neutral_test "hash_entropy" "entropy_known_answers_survive_canonical_actions_and_resume"
+run_neutral_test "memory_prose" "remote_npc_memory_survives_movement_save_replay_and_return"
+run_neutral_test "memory_prose" "production_prose_rejects_sentence_over_eighteen_words"
+run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+
+# Check actual incremental build sensitivity in this disposable copy. Updating
+# an existing source and adding an unreferenced source must both change the
+# manifest AND compiled production build; restoring each must restore both.
+# These probes also catch missing rerun directives, without mutating the repo.
+manifest_commitments() {
+    local line
+    line="$(sed -n '/^MANIFEST_PROBE /p' "$MUTANT_WORKSPACE/neutral-manifest-generated_manifest_matches_independent_input_digests.log")"
+    [[ "$line" =~ ^MANIFEST_PROBE\ [a-f0-9]{64}\ [a-f0-9]{64}$ ]] || fail "missing exact manifest commitments"
+    printf '%s\n' "$line"
+}
+
+assert_changed_commitments() {
+    local changed
+    changed="$(manifest_commitments)"
+    local marker old_manifest old_build new_manifest new_build
+    read -r marker old_manifest old_build <<<"$ORIGINAL_COMMITMENTS"
+    read -r marker new_manifest new_build <<<"$changed"
+    [[ "$old_manifest" != "$new_manifest" && "$old_build" != "$new_build" ]] || \
+        fail "authoritative input change did not change both manifest and game build"
+}
+
+ORIGINAL_COMMITMENTS="$(manifest_commitments)"
+PROBE_SOURCE="$MUTANT_WORKSPACE/crates/forge-kernel/src/entropy.rs"
+cp -- "$PROBE_SOURCE" "$MUTANT_WORKSPACE/entropy.rs.original"
+cat >>"$PROBE_SOURCE" <<'EOF'
+
+// Disposable manifest sensitivity probe: changed source bytes.
+EOF
+run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+assert_changed_commitments
+cp -- "$MUTANT_WORKSPACE/entropy.rs.original" "$PROBE_SOURCE"
+run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+[[ "$(manifest_commitments)" == "$ORIGINAL_COMMITMENTS" ]] || fail "restored source changed commitments"
+
+ADDED_SOURCE="$MUTANT_WORKSPACE/crates/forge-kernel/src/manifest_sensitivity_probe.rs"
+[[ ! -e "$ADDED_SOURCE" ]] || fail "manifest probe path already exists"
+cat >"$ADDED_SOURCE" <<'EOF'
+// Disposable manifest sensitivity probe: newly discovered source bytes.
+EOF
+run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+assert_changed_commitments
+rm -- "$ADDED_SOURCE"
+run_neutral_test "manifest" "generated_manifest_matches_independent_input_digests"
+[[ "$(manifest_commitments)" == "$ORIGINAL_COMMITMENTS" ]] || fail "removed source changed commitments"
+echo "PASS manifest sensitivity: edit/add inputs change both commitments; restore/remove reproduce both"
 
 assert_mutant_killed() {
     local mutant_name="$1"
@@ -163,4 +229,24 @@ assert_mutant_killed \
     "npc-stock-leak" "FORGE_MUTANT_SUPPLY_LEAK" \
     "boundaries" "public_observation_excludes_npc_stock" \
     'public observation leaked NPC stock'
-echo "PASS mutation corpus: 4 nondeterminism + stale-action + NPC-stock = 6/6 killed after 3 neutral controls"
+assert_mutant_killed \
+    "canonical-hash" "FORGE_MUTANT_HASH_CANONICALIZATION" \
+    "hash_entropy" "canonical_hash_preserves_order_and_authoritative_inputs" \
+    'canonical hash lost ordered input'
+assert_mutant_killed \
+    "entropy-cursor" "FORGE_MUTANT_ENTROPY" \
+    "hash_entropy" "entropy_known_answers_survive_canonical_actions_and_resume" \
+    'entropy seed cursor sequence changed'
+assert_mutant_killed \
+    "remote-memory" "FORGE_MUTANT_REMOTE_MEMORY" \
+    "memory_prose" "remote_npc_memory_survives_movement_save_replay_and_return" \
+    'remote NPC memory was lost or changed'
+assert_mutant_killed \
+    "prose-admission" "FORGE_MUTANT_PROSE" \
+    "memory_prose" "production_prose_rejects_sentence_over_eighteen_words" \
+    'production prose admitted a nineteen-word sentence'
+assert_mutant_killed \
+    "manifest-input" "FORGE_MUTANT_MANIFEST_INPUT" \
+    "manifest" "generated_manifest_matches_independent_input_digests" \
+    'manifest omitted authoritative kernel input'
+echo "PASS mutation corpus: 11/11 killed after 8 neutral controls and 4 incremental manifest probes"

@@ -1,0 +1,31 @@
+diff --git a/crates/forge-kernel/src/reducer.rs b/crates/forge-kernel/src/reducer.rs
+--- a/crates/forge-kernel/src/reducer.rs
++++ b/crates/forge-kernel/src/reducer.rs
+@@ -897,6 +897,13 @@
+             }
+             let from = state.world.current_location.clone();
+             state.world.current_location = location.clone();
++            if std::env::var_os("FORGE_MUTANT_REMOTE_MEMORY").is_some() {
++                for npc in state.world.npcs.values_mut() {
++                    if npc.location != location {
++                        npc.memories.clear();
++                    }
++                }
++            }
+             events.push(Event {
+                 turn,
+                 kind: EventKind::Moved { from, to: location },
+diff --git a/crates/forge-kernel/src/content.rs b/crates/forge-kernel/src/content.rs
+--- a/crates/forge-kernel/src/content.rs
++++ b/crates/forge-kernel/src/content.rs
+@@ -2885,7 +2885,9 @@
+         ));
+     }
+     for sentence in sentences {
+-        if word_count(sentence) > 18 {
++        if word_count(sentence) > 18
++            && std::env::var_os("FORGE_MUTANT_PROSE").is_none()
++        {
+             errors.push(format!(
+                 "location {} description sentence exceeds 18 words",
+                 location.id

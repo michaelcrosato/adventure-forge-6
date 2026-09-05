@@ -1,0 +1,17 @@
+diff --git a/crates/forge-kernel/build.rs b/crates/forge-kernel/build.rs
+--- a/crates/forge-kernel/build.rs
++++ b/crates/forge-kernel/build.rs
+@@ -75,4 +75,5 @@
+ fn main() {
++    println!("cargo:rerun-if-env-changed=FORGE_MUTANT_MANIFEST_INPUT");
+     let manifest_dir = PathBuf::from(env::var_os("CARGO_MANIFEST_DIR").expect("manifest dir"));
+     let repo_root = manifest_dir
+         .parent()
+@@ -86,1 +87,6 @@ fn main() {
+-    let kernel_source_files = files_under(&kernel.join("src"));
++    let mut kernel_source_files = files_under(&kernel.join("src"));
++    if env::var_os("FORGE_MUTANT_MANIFEST_INPUT").is_some() {
++        kernel_source_files.retain(|path| {
++            path.strip_prefix(&kernel).unwrap() != Path::new("src/entropy.rs")
++        });
++    }
