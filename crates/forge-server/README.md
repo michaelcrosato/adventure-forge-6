@@ -1,8 +1,20 @@
-# Session service foundation
+# Local session service
 
-This crate is an in-process Rust library for the planned browser adapter. It is
-not yet an HTTP server, browser client, authentication service, or public release.
-No port is opened and no save file is written by this crate.
+This crate contains a replay-backed Rust session library and a single-user
+loopback HTTP adapter. The executable serves only the local API and a status
+page; the browser player is not built yet. This is not a public release,
+Internet-facing server, or multi-user authentication service. Saves are exported
+to the caller; the server does not automatically persist them to disk.
+
+```bash
+cargo run --locked -p forge-server
+# Optional port; 0 selects a free loopback port:
+cargo run --locked -p forge-server -- --port 0
+```
+
+Open the printed `http://127.0.0.1:PORT` address exactly. Host aliases, proxying,
+and forwarding headers are unsupported. Ctrl-C stops the process; export saves
+before stopping, because all sessions and delivery ledgers are memory-only.
 
 The trusted caller supplies production `CompiledContent` in an `Arc` and starts
 a `SessionService` with an authored preset or public custom-character recipe.
@@ -10,7 +22,7 @@ Cloning a service shares its session; constructing another service starts an
 independent playthrough. Callers must not give a session handle to someone who
 should not control that session.
 
-## Public contract
+## Rust service contract
 
 `start_options` projects only preset and creation-choice IDs, names, summaries,
 and slot order. It never returns a derived character or an authored patch.
@@ -65,14 +77,85 @@ tradeoff keeps ownership and transactional failure handling simple without
 unsafe lifetimes or a second rules implementation; it is not a world-scale
 server performance claim.
 
-## Before HTTP or browser access
+## HTTP contract
 
-A transport still needs a session registry and idempotent creation, loopback-only
-binding, strict host/origin checks, authorization, streaming request limits,
-bounded work/lifecycle handling, coherent save downloads, and sanitized HTTP
-errors. A browser must render public views and submit action identities without
-duplicating game rules. Neither surface nor remote multi-user security is
-claimed by this library.
+All JSON numeric fields are exact decimal **strings**, including seeds,
+revisions, supply quantities, world time, action costs, catalog counts/offsets,
+and creation-slot order. Nulls and booleans retain their JSON types. Unsigned
+inputs accept only `0` or a nonzero digit followed by digits, within the declared
+Rust range; signs, leading zeros, numeric literals, floats, and exponents fail.
+This is a transport encoding, not a second rules implementation.
+
+The exception is the downloadable save. Treat it as opaque text: download the
+bytes, and import those exact bytes as `save_json`. Parsing and reserializing a
+save through JavaScript numbers could corrupt a full-width seed.
+
+| Method and path | Body / result |
+| --- | --- |
+| `GET /api/bootstrap` | Returns `{token}` to a same-origin fetch only |
+| `GET /api/options` | Public preset and custom-choice metadata |
+| `POST /api/sessions` | `{creation_id, start}` → `{session_id, view}` |
+| `POST /api/resume` | `{creation_id, save_json}` → `{session_id, view}` |
+| `GET /api/sessions/{id}` | Current public view |
+| `POST /api/sessions/{id}/catalog` | `{expected_state_id, offset, page_size}` → complete kernel page |
+| `POST /api/sessions/{id}/actions` | `{command_id, expected_revision, expected_state_id, action_id}` → acknowledged view |
+| `GET /api/sessions/{id}/save` | Raw player-safe JSON download |
+| `POST /api/sessions/{id}/close` | `{}` → `{closed: true}` |
+
+For example, preset `start` is
+`{"kind":"preset","character_preset_id":"rook","seed":"71"}`.
+Custom `start` uses `kind: "custom"`, a public `selection` with `name` and
+`choices: [{slot_id, choice_id}]`, and a string seed. Every request rejects
+unknown and duplicate JSON fields. POST bodies require `application/json`
+(optionally `; charset=utf-8`). No compressed bodies or query parameters are
+accepted. Errors contain only `{error: "stable_code"}`; no stack, host path,
+hidden state, or detailed verifier failure is exposed.
+
+Creation IDs follow the command-ID format: 1–128 ASCII letters, digits, `_`, or
+`-`. A repeated creation ID and identical typed start, or identical raw imported
+save, returns the original handle and initial view—even after progress or close.
+Another operation or payload conflicts. Failed creation does not reserve its ID.
+Do not install a historical creation/action acknowledgment as the newest view.
+
+The registry retains at most eight total records per process, with one active
+at a time. Close before starting another playthrough. Closed records preserve
+save access and accepted retries; closing never needs another record slot.
+There is no silent eviction. Once eight records are retained, export any saves
+and explicitly restart to reclaim capacity. Restart is not crash recovery and
+does not preserve idempotency acknowledgments.
+
+## Local access and limits
+
+The executable binds only `127.0.0.1`. It generates a 256-bit process capability
+from OS randomness, independently of game entropy. Only `/api/bootstrap` may
+return it. Keep the capability in browser memory, never in a URL, HTML, log,
+cookie, or localStorage. Every other API request needs `Authorization: Bearer
+TOKEN`. The browser must use same-origin fetches: exact Host,
+`Sec-Fetch-Site: same-origin`, and `Sec-Fetch-Dest: empty` are required. Mutations
+also require the exact Origin. GETs may omit Origin, but any supplied Origin
+must match. There is no CORS allowance or cross-site bootstrap. The public root
+has strict CSP, no embedded capability, and no player controls yet.
+
+All responses are `no-store`, `nosniff`, and unframeable. Duplicate security
+headers, forwarded headers, host aliases, absolute request URIs, and query-token
+alternatives fail closed. This is protection against cross-site browser
+requests, not malicious local processes, compromised browsers/extensions, or
+same-origin script injection. Do not expose or reverse-proxy this listener.
+
+HTTP defaults allow 256 KiB per safe save, 2 MiB per session command ledger,
+128 KiB per pre-encoding service view, 128 KiB ordinary input, and at most
+1,576,960 bytes for a JSON-escaped imported save wrapper. Numeric string encoding
+adds at most two bytes per integer; responses remain complete. Save size is
+checked again after unescaping. These limits do not cap programmed legal actions.
+
+At most two game requests are admitted to buffer or run, and one blocking
+worker executes at a time. Body reading has a five-second deadline before
+mutation. Once dispatched, work retains both permits until it actually finishes,
+even if the client disconnects. There is no misleading action-cancellation
+timeout: a lost response must be retried with its original ID and payload.
+`busy` is an admission rejection, not a committed action. Serialized quotas and
+worker admission are not hard RAM, connection-count, CPU-time, or Internet-DoS
+isolation. Full-history replay costs still require measurement before scaling.
 
 ## Verification
 
@@ -83,3 +166,14 @@ resumes after its paid-route checkpoint, and passes the exported ten-action
 player save to the independent `forge-verify check-player` process. Each run
 keeps its safe trace and trusted result under `artifacts/local/session-service/`.
 This is scripted adapter/replay evidence, not a blind or browser playtest.
+
+`./tools/verify-http-service.sh`, also in `./verify`, starts the real executable
+on a free loopback port and drives ten canonical actions over HTTP sockets. It
+discards the payment response body, retries without another turn, closes and
+resumes the checkpoint, finishes the relief route, and sends the exact exported
+save to the separate trusted verifier. Safe artifacts are retained under
+`artifacts/local/http-service/`. Unit/integration checks additionally cover
+cross-site and malformed requests, exact integer encoding, lifecycle limits,
+concurrency, and a dropped response future while its committed worker still
+owns both permits. Real-browser bootstrap/header checks supplement these tests;
+they are not a completed browser game or blind-player evidence.

@@ -1,7 +1,7 @@
-//! Transport-independent, player-safe session services for the future browser.
+//! Player-safe session services and a single-user loopback HTTP adapter.
 //!
-//! This library is not an HTTP server or an authentication boundary. Callers
-//! own session handles and lifecycle; a future transport must authorize them.
+//! `SessionService` is transport-independent; `http` supplies a restricted local
+//! capability boundary, not a public or multi-user authentication system.
 //! Only the kernel and replay layer determine game truth. No hidden state,
 //! authored character patches, filesystem paths, or detailed traces are public
 //! response types here.
@@ -17,6 +17,8 @@ use std::fmt::{Display, Formatter};
 
 mod service;
 pub use service::SessionService;
+pub mod http;
+pub mod registry;
 
 /// Transport input ceiling, not a limit on the kernel's legal catalog.
 pub const MAX_REQUEST_BYTES: usize = 128 * 1024;
