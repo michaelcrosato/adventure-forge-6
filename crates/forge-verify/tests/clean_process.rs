@@ -19,6 +19,10 @@ fn crawl_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/split-tide.json")
 }
 
+fn ash_cart_crawl_path() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/crawls/fume-yards-ash-cart.json")
+}
+
 fn scale_path() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../evidence/scale/synthetic-ring-500.json")
 }
@@ -49,6 +53,24 @@ fn salvage_definitions() -> std::collections::BTreeSet<&'static str> {
         "fume_yards.pull_rack_filter",
         "fume_yards.report_with_daro",
         "fume_yards.load_cold_freight",
+    ]
+    .into_iter()
+    .collect()
+}
+
+fn ash_cart_definitions() -> std::collections::BTreeSet<&'static str> {
+    [
+        "fume_yards.bring_pera_to_ash",
+        "fume_yards.load_spoiled_ash",
+        "fume_yards.load_broken_ash",
+        "fume_yards.prepare_wet_ash_freight",
+        "fume_yards.prepare_dry_ash_freight",
+        "fume_yards.escort_ash_freight",
+        "return.unload_clean_ash_freight",
+        "return.unload_dirty_ash_freight",
+        "return.unload_filtered_ash_freight",
+        "fume_yards.return_pera_from_ash",
+        "return.send_pera_home",
     ]
     .into_iter()
     .collect()
@@ -161,12 +183,13 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     );
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["reached_locations"].as_array().unwrap().len(), 9);
     let regression = &report["regression"];
     let batchworks = &report["batchworks"];
     let salvage = &report["salvage"];
+    let ash_cart = &report["ash_cart"];
     let market_water = &report["market_water"];
     let staffing = &report["staffing"];
     let cold_shift = &report["cold_shift"];
@@ -178,6 +201,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
         regression,
         batchworks,
         salvage,
+        ash_cart,
         market_water,
         staffing,
         cold_shift,
@@ -202,6 +226,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
             regression,
             batchworks,
             salvage,
+            ash_cart,
             market_water,
             staffing,
             cold_shift,
@@ -241,6 +266,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     }
     assert_batchworks_scope(batchworks);
     assert_salvage_scope(salvage);
+    assert_ash_cart_scope(ash_cart);
     assert_market_water_scope(market_water);
     assert_staffing_scope(staffing);
     assert_cold_shift_scope(cold_shift);
@@ -333,7 +359,7 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -372,7 +398,7 @@ fn assert_batchworks_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -421,7 +447,7 @@ fn assert_salvage_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     let locations = report["reached_locations"].as_array().unwrap();
     for location in [
@@ -468,6 +494,96 @@ fn clean_process_salvage_crawls_match_checked_report() {
     assert_salvage_scope(&report);
 }
 
+fn assert_ash_cart_scope(report: &serde_json::Value) {
+    let required = report["required_definitions"].as_array().unwrap();
+    let covered = report["covered_definitions"].as_array().unwrap();
+    assert_eq!(required.len(), 11);
+    assert_eq!(
+        required
+            .iter()
+            .map(|value| value.as_str().unwrap())
+            .collect::<std::collections::BTreeSet<_>>(),
+        ash_cart_definitions()
+    );
+    assert!(required.iter().all(|id| covered.contains(id)));
+    assert_eq!(
+        report["advertised_definitions"].as_array().unwrap().len(),
+        111
+    );
+    assert_eq!(report["budget"]["max_depth"], 35);
+    assert_eq!(report["budget"]["max_expanded_states"], 96);
+    assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
+    assert_eq!(report["budget"]["max_action_executions"], 2048);
+    assert_eq!(report["budget"]["catalog_page_size"], 7);
+    assert!(report["expanded_states"].as_u64().unwrap() <= 96);
+    assert!(report["discovered_frontiers"].as_u64().unwrap() <= 768);
+    assert!(report["successful_actions"].as_u64().unwrap() <= 2048);
+    for location in [
+        "fume_yards.ash_beds",
+        "fume_yards.kiln_bay",
+        "lowsail.return",
+    ] {
+        assert!(
+            report["reached_locations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|id| id.as_str() == Some(location))
+        );
+    }
+    let starts = report["starting_sessions"].as_array().unwrap();
+    assert_eq!(starts.len(), 11);
+    let expected = [
+        ("preset:ilyan", 0),
+        ("preset:rook", 0),
+        ("scenario:m1-outcome-hold-market", 7),
+        ("trace:m2-fume-ash-cart-spoiled-bay", 20),
+        ("trace:m2-fume-ash-cart-spoiled-ash", 21),
+        ("trace:m2-fume-ash-cart-wet-bay", 13),
+        ("trace:m2-fume-ash-cart-filter-bay", 24),
+        ("trace:m2-fume-ash-cart-cancel-ready", 15),
+        ("trace:m2-fume-ash-cart-dirty-unload", 24),
+        ("trace:m2-fume-ash-cart-clean-unload", 17),
+        ("trace:m2-fume-ash-cart-filtered-unload", 28),
+    ];
+    for (start, (label, depth)) in starts.iter().zip(expected) {
+        assert_eq!(start["label"], label);
+        assert_eq!(start["depth"], depth);
+    }
+}
+
+#[test]
+fn clean_process_ash_cart_crawls_match_checked_report() {
+    let first = verifier(&["crawl-ash-cart"]);
+    let second = verifier(&["crawl-ash-cart"]);
+    assert!(
+        first.status.success(),
+        "first ash-cart crawl failed: {}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(second.status.success(), "second ash-cart crawl failed");
+    assert_eq!(
+        first.stdout, second.stdout,
+        "clean-process ash-cart crawls diverged"
+    );
+    assert_eq!(
+        first.stdout,
+        std::fs::read(ash_cart_crawl_path()).expect("checked ash-cart report exists"),
+        "checked ash-cart report is stale"
+    );
+    let report: serde_json::Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_ash_cart_scope(&report);
+    let combined: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(crawl_path()).unwrap()).unwrap();
+    assert_eq!(report["build_id"], combined["build_id"]);
+    assert_eq!(report["verifier_id"], combined["verifier_id"]);
+    assert_eq!(
+        report["advertised_definitions"],
+        combined["advertised_definitions"]
+    );
+    assert_eq!(report, combined["ash_cart"]);
+}
+
 fn assert_market_water_scope(report: &serde_json::Value) {
     let required = report["required_definitions"].as_array().unwrap();
     let covered = report["covered_definitions"].as_array().unwrap();
@@ -482,7 +598,7 @@ fn assert_market_water_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -561,7 +677,7 @@ fn assert_staffing_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -639,7 +755,7 @@ fn assert_cold_shift_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        100
+        111
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 96);

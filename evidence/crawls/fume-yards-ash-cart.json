@@ -2,32 +2,43 @@
   "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
   "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
   "budget": {
-    "max_depth": 13,
+    "max_depth": 35,
     "max_expanded_states": 96,
-    "max_discovered_frontiers": 512,
-    "max_action_executions": 1024,
+    "max_discovered_frontiers": 768,
+    "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 8,
-  "discovered_frontiers": 55,
-  "successful_actions": 54,
+  "expanded_states": 9,
+  "discovered_frontiers": 59,
+  "successful_actions": 63,
   "max_legal_actions": 8,
   "reached_locations": [
-    "fume_yards.workshop",
+    "fume_yards.ash_beds",
+    "fume_yards.kiln_bay",
     "lowsail.return"
   ],
   "covered_definitions": [
-    "fume_yards.fit_catch_screen",
-    "fume_yards.load_freight",
-    "fume_yards.load_screened_freight",
-    "fume_yards.pack_catch_screen",
-    "fume_yards.press_repair_plugs",
-    "fume_yards.take_stock",
+    "fume_yards.brace_rack",
+    "fume_yards.bring_pera_to_ash",
+    "fume_yards.buy_collateral_filter",
+    "fume_yards.enter_ash_hatch",
+    "fume_yards.escort_ash_freight",
+    "fume_yards.fit_wet_screen",
+    "fume_yards.load_broken_ash",
+    "fume_yards.load_spoiled_ash",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.prepare_wet_ash_freight",
+    "fume_yards.pull_rack_filter",
+    "fume_yards.read_collateral_docket",
+    "fume_yards.return_pera_from_ash",
+    "fume_yards.take_fuel",
     "return.ask_oren",
-    "return.order_water_stand",
-    "return.patch_stand",
     "return.read_tide",
+    "return.send_pera_home",
     "return.sort_dry_goods",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight",
     "return.visit_workshop",
     "travel_adjacent",
     "wait_tide",
@@ -147,15 +158,17 @@
     "world.enter_aftermath"
   ],
   "required_definitions": [
-    "fume_yards.fit_catch_screen",
-    "fume_yards.load_freight",
-    "fume_yards.load_screened_freight",
-    "fume_yards.pack_catch_screen",
-    "fume_yards.press_repair_plugs",
-    "fume_yards.take_stock",
-    "return.patch_stand",
-    "return.sort_dry_goods",
-    "return.visit_workshop"
+    "fume_yards.bring_pera_to_ash",
+    "fume_yards.escort_ash_freight",
+    "fume_yards.load_broken_ash",
+    "fume_yards.load_spoiled_ash",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.prepare_wet_ash_freight",
+    "fume_yards.return_pera_from_ash",
+    "return.send_pera_home",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight"
   ],
   "starting_sessions": [
     {
@@ -190,7 +203,95 @@
       "depth": 7,
       "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
       "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-spoiled-bay",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 71
+      },
+      "depth": 20,
+      "final_receipt": "a7aa7161365ca21a05760a8ac7a5325fc1bee07cb12448081c7d9c7467cb4a0f",
+      "state_id": "9ed032e90681f70bfabf8fbd67327f4aa793d99dc87056979bce25e32afe83fc"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-spoiled-ash",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 71
+      },
+      "depth": 21,
+      "final_receipt": "95bbb4a40090b8647af54af64dd3b49bbb832e4383d59ee95349ca473d1e715a",
+      "state_id": "812c8f52306549d719e59a9571f1c0fee75df62b6c6546af2ac8dccbee292552"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-wet-bay",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 123
+      },
+      "depth": 13,
+      "final_receipt": "cdce440eea85913881c47e5338b589a31f47ca849fe64a02faa6d6a2c982b881",
+      "state_id": "cf2680cbd755ef44529246870f0840245e3fabd5419cdb969f8aad1adac50375"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-filter-bay",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 123
+      },
+      "depth": 24,
+      "final_receipt": "6eba5b37c6cb248798e7c3f741d4546f245f04aa21b4d5aa5dbcd4359c3662ed",
+      "state_id": "dc6340416818271cb6f2be20a778c6627450841341136143c451e1519f39a282"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-cancel-ready",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 123
+      },
+      "depth": 15,
+      "final_receipt": "b4c6b0753f8c484b371676a1ad0f95bf9506cbda4a0327c4cab5866fa960d6fa",
+      "state_id": "6d626e689d010eabfc2dfdd39ecb6877ffd27442a2df9d52987005d3652a7c92"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-dirty-unload",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 71
+      },
+      "depth": 24,
+      "final_receipt": "40a36c426cd928ca9466155ce92d6ad653f917587872a4b2e91a5e743b98495c",
+      "state_id": "ba07de535fe8810df3eb759963a0bc4227df6b322f4d91629d38521624207516"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-clean-unload",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 123
+      },
+      "depth": 17,
+      "final_receipt": "3fbe6e7cedd6c171f4c50bc4ce6a103ce87212b62fe7bd9f78555c1b089d45e6",
+      "state_id": "7bd319a6d7321bf18540e887bb4dbc2232153b72a0ef2883dd74fda5736a7fa4"
+    },
+    {
+      "label": "trace:m2-fume-ash-cart-filtered-unload",
+      "start": {
+        "kind": "character_preset",
+        "character_preset_id": "ilyan",
+        "seed": 123
+      },
+      "depth": 28,
+      "final_receipt": "0b6f8dc16b9217ff84604f23c7f958f93dc616e0deaae0b9a0f44ce2641e034a",
+      "state_id": "0ed222ae59f7056353c0e3c187ef33702e0f670767524a16e6f6f5e3b8759e75"
     }
   ],
-  "execution_receipt": "606c1887f5fbd2af06758d086785186ef03cb52c6bd1ce5d3411d514a921f929"
+  "execution_receipt": "03c42d7d02ae1e7277c89144eeb7a830fd248862680396f84ac0eb50731eb2c0"
 }

@@ -6667,9 +6667,9 @@ mod tests {
         let previous_fallback =
             6 + crate::supply_budget::potential_item_words(&previous_stock, &items);
         let current_fallback = 6 + crate::supply_budget::potential_item_words(&source, &items);
-        assert_eq!(previous_fallback, 29);
-        assert_eq!(current_fallback, 31);
-        assert_eq!(potential_supply_summary_words(&source), 26);
+        assert_eq!(previous_fallback, 31);
+        assert_eq!(current_fallback, 33);
+        assert_eq!(potential_supply_summary_words(&source), 28);
         assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 2);
         let location_words = source
             .locations
@@ -6688,18 +6688,18 @@ mod tests {
         assert_eq!((location_words, result_words), (31, 28));
         assert_eq!(
             location_words + result_words + 9 + 2 + previous_fallback,
-            99
+            101
         );
         assert_eq!(
             location_words + result_words + 9 + 2 + current_fallback,
-            101
+            103
         );
-        assert_eq!(location_words + result_words + 9 + 2 + 26, 96);
-        compile(source.clone()).expect("finite collateral stock has a proven 96-word bound");
+        assert_eq!(location_words + result_words + 9 + 2 + 28, 98);
+        compile(source.clone()).expect("finite ash freight stock has a proven 98-word bound");
 
         // Even a certain random arm is deliberately outside the cohort proof.
         // Losing that proof still restores both deferred results. The separate
-        // inventory proof remains sound, so the current combined bound is 98.
+        // inventory proof remains sound, but this synthetic arm reaches the strict boundary.
         let scheduling_action = source
             .actions
             .iter_mut()
@@ -6718,13 +6718,9 @@ mod tests {
         assert_eq!(crate::deferred_budget::maximum_result_words(&source, 1), 4);
         assert_eq!(
             location_words + result_words + 9 + 4 + previous_fallback,
-            101
+            103
         );
-        assert_eq!(location_words + result_words + 9 + 4 + 26, 98);
-        compile(source.clone()).expect("inventory proof does not depend on the cohort proof");
-        // The acceptance boundary itself has not moved. Add two result words
-        // to the absolute tide event, retaining its sentence-size constraint.
-        source.timed_events[0].result.push_str(" Water runs.");
+        assert_eq!(location_words + result_words + 9 + 4 + 28, 100);
         assert!(
             compile(source)
                 .unwrap_err()

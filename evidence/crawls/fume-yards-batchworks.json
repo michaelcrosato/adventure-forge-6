@@ -1,6 +1,6 @@
 {
-  "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-  "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+  "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+  "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
   "budget": {
     "max_depth": 20,
     "max_expanded_states": 128,
@@ -9,8 +9,8 @@
     "catalog_page_size": 7
   },
   "expanded_states": 19,
-  "discovered_frontiers": 123,
-  "successful_actions": 126,
+  "discovered_frontiers": 124,
+  "successful_actions": 127,
   "max_legal_actions": 8,
   "reached_locations": [
     "fume_yards.kiln_bay",
@@ -20,6 +20,7 @@
   "covered_definitions": [
     "fume_yards.assign_brann_salvage",
     "fume_yards.bank_kiln",
+    "fume_yards.bring_pera_to_ash",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
     "fume_yards.fit_dust_filter",
@@ -74,10 +75,12 @@
     "fume_yards.assign_brann_salvage",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
+    "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
+    "fume_yards.escort_ash_freight",
     "fume_yards.escort_market_cask",
     "fume_yards.fit_catch_screen",
     "fume_yards.fit_dust_filter",
@@ -85,13 +88,17 @@
     "fume_yards.ignite_batch",
     "fume_yards.inspect_spoiled_batch",
     "fume_yards.leave_ash_hatch",
+    "fume_yards.load_broken_ash",
     "fume_yards.load_cold_freight",
     "fume_yards.load_filtered_kiln_freight",
     "fume_yards.load_freight",
     "fume_yards.load_kiln_freight",
     "fume_yards.load_screened_freight",
+    "fume_yards.load_spoiled_ash",
     "fume_yards.pack_catch_screen",
     "fume_yards.prepare_charge",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.prepare_wet_ash_freight",
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
@@ -101,6 +108,7 @@
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
@@ -132,8 +140,12 @@
     "return.patch_stand",
     "return.read_tide",
     "return.sell_filter",
+    "return.send_pera_home",
     "return.share_water",
     "return.sort_dry_goods",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight",
     "return.visit_workshop",
     "top.break_toll",
     "top.check_wheels",
@@ -171,8 +183,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-      "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+      "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+      "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
     },
     {
       "label": "preset:rook",
@@ -182,8 +194,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-      "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+      "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+      "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -193,9 +205,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-      "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+      "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+      "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
     }
   ],
-  "execution_receipt": "ad8fafc0c1e4504ee3731aabbccd5931d4cbccfb2163f606f113cf2fc6491017"
+  "execution_receipt": "d118c4488172fa00d1e7725883406a592cb36971cd9dfd30eaa273b3267e3b77"
 }

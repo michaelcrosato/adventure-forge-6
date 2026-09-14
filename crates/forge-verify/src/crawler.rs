@@ -210,6 +210,16 @@ pub(super) fn crawl_targets_with_scenarios(
     required_definitions: BTreeSet<String>,
     scenario_seeds: &[&str],
 ) -> Result<CrawlReport, VerifyError> {
+    crawl_targets_with_traces(content, budget, required_definitions, scenario_seeds, &[])
+}
+
+pub(super) fn crawl_targets_with_traces(
+    content: &CompiledContent,
+    budget: CrawlBudget,
+    required_definitions: BTreeSet<String>,
+    scenario_seeds: &[&str],
+    trace_seeds: &[(&str, &Trace)],
+) -> Result<CrawlReport, VerifyError> {
     validate_budget(budget)?;
     let advertised_definitions: BTreeSet<_> = content.actions().map(|(id, _)| id.clone()).collect();
     if required_definitions.is_empty() || !required_definitions.is_subset(&advertised_definitions) {
@@ -249,6 +259,7 @@ pub(super) fn crawl_targets_with_scenarios(
         .size_hint()
         .0
         .checked_add(scenario_seeds.len())
+        .and_then(|count| count.checked_add(trace_seeds.len()))
         .ok_or_else(|| VerifyError::new("crawler starting-session count overflowed"))?;
     seeds
         .try_reserve(seed_count)
@@ -277,6 +288,9 @@ pub(super) fn crawl_targets_with_scenarios(
             session.trace(),
             content,
         )?);
+    }
+    for (label, trace) in trace_seeds {
+        seeds.push(CrawlSeed::from_trace((*label).to_owned(), trace, content)?);
     }
     for seed in seeds {
         let CrawlSeed {
@@ -3301,7 +3315,7 @@ mod tests {
             .crawl;
         assert!(report.is_complete());
         assert_eq!(report.required_definitions.len(), 60);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert!(report.reached_locations.len() >= 7);
         assert!(report.successful_actions >= report.required_definitions.len());
         assert_eq!(report.starting_sessions.len(), 2);

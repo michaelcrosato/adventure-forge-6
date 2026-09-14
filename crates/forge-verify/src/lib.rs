@@ -141,6 +141,10 @@ pub fn generate_salvage_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_salvage(&load_content()?)
 }
 
+pub fn generate_ash_cart_crawl_report() -> Result<CrawlReport, VerifyError> {
+    expansion::crawl_ash_cart(&load_content()?)
+}
+
 pub fn generate_market_water_crawl_report() -> Result<CrawlReport, VerifyError> {
     expansion::crawl_market_water_production(&load_content()?)
 }

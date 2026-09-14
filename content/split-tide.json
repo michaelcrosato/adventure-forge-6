@@ -19,7 +19,9 @@
       "fume_yards.batch_claim": "Batch Claim",
       "fume_yards.filter": "Filter",
       "fume_yards.spoiled_charge": "Rejects",
-      "fume_yards.shard": "Shard"
+      "fume_yards.shard": "Shard",
+      "fume_yards.ash_feed": "Ash Feed",
+      "fume_yards.ash_freight": "Ash Freight"
     },
     "resources": {
       "coin": "Coin",
@@ -158,6 +160,50 @@
       "id": "fume_yards.install_market_cask",
       "inputs": {
         "fume_yards.water_cask": 1
+      },
+      "outputs": {}
+    },
+    {
+      "id": "fume_yards.load_spoiled_ash",
+      "inputs": {
+        "fume_yards.spoiled_charge": 1
+      },
+      "outputs": {
+        "fume_yards.ash_feed": 1
+      }
+    },
+    {
+      "id": "fume_yards.load_broken_ash",
+      "inputs": {
+        "fume_yards.shard": 1
+      },
+      "outputs": {
+        "fume_yards.ash_feed": 1
+      }
+    },
+    {
+      "id": "fume_yards.prepare_wet_ash_freight",
+      "inputs": {
+        "fume_yards.ash_feed": 1,
+        "fume_yards.water_cask": 1
+      },
+      "outputs": {
+        "fume_yards.ash_freight": 1
+      }
+    },
+    {
+      "id": "fume_yards.prepare_dry_ash_freight",
+      "inputs": {
+        "fume_yards.ash_feed": 1
+      },
+      "outputs": {
+        "fume_yards.ash_freight": 1
+      }
+    },
+    {
+      "id": "fume_yards.unload_ash_freight",
+      "inputs": {
+        "fume_yards.ash_freight": 1
       },
       "outputs": {}
     }
@@ -21729,6 +21775,1003 @@
           },
           "memory_id": "fume_yards.returned_from_cold_shift",
           "subject": "Brann returned to Kiln Bay with the player after cold work.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.bring_pera_to_ash",
+      "label": "Bring Pera to Ash",
+      "category": "Travel",
+      "result": "Pera brings her cart to Ash Beds; prepare one real waste lot beside her.",
+      "locations": [
+        "fume_yards.kiln_bay"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.spoiled_charge",
+                "count": 1
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.shard",
+                "count": 1
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.ash_feed",
+                "count": 1
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.ash_freight",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_delivered"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_unloaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_cart_arrived",
+          "subject": "Pera brought her empty cart to Ash Beds with the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.load_spoiled_ash",
+      "label": "Load Spoiled Ash",
+      "category": "Salvage",
+      "result": "Pera inspects the spoiled charge and loads its ash into her cart.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.spoiled_charge",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_source_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_delivered"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.load_spoiled_ash"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_source_loaded",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "knowledge_id": "fume_yards.ash_feed_loaded",
+          "subject": "Pera inspected and accepted the player's spoiled ash feed.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_feed_loaded",
+          "subject": "Pera inspected and accepted the player's spoiled ash feed.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.load_broken_ash",
+      "label": "Load Broken Ash",
+      "category": "Salvage",
+      "result": "Pera inspects the broken shard and loads its ash into her cart.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.shard",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_source_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_delivered"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.load_broken_ash"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_source_loaded",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "knowledge_id": "fume_yards.ash_feed_loaded",
+          "subject": "Pera inspected and accepted the player's broken ash feed.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_feed_loaded",
+          "subject": "Pera inspected and accepted the player's broken ash feed.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.prepare_wet_ash_freight",
+      "label": "Wet Ash Freight",
+      "category": "Craft",
+      "result": "You wet the ash feed with the cask; the cart carries contained freight without dirty handling.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_source_loaded"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_feed",
+            "count": 1
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.water_cask",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_freight_prepared"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.prepare_wet_ash_freight"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_freight_prepared",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_contained",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_contained",
+          "subject": "Pera watched the player wet and contain one ash freight lot.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.prepare_dry_ash_freight",
+      "label": "Dry Ash Freight",
+      "category": "Craft",
+      "result": "You load the ash feed dry; the cart preserves the cask but dirty handling will cost two stamina.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_source_loaded"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_feed",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_freight_prepared"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.prepare_dry_ash_freight"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_freight_prepared",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_dirty",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_dirty",
+          "subject": "Pera watched the player load one ash freight lot without water.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.escort_ash_freight",
+      "label": "Escort Ash Freight",
+      "category": "Travel",
+      "result": "Pera inspects the ash freight and escorts it to Oren at Lowsail.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_freight_prepared"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_delivered"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "knowledge_id": "fume_yards.ash_freight_condition",
+          "subject": "Pera inspected the ash freight before escorting it to Oren.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          }
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "knowledge_id": "fume_yards.ash_freight_condition",
+          "subject": "Pera identified the ash freight condition to Oren after arriving.",
+          "provenance": {
+            "kind": "told",
+            "by": "fume_yards.pera_senn"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_freight_delivered",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_freight_escorted",
+          "subject": "Pera escorted the ash freight to Lowsail with the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_freight_arrived",
+          "subject": "Oren witnessed Pera arrive with the ash freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "return.unload_clean_ash_freight",
+      "label": "Unload Clean Ash (+3 coin)",
+      "category": "Work",
+      "result": "Oren unloads the contained freight and pays three coins; Pera's cask is spent.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_contained"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "oren_pell",
+            "knowledge_id": "fume_yards.ash_freight_condition",
+            "provenance": "told"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_unloaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.unload_ash_freight"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_freight_unloaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_freight_paid",
+          "subject": "Oren paid three coins for the contained ash freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.unload_dirty_ash_freight",
+      "label": "Unload Dirty Ash (+3 coin, -2 stamina)",
+      "category": "Work",
+      "result": "Ash dirties the lane; you spend two stamina clearing it, and Oren pays three coins.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_dirty"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "oren_pell",
+            "knowledge_id": "fume_yards.ash_freight_condition",
+            "provenance": "told"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.market_filter_fitted"
+            }
+          },
+          {
+            "kind": "resource_at_least",
+            "resource": "stamina",
+            "amount": 2
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_unloaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.unload_ash_freight"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "stamina",
+          "amount": -2
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_freight_unloaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_freight_paid",
+          "subject": "Oren paid three coins for the dirty ash freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "return.unload_filtered_ash_freight",
+      "label": "Unload Filtered Ash (+3 coin)",
+      "category": "Work",
+      "result": "The market filter catches the dry ash; Oren pays three coins without spending stamina.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_dirty"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.market_filter_fitted"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "oren_pell",
+            "knowledge_id": "fume_yards.ash_freight_condition",
+            "provenance": "told"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_unloaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.unload_ash_freight"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_freight_unloaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_freight_paid",
+          "subject": "Oren paid three coins for filtered ash freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.return_pera_from_ash",
+      "label": "Return Pera",
+      "category": "Travel",
+      "result": "Pera returns her cart to Kiln Bay; your ash freight stays with you in Ash Beds.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "has_item",
+                "item": "fume_yards.ash_feed",
+                "count": 1
+              },
+              {
+                "kind": "has_item",
+                "item": "fume_yards.ash_freight",
+                "count": 1
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_delivered"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.returned_from_ash",
+          "subject": "Pera returned her cart to Kiln Bay before delivery.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "return.send_pera_home",
+      "label": "Send Pera Home",
+      "category": "Travel",
+      "result": "Pera takes the empty cart back to Kiln Bay after Oren accepts the freight.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_unloaded"
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.returned_from_ash",
+          "subject": "Pera returned her empty cart to Kiln Bay after delivery.",
           "provenance": {
             "kind": "witnessed"
           }

@@ -1,10 +1,11 @@
 use forge_replay::PlayerTrace;
 use forge_verify::{
     EvidenceWitness, MAX_PLAYER_TRACE_BYTES, SCALE_MAX_REPORT_BYTES, ScaleReport,
-    check_player_trace, check_scale_report, check_witness, generate_batchworks_crawl_report,
-    generate_cold_shift_crawl_report, generate_crawl_report, generate_market_water_crawl_report,
-    generate_optional_crawl_report, generate_salvage_crawl_report, generate_scale_report,
-    generate_staffing_crawl_report, generate_witness, scenario_ids,
+    check_player_trace, check_scale_report, check_witness, generate_ash_cart_crawl_report,
+    generate_batchworks_crawl_report, generate_cold_shift_crawl_report, generate_crawl_report,
+    generate_market_water_crawl_report, generate_optional_crawl_report,
+    generate_salvage_crawl_report, generate_scale_report, generate_staffing_crawl_report,
+    generate_witness, scenario_ids,
 };
 use std::fs::File;
 use std::io::{BufReader, Read};
@@ -41,6 +42,9 @@ fn run(args: Vec<String>) -> Result<String, String> {
             .and_then(|report| report.to_pretty_json())
             .map_err(|error| error.to_string()),
         [command] if command == "crawl-salvage" => generate_salvage_crawl_report()
+            .and_then(|report| report.to_pretty_json())
+            .map_err(|error| error.to_string()),
+        [command] if command == "crawl-ash-cart" => generate_ash_cart_crawl_report()
             .and_then(|report| report.to_pretty_json())
             .map_err(|error| error.to_string()),
         [command] if command == "crawl-market-water" => generate_market_water_crawl_report()
@@ -124,5 +128,5 @@ fn read_bounded_utf8(path: &Path, max_bytes: u64, kind: &str) -> Result<String, 
 }
 
 fn usage() -> String {
-    "usage: forge-verify crawl | crawl-optional | crawl-batchworks | crawl-salvage | crawl-market-water | crawl-staffing | crawl-cold-shift | scale | check-scale PATH | emit SCENARIO | check PATH | check-player PATH | scenarios".to_owned()
+    "usage: forge-verify crawl | crawl-optional | crawl-batchworks | crawl-salvage | crawl-ash-cart | crawl-market-water | crawl-staffing | crawl-cold-shift | scale | check-scale PATH | emit SCENARIO | check PATH | check-player PATH | scenarios".to_owned()
 }

@@ -1,6 +1,6 @@
 {
-  "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
-  "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
+  "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
+  "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
   "advertised_definitions": [
     "checkpoint.ask_sava",
     "checkpoint.audit_order",
@@ -30,10 +30,12 @@
     "fume_yards.assign_brann_salvage",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
+    "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
+    "fume_yards.escort_ash_freight",
     "fume_yards.escort_market_cask",
     "fume_yards.fit_catch_screen",
     "fume_yards.fit_dust_filter",
@@ -41,13 +43,17 @@
     "fume_yards.ignite_batch",
     "fume_yards.inspect_spoiled_batch",
     "fume_yards.leave_ash_hatch",
+    "fume_yards.load_broken_ash",
     "fume_yards.load_cold_freight",
     "fume_yards.load_filtered_kiln_freight",
     "fume_yards.load_freight",
     "fume_yards.load_kiln_freight",
     "fume_yards.load_screened_freight",
+    "fume_yards.load_spoiled_ash",
     "fume_yards.pack_catch_screen",
     "fume_yards.prepare_charge",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.prepare_wet_ash_freight",
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
@@ -57,6 +63,7 @@
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
@@ -88,8 +95,12 @@
     "return.patch_stand",
     "return.read_tide",
     "return.sell_filter",
+    "return.send_pera_home",
     "return.share_water",
     "return.sort_dry_goods",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight",
     "return.visit_workshop",
     "top.break_toll",
     "top.check_wheels",
@@ -132,10 +143,12 @@
     "fume_yards.assign_brann_salvage",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
+    "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
+    "fume_yards.escort_ash_freight",
     "fume_yards.escort_market_cask",
     "fume_yards.fit_catch_screen",
     "fume_yards.fit_dust_filter",
@@ -143,13 +156,17 @@
     "fume_yards.ignite_batch",
     "fume_yards.inspect_spoiled_batch",
     "fume_yards.leave_ash_hatch",
+    "fume_yards.load_broken_ash",
     "fume_yards.load_cold_freight",
     "fume_yards.load_filtered_kiln_freight",
     "fume_yards.load_freight",
     "fume_yards.load_kiln_freight",
     "fume_yards.load_screened_freight",
+    "fume_yards.load_spoiled_ash",
     "fume_yards.pack_catch_screen",
     "fume_yards.prepare_charge",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.prepare_wet_ash_freight",
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
@@ -159,6 +176,7 @@
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
@@ -190,8 +208,12 @@
     "return.patch_stand",
     "return.read_tide",
     "return.sell_filter",
+    "return.send_pera_home",
     "return.share_water",
     "return.sort_dry_goods",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight",
     "return.visit_workshop",
     "top.break_toll",
     "top.check_wheels",
@@ -217,8 +239,8 @@
     "red_sluice.top"
   ],
   "regression": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 13,
       "max_expanded_states": 4096,
@@ -331,10 +353,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -342,13 +366,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -358,6 +386,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -389,8 +418,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -475,8 +508,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -486,11 +519,11 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       }
     ],
-    "execution_receipt": "eb8702241f4f7514303e9ea2ce2457c2637b84829888afa1f4167eff8bb5875e",
+    "execution_receipt": "81591b6ac02e6990419a8f0bcd455b5e229a78ef727793b5bd01613940cabeed",
     "split_tide_projection": {
       "required_definitions": [
         "checkpoint.ask_sava",
@@ -617,8 +650,8 @@
     }
   },
   "batchworks": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 128,
@@ -627,8 +660,8 @@
       "catalog_page_size": 7
     },
     "expanded_states": 19,
-    "discovered_frontiers": 123,
-    "successful_actions": 126,
+    "discovered_frontiers": 124,
+    "successful_actions": 127,
     "max_legal_actions": 8,
     "reached_locations": [
       "fume_yards.kiln_bay",
@@ -638,6 +671,7 @@
     "covered_definitions": [
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
       "fume_yards.fit_dust_filter",
@@ -692,10 +726,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -703,13 +739,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -719,6 +759,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -750,8 +791,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -789,8 +834,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -800,8 +845,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -811,15 +856,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-        "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
       }
     ],
-    "execution_receipt": "ad8fafc0c1e4504ee3731aabbccd5931d4cbccfb2163f606f113cf2fc6491017"
+    "execution_receipt": "d118c4488172fa00d1e7725883406a592cb36971cd9dfd30eaa273b3267e3b77"
   },
   "salvage": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -899,10 +944,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -910,13 +957,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -926,6 +977,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -957,8 +1009,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -991,8 +1047,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -1002,8 +1058,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1013,15 +1069,312 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-        "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
       }
     ],
-    "execution_receipt": "9c4c79c1d1e55090101525e101f102403266df29312888fb5479f1352d30bba0"
+    "execution_receipt": "f1aa03f4e0c363f2028b443268495c84b859666c7e760949298431b963f72a8d"
+  },
+  "ash_cart": {
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
+    "budget": {
+      "max_depth": 35,
+      "max_expanded_states": 96,
+      "max_discovered_frontiers": 768,
+      "max_action_executions": 2048,
+      "catalog_page_size": 7
+    },
+    "expanded_states": 9,
+    "discovered_frontiers": 59,
+    "successful_actions": 63,
+    "max_legal_actions": 8,
+    "reached_locations": [
+      "fume_yards.ash_beds",
+      "fume_yards.kiln_bay",
+      "lowsail.return"
+    ],
+    "covered_definitions": [
+      "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
+      "fume_yards.buy_collateral_filter",
+      "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
+      "fume_yards.fit_wet_screen",
+      "fume_yards.load_broken_ash",
+      "fume_yards.load_spoiled_ash",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
+      "fume_yards.pull_rack_filter",
+      "fume_yards.read_collateral_docket",
+      "fume_yards.return_pera_from_ash",
+      "fume_yards.take_fuel",
+      "return.ask_oren",
+      "return.read_tide",
+      "return.send_pera_home",
+      "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
+      "return.visit_workshop",
+      "travel_adjacent",
+      "wait_tide",
+      "world.enter_aftermath"
+    ],
+    "advertised_definitions": [
+      "checkpoint.ask_sava",
+      "checkpoint.audit_order",
+      "checkpoint.blend_workers",
+      "checkpoint.pressure_guard",
+      "checkpoint.read_flag",
+      "checkpoint.recall_worker",
+      "checkpoint.show_charter",
+      "checkpoint.use_stolen_permit",
+      "docks.ask_oren",
+      "docks.audit_ledger",
+      "docks.follow_yara",
+      "docks.press_yara",
+      "docks.rig_towline",
+      "docks.ring_warning",
+      "docks.search_crate",
+      "docks.trade_warning",
+      "floor.ack_report",
+      "floor.climb_hot_face",
+      "floor.dive_intake",
+      "floor.force_wheel",
+      "floor.key_calibration",
+      "floor.open_relief",
+      "floor.read_harmonics",
+      "floor.stabilize_gauge",
+      "floor.test_pressure",
+      "fume_yards.assign_brann_salvage",
+      "fume_yards.bank_kiln",
+      "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
+      "fume_yards.buy_collateral_filter",
+      "fume_yards.delegate_cold_shift",
+      "fume_yards.draw_filter",
+      "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
+      "fume_yards.escort_market_cask",
+      "fume_yards.fit_catch_screen",
+      "fume_yards.fit_dust_filter",
+      "fume_yards.fit_wet_screen",
+      "fume_yards.ignite_batch",
+      "fume_yards.inspect_spoiled_batch",
+      "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
+      "fume_yards.load_cold_freight",
+      "fume_yards.load_filtered_kiln_freight",
+      "fume_yards.load_freight",
+      "fume_yards.load_kiln_freight",
+      "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
+      "fume_yards.pack_catch_screen",
+      "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
+      "fume_yards.press_repair_plugs",
+      "fume_yards.pull_rack_filter",
+      "fume_yards.read_collateral_docket",
+      "fume_yards.reclaim_charge",
+      "fume_yards.recover_braced_filter",
+      "fume_yards.recover_staffed_filter",
+      "fume_yards.report_test",
+      "fume_yards.report_with_daro",
+      "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
+      "fume_yards.return_to_cage",
+      "fume_yards.return_with_brann",
+      "fume_yards.return_with_nessa",
+      "fume_yards.settle_collateral_fuel",
+      "fume_yards.share_rescue_account",
+      "fume_yards.take_cask",
+      "fume_yards.take_fuel",
+      "fume_yards.take_market_cask",
+      "fume_yards.take_stock",
+      "fume_yards.test_unfired_charge",
+      "fume_yards.thread_rack_filter",
+      "levee.authority_path",
+      "levee.culvert_path",
+      "levee.help_worker",
+      "levee.inspect_damage",
+      "levee.relay_warning",
+      "levee.send_report",
+      "levee.stolen_path",
+      "return.acknowledge_report",
+      "return.ask_oren",
+      "return.count_dry_stalls",
+      "return.draw_clean_water",
+      "return.face_flood",
+      "return.fit_market_filter",
+      "return.install_market_cask",
+      "return.move_inland",
+      "return.open_ferry",
+      "return.order_water_stand",
+      "return.patch_stand",
+      "return.read_tide",
+      "return.sell_filter",
+      "return.send_pera_home",
+      "return.share_water",
+      "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
+      "return.visit_workshop",
+      "top.break_toll",
+      "top.check_wheels",
+      "top.divert_relief",
+      "top.hold_market",
+      "top.overload",
+      "top.rescue_worker",
+      "top.signal_market",
+      "top.split_flow",
+      "travel_adjacent",
+      "wait_tide",
+      "world.enter_aftermath"
+    ],
+    "required_definitions": [
+      "fume_yards.bring_pera_to_ash",
+      "fume_yards.escort_ash_freight",
+      "fume_yards.load_broken_ash",
+      "fume_yards.load_spoiled_ash",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
+      "fume_yards.return_pera_from_ash",
+      "return.send_pera_home",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight"
+    ],
+    "starting_sessions": [
+      {
+        "label": "preset:ilyan",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 0,
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
+      },
+      {
+        "label": "preset:rook",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "rook",
+          "seed": 71
+        },
+        "depth": 0,
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
+      },
+      {
+        "label": "scenario:m1-outcome-hold-market",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 7,
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-spoiled-bay",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 20,
+        "final_receipt": "a7aa7161365ca21a05760a8ac7a5325fc1bee07cb12448081c7d9c7467cb4a0f",
+        "state_id": "9ed032e90681f70bfabf8fbd67327f4aa793d99dc87056979bce25e32afe83fc"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-spoiled-ash",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 21,
+        "final_receipt": "95bbb4a40090b8647af54af64dd3b49bbb832e4383d59ee95349ca473d1e715a",
+        "state_id": "812c8f52306549d719e59a9571f1c0fee75df62b6c6546af2ac8dccbee292552"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-wet-bay",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 123
+        },
+        "depth": 13,
+        "final_receipt": "cdce440eea85913881c47e5338b589a31f47ca849fe64a02faa6d6a2c982b881",
+        "state_id": "cf2680cbd755ef44529246870f0840245e3fabd5419cdb969f8aad1adac50375"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-filter-bay",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 123
+        },
+        "depth": 24,
+        "final_receipt": "6eba5b37c6cb248798e7c3f741d4546f245f04aa21b4d5aa5dbcd4359c3662ed",
+        "state_id": "dc6340416818271cb6f2be20a778c6627450841341136143c451e1519f39a282"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-cancel-ready",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 123
+        },
+        "depth": 15,
+        "final_receipt": "b4c6b0753f8c484b371676a1ad0f95bf9506cbda4a0327c4cab5866fa960d6fa",
+        "state_id": "6d626e689d010eabfc2dfdd39ecb6877ffd27442a2df9d52987005d3652a7c92"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-dirty-unload",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 24,
+        "final_receipt": "40a36c426cd928ca9466155ce92d6ad653f917587872a4b2e91a5e743b98495c",
+        "state_id": "ba07de535fe8810df3eb759963a0bc4227df6b322f4d91629d38521624207516"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-clean-unload",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 123
+        },
+        "depth": 17,
+        "final_receipt": "3fbe6e7cedd6c171f4c50bc4ce6a103ce87212b62fe7bd9f78555c1b089d45e6",
+        "state_id": "7bd319a6d7321bf18540e887bb4dbc2232153b72a0ef2883dd74fda5736a7fa4"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-filtered-unload",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 123
+        },
+        "depth": 28,
+        "final_receipt": "0b6f8dc16b9217ff84604f23c7f958f93dc616e0deaae0b9a0f44ce2641e034a",
+        "state_id": "0ed222ae59f7056353c0e3c187ef33702e0f670767524a16e6f6f5e3b8759e75"
+      }
+    ],
+    "execution_receipt": "03c42d7d02ae1e7277c89144eeb7a830fd248862680396f84ac0eb50731eb2c0"
   },
   "market_water": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 35,
       "max_expanded_states": 128,
@@ -1103,10 +1456,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -1114,13 +1469,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -1130,6 +1489,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -1161,8 +1521,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -1197,8 +1561,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -1208,8 +1572,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1219,15 +1583,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-        "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
       }
     ],
-    "execution_receipt": "a16922420d50f6fee051537aa1fe4d32f0019cbfc2742a72a1f39a2da110bf5c"
+    "execution_receipt": "e3de6b7f6d6998d40495d21c5d806879a82d07e39d2b7859950dfb3673a3cf1d"
   },
   "staffing": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -1298,10 +1662,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -1309,13 +1675,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -1325,6 +1695,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -1356,8 +1727,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -1386,8 +1761,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -1397,8 +1772,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1408,15 +1783,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-        "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
       }
     ],
-    "execution_receipt": "6cc05ac16367e6f9d30a983c9640114e74909f524d652937889d1d785c33a290"
+    "execution_receipt": "1fc5d8ce94ca86748df6b54f091d1cf6bbd50cea4b3f5f504f6911f6d7b6803b"
   },
   "cold_shift": {
-    "verifier_id": "361941b7a4df7847bd333804fa1c43f2713b2153f73565eaec6b7c3b571b49a8",
-    "build_id": "72f53d776c77b40d22feef3fa68d1210aef70fadea810decbca8c3231c08a626",
+    "verifier_id": "d46eab00e053fbe661eac45bbb79f37d9407d6b2bb65eb3ca3f2df2c80f94c40",
+    "build_id": "0e93cbc54fa774b780e739c0ccc9746143317f03fa451f5c84b4a2be952769e8",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -1488,10 +1863,12 @@
       "fume_yards.assign_brann_salvage",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
+      "fume_yards.bring_pera_to_ash",
       "fume_yards.buy_collateral_filter",
       "fume_yards.delegate_cold_shift",
       "fume_yards.draw_filter",
       "fume_yards.enter_ash_hatch",
+      "fume_yards.escort_ash_freight",
       "fume_yards.escort_market_cask",
       "fume_yards.fit_catch_screen",
       "fume_yards.fit_dust_filter",
@@ -1499,13 +1876,17 @@
       "fume_yards.ignite_batch",
       "fume_yards.inspect_spoiled_batch",
       "fume_yards.leave_ash_hatch",
+      "fume_yards.load_broken_ash",
       "fume_yards.load_cold_freight",
       "fume_yards.load_filtered_kiln_freight",
       "fume_yards.load_freight",
       "fume_yards.load_kiln_freight",
       "fume_yards.load_screened_freight",
+      "fume_yards.load_spoiled_ash",
       "fume_yards.pack_catch_screen",
       "fume_yards.prepare_charge",
+      "fume_yards.prepare_dry_ash_freight",
+      "fume_yards.prepare_wet_ash_freight",
       "fume_yards.press_repair_plugs",
       "fume_yards.pull_rack_filter",
       "fume_yards.read_collateral_docket",
@@ -1515,6 +1896,7 @@
       "fume_yards.report_test",
       "fume_yards.report_with_daro",
       "fume_yards.return_brann_to_kiln",
+      "fume_yards.return_pera_from_ash",
       "fume_yards.return_to_cage",
       "fume_yards.return_with_brann",
       "fume_yards.return_with_nessa",
@@ -1546,8 +1928,12 @@
       "return.patch_stand",
       "return.read_tide",
       "return.sell_filter",
+      "return.send_pera_home",
       "return.share_water",
       "return.sort_dry_goods",
+      "return.unload_clean_ash_freight",
+      "return.unload_dirty_ash_freight",
+      "return.unload_filtered_ash_freight",
       "return.visit_workshop",
       "top.break_toll",
       "top.check_wheels",
@@ -1577,8 +1963,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "30f6d11108b5929ca2aaaa843a018e10dfd2c29c12723fd61836c4810dd05c95",
-        "state_id": "2785f1469e774827e93ba28250e48bab37dea90b1eb861dbe3e8d119a132629b"
+        "final_receipt": "682eb343499c5df1bfa30ef89bc2141ea0604c45ac1be8e4614edf81591b397a",
+        "state_id": "cc932a94995714fc1f89ad9a555c2b1c61e1a331b674dbc753c63192508838bb"
       },
       {
         "label": "preset:rook",
@@ -1588,8 +1974,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "cbce4ca0ce00442bfdc5c7ab155f08acb59aac9c68592dfac616688c7ed864ba",
-        "state_id": "43a275d10c8a51276ba5e970059d7feedff09ce750bac92361b1f05314ed8f50"
+        "final_receipt": "b67c040dadfe805cb0b468c11eeef0df63b49724e4e613a8f57de06e799809ad",
+        "state_id": "bd645ff7e9f36e4c7608c4e150a50620ea9fc8ce4de743184cfb22fdfc87efcf"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1599,10 +1985,10 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "208d1dda1bf23dd3d9908cc37d74dff114d7af8ca3677e3dc8d3b2ff1c70be5d",
-        "state_id": "3be4391139c0363370cb2dc5af198fb308f333d554619acd97ead372673390af"
+        "final_receipt": "f836b419ec97a3ce19e11524466257cb737c8d52abc5c041d7888f9e30877dd3",
+        "state_id": "a33dcc4698ca8c149e5a0b1fb4244925d5a543bf3886e2a6e811e81f0fa6ece8"
       }
     ],
-    "execution_receipt": "ab143326d882b6ce7b0352ccec50d89d10338619af2676984df9100f45fd9427"
+    "execution_receipt": "87bd513e2db613fa0bd2deedf827a169bcdaacc19e0ea2e67a4193eeb8a5adb4"
   }
 }

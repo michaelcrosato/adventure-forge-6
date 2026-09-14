@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, and Nessa's narrow dust-test relay with delegated cold work are accepted through cycle 37. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, and the finite ash-cart slice are accepted through cycle 38. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -301,6 +301,28 @@ Thirteen new literal endpoints must cover tested, relayed, unrelayed, untested, 
 
 The separate five-target crawl retains its predeclared depth 20, 96 expanded states, 768 frontiers, 2,048 executions and seven-row pages, using both presets and the unchanged H7 frontier without prefix coverage credit. Preserve all six old crawl components, 55 literal bindings, 95 old definitions, sixteen recipes and nineteen defect killers. Before acceptance require the new controlled missing-Nessa-movement kill to fail the direct arrival predicate after its neutral control, independent review, final-build browser/native-save evidence and the complete gate. This bounded amendment is accepted through cycle 37 with thirteen literal witnesses, final native browser saves and the complete gate; it does not admit the complete district. Ash containment, dirty freight, cast routines, remaining character methods, the full area matrix and comparative breadth/depth remain unshipped.
 
+## Cycle 38 amendment: finite ash-cart freight
+
+This slice uses only real waste already produced by accepted paths. It adds no genesis stock, new location, NPC, schema version, or general-purpose transfer primitive. Pera's established cask remains finite and competes with wet ash containment. Oren receives only the condition Pera physically inspected and carried to him.
+
+| New action | Exact condition and authoritative consequence |
+| --- | --- |
+| `fume_yards.bring_pera_to_ash` — Bring Pera to Ash | At Kiln Bay, with Pera present and the player carrying a spoiled charge, broken shard, ash feed, or prepared ash freight, move Pera and the player to Ash Beds. Record her witnessed arrival and advance one step. |
+| `fume_yards.load_spoiled_ash` — Load Spoiled Ash | At Ash Beds, with Pera present and the actual spoiled charge, consume it into one ash-feed unit. The action is one-shot and records the source. |
+| `fume_yards.load_broken_ash` — Load Broken Ash | At Ash Beds, with Pera present and the actual shard, consume it into one ash-feed unit. The action is one-shot and records the source. |
+| `fume_yards.prepare_wet_ash_freight` — Wet Ash Freight | Consume one ash-feed unit and Pera's actual cask into one contained freight unit. Set persistent contained state and record Pera's witnessed preparation. |
+| `fume_yards.prepare_dry_ash_freight` — Dry Ash Freight | Consume one ash-feed unit into one dirty freight unit while Pera retains her cask. Set persistent dirty state and record Pera's witnessed preparation. |
+| `fume_yards.escort_ash_freight` — Escort Ash Freight | With Pera at Ash Beds, Oren at Lowsail, and the player carrying freight, Pera inspects it, moves with the player to Lowsail, and tells Oren its condition. The freight remains player-owned until unloading. |
+| `return.unload_clean_ash_freight` — Unload Clean Ash | With the delivered contained freight and both NPCs present, consume freight, pay three coins, record Oren's payment, and retire the delivery. |
+| `return.unload_dirty_ash_freight` — Unload Dirty Ash | With delivered dirty freight, at least two stamina, and no installed market filter, consume freight, pay three coins, spend two stamina, record payment, and retire the delivery. |
+| `return.unload_filtered_ash_freight` — Unload Filtered Ash | With delivered dirty freight and the installed market filter, consume freight and pay three coins without the dirty-lane stamina cost. |
+| `fume_yards.return_pera_from_ash` — Return Pera | Before delivery, move Pera from Ash Beds back to Kiln Bay without moving the player or inventing a delivery. This supports cancellation and preserves the prepared real goods. |
+| `return.send_pera_home` — Send Pera Home | After actual delivery and unloading, move Pera from Lowsail back to Kiln Bay. The delivery, payment, and freight retirement remain persistent. |
+
+Every action uses the ordinary one-step clock advance. Wet and dry preparation are competing choices: wet spends the sole cask and yields clean unloading; dry preserves the cask but exposes the two-stamina dirty-freight cost. A fitted market filter removes only that cost. The clean, dirty, and filtered unloads are mutually exclusive and one-shot. Oren's payment is exactly three coins; no delivery or return replenishes waste, casks, or stock.
+
+The accepted focused paths use a real banked spoiled charge, a real broken salvage shard, a cask-preserving dry route, a wet route, a market-filter route, and a cancellation route. The separate ash-cart crawl uses both authored presets, the unchanged seven-action Hold Market frontier, and eight verified replay traces at depths 20, 21, 13, 24, 15, 24, 17, and 28. Its fixed ceiling is depth 35, 96 expanded states, 768 frontiers, 2,048 action executions, and seven catalog rows; all 111 advertised definitions remain complete and the crawl must reach Ash Beds, Kiln Bay, and Lowsail. This is bounded action coverage, not full district admission, a full character matrix, or a claim of complete ash containment.
+
 ## Witness acceptance matrix
 
 The IDs below reserve intended claims. Before any claim ships, replace each recipe description with an exact reviewed start, seed, complete canonical action/parameter sequence, checkpoint set, and hidden predicates in the scenario registry. This document is not an executable witness and does not pre-approve future paths.
@@ -332,7 +354,7 @@ Every outcome claim uses a clean-process verifier bound to the exact candidate b
 
 Keep all sixty-eight accepted scenario IDs, starts, seeds, exact recipes and semantic predicates, including all fifty-five preceding this dust-test episode. New authoritative content will change build/state/catalog hashes, so regenerate checked artifacts through trusted tooling; never weaken an old expectation merely because a new build changed hashes. Preserve the existing 128-turn relief path, deadline at 16, single outcome exclusivity, paid towline's three-coin charge and retained gear, key ownership, warning provenance, cast return continuity, catalog completeness, supply privacy, and save/replay behavior.
 
-The current combined report covers 100 definitions and nine locations through the separately checked regression, batch, salvage, market-water, staffing and cold-shift components. The cold-pilot report is also checked separately. All seven retain their own targets and budgets. The exact legacy projection still proves six locations and 51 definitions under its reviewed budgets. Preserve every component target, ceiling, complete-catalog requirement, and canonical seed lineage. Future optional work needs a separately declared budget; the historical 56-state crawl does not establish expansion coverage. Keep the 500-location fixture labeled synthetic.
+The current combined report covers 111 definitions and nine locations through the separately checked regression, batch, salvage, ash-cart, market-water, staffing and cold-shift components. The cold-pilot report is also checked separately. All eight retain their own targets and budgets. The exact legacy projection still proves six locations and 51 definitions under its reviewed budgets. Preserve every component target, ceiling, complete-catalog requirement, and canonical seed lineage. Future optional work needs a separately declared budget; the historical 56-state crawl does not establish expansion coverage. Keep the 500-location fixture labeled synthetic.
 
 Preserve browser retry/reload/import, process-instance recovery, exact full-width numbers, capability isolation, and bundle reproduction. The browser displays kernel observations and submits canonical IDs; it gains no recipe calculator, timer authority, local legality, or client-only consequence logic.
 

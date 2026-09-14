@@ -1,7 +1,7 @@
 use crate::{CrawlBudget, CrawlReport, VerifyError};
 use forge_kernel::CompiledContent;
 use serde::Serialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 // Reviewed pre-expansion identities from accepted build 2105d1f0. New content
 // may add to the graph/catalog but cannot erase any of this coverage.
@@ -103,6 +103,20 @@ pub(super) const SALVAGE_ACTIONS: &[&str] = &[
     "fume_yards.load_cold_freight",
 ];
 
+pub(super) const ASH_CART_ACTIONS: &[&str] = &[
+    "fume_yards.bring_pera_to_ash",
+    "fume_yards.load_spoiled_ash",
+    "fume_yards.load_broken_ash",
+    "fume_yards.prepare_wet_ash_freight",
+    "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.escort_ash_freight",
+    "return.unload_clean_ash_freight",
+    "return.unload_dirty_ash_freight",
+    "return.unload_filtered_ash_freight",
+    "fume_yards.return_pera_from_ash",
+    "return.send_pera_home",
+];
+
 pub(super) const MARKET_WATER_ACTIONS: &[&str] = &[
     "fume_yards.read_collateral_docket",
     "fume_yards.buy_collateral_filter",
@@ -178,6 +192,16 @@ pub(super) const SALVAGE_BUDGET: CrawlBudget = CrawlBudget {
     catalog_page_size: 7,
 };
 
+// Declared before the first ash-cart trial. The longest reviewed route carries
+// a banked waste lot through Pera's inspection, return, and one-shot unloading.
+pub(super) const ASH_CART_BUDGET: CrawlBudget = CrawlBudget {
+    max_depth: 35,
+    max_expanded_states: 96,
+    max_discovered_frontiers: 768,
+    max_action_executions: 2048,
+    catalog_page_size: 7,
+};
+
 fn ids(values: &[&str]) -> BTreeSet<String> {
     values.iter().map(|id| (*id).to_owned()).collect()
 }
@@ -199,7 +223,7 @@ pub struct RegressionCrawlReport {
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
 /// Combined coverage from independent crawls. The legacy regression keeps
-/// its original ceilings; batch work, salvage, market water, staffing and cold
+/// its original ceilings; batch work, salvage, ash cart, market water, staffing and cold
 /// work have explicit budgets. Components do not claim exhaustive reachable-state coverage or
 /// admission of a complete new area.
 pub struct ProductionCrawlReport {
@@ -211,9 +235,20 @@ pub struct ProductionCrawlReport {
     pub regression: RegressionCrawlReport,
     pub batchworks: CrawlReport,
     pub salvage: CrawlReport,
+    pub ash_cart: CrawlReport,
     pub market_water: CrawlReport,
     pub staffing: CrawlReport,
     pub cold_shift: CrawlReport,
+}
+
+#[derive(Clone)]
+struct ExpansionCrawlReports {
+    batchworks: CrawlReport,
+    salvage: CrawlReport,
+    ash_cart: CrawlReport,
+    market_water: CrawlReport,
+    staffing: CrawlReport,
+    cold_shift: CrawlReport,
 }
 
 impl ProductionCrawlReport {
@@ -270,6 +305,7 @@ fn validate_expansion_catalog(content: &CompiledContent) -> Result<BTreeSet<Stri
     let mut reviewed = regression_definitions();
     reviewed.extend(ids(BATCHWORKS_ACTIONS));
     reviewed.extend(ids(SALVAGE_ACTIONS));
+    reviewed.extend(ids(ASH_CART_ACTIONS));
     reviewed.extend(ids(MARKET_WATER_ACTIONS));
     reviewed.extend(ids(STAFFING_ACTIONS));
     reviewed.extend(ids(COLD_SHIFT_ACTIONS));
@@ -297,34 +333,43 @@ pub(super) fn crawl_all(content: &CompiledContent) -> Result<ProductionCrawlRepo
     let regression = crawl_regression(content, CrawlBudget::default())?;
     let batchworks = crawl_batchworks(content)?;
     let salvage = crawl_salvage(content)?;
+    let ash_cart = crawl_ash_cart(content)?;
     let market_water = crawl_market_water_production(content)?;
     let staffing = crawl_staffing_production(content)?;
     let cold_shift = crawl_cold_shift_production(content)?;
     combine_crawls(
         content,
         regression,
-        batchworks,
-        salvage,
-        market_water,
-        staffing,
-        cold_shift,
+        ExpansionCrawlReports {
+            batchworks,
+            salvage,
+            ash_cart,
+            market_water,
+            staffing,
+            cold_shift,
+        },
     )
 }
 
 fn combine_crawls(
     content: &CompiledContent,
     regression: RegressionCrawlReport,
-    batchworks: CrawlReport,
-    salvage: CrawlReport,
-    market_water: CrawlReport,
-    staffing: CrawlReport,
-    cold_shift: CrawlReport,
+    optional: ExpansionCrawlReports,
 ) -> Result<ProductionCrawlReport, VerifyError> {
+    let ExpansionCrawlReports {
+        batchworks,
+        salvage,
+        ash_cart,
+        market_water,
+        staffing,
+        cold_shift,
+    } = optional;
     let advertised_definitions = validate_expansion_catalog(content)?;
     for report in [
         &regression.crawl,
         &batchworks,
         &salvage,
+        &ash_cart,
         &market_water,
         &staffing,
         &cold_shift,
@@ -345,11 +390,14 @@ fn combine_crawls(
         || batchworks.budget != BATCHWORKS_BUDGET
         || salvage.required_definitions != ids(SALVAGE_ACTIONS)
         || salvage.budget != SALVAGE_BUDGET
+        || ash_cart.required_definitions != ids(ASH_CART_ACTIONS)
+        || ash_cart.budget != ASH_CART_BUDGET
     {
         return Err(VerifyError::new(
             "combined crawl component scope or budget differs from contract",
         ));
     }
+    check_ash_cart_report(content, &ash_cart)?;
     check_market_water_report(content, &market_water)?;
     check_staffing_report(content, &staffing)?;
     check_cold_shift_report(content, &cold_shift)?;
@@ -369,6 +417,13 @@ fn combine_crawls(
         ]
         .iter()
         .all(|id| salvage.reached_locations.contains(*id))
+        || ![
+            "fume_yards.ash_beds",
+            "fume_yards.kiln_bay",
+            "lowsail.return",
+        ]
+        .iter()
+        .all(|id| ash_cart.reached_locations.contains(*id))
     {
         return Err(VerifyError::new(
             "combined crawl lost a component consequence location",
@@ -378,6 +433,7 @@ fn combine_crawls(
         &regression.crawl,
         &batchworks,
         &salvage,
+        &ash_cart,
         &market_water,
         &staffing,
         &cold_shift,
@@ -390,6 +446,7 @@ fn combine_crawls(
         &regression.crawl,
         &batchworks,
         &salvage,
+        &ash_cart,
         &market_water,
         &staffing,
         &cold_shift,
@@ -413,6 +470,7 @@ fn combine_crawls(
         regression,
         batchworks,
         salvage,
+        ash_cart,
         market_water,
         staffing,
         cold_shift,
@@ -500,6 +558,60 @@ pub(super) fn crawl_salvage(content: &CompiledContent) -> Result<CrawlReport, Ve
     Ok(report)
 }
 
+pub(super) fn crawl_ash_cart(content: &CompiledContent) -> Result<CrawlReport, VerifyError> {
+    let seed_sessions = ash_cart_trace_seeds(content)?;
+    let trace_seeds: Vec<_> = seed_sessions
+        .iter()
+        .map(|(label, session)| (label.as_str(), session.trace()))
+        .collect();
+    let report = crate::crawler::crawl_targets_with_traces(
+        content,
+        ASH_CART_BUDGET,
+        ids(ASH_CART_ACTIONS),
+        &["m1-outcome-hold-market"],
+        &trace_seeds,
+    )?;
+    check_ash_cart_report(content, &report)?;
+    Ok(report)
+}
+
+pub(super) fn check_ash_cart_report(
+    content: &CompiledContent,
+    report: &CrawlReport,
+) -> Result<(), VerifyError> {
+    let authored = validate_expansion_catalog(content)?;
+    let locations: BTreeSet<_> = content.locations().map(|(id, _)| id.clone()).collect();
+    if report.build_id != content.build_id()
+        || report.verifier_id != crate::VERIFIER_ID
+        || report.advertised_definitions != authored
+        || report.required_definitions != ids(ASH_CART_ACTIONS)
+        || !report.covered_definitions.is_subset(&authored)
+        || !report.reached_locations.is_subset(&locations)
+        || !report.is_complete()
+        || report.budget != ASH_CART_BUDGET
+        || report.expanded_states > ASH_CART_BUDGET.max_expanded_states
+        || report.discovered_frontiers > ASH_CART_BUDGET.max_discovered_frontiers
+        || report.successful_actions > ASH_CART_BUDGET.max_action_executions
+        || ![
+            "fume_yards.ash_beds",
+            "fume_yards.kiln_bay",
+            "lowsail.return",
+        ]
+        .iter()
+        .all(|id| report.reached_locations.contains(*id))
+    {
+        return Err(VerifyError::new(
+            "ash-cart crawl identity, coverage, location, or fixed budget differs from contract",
+        ));
+    }
+    if report.starting_sessions != reviewed_ash_cart_starting_sessions(content)? {
+        return Err(VerifyError::new(
+            "ash-cart crawl starting sessions differ from canonical presets, H7 lineage, or checked ash-cart traces",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn crawl_market_water_production(
     content: &CompiledContent,
 ) -> Result<CrawlReport, VerifyError> {
@@ -570,6 +682,220 @@ fn reviewed_aftermath_starting_sessions(
         final_receipt: hold.trace().final_receipt.clone(),
         state_id: hold.state().state_id(),
     });
+    Ok(starts)
+}
+
+fn record_crawl_action(
+    session: &mut forge_replay::Session<'_>,
+    content: &CompiledContent,
+    definition_id: &str,
+    destination: Option<&str>,
+) -> Result<(), VerifyError> {
+    let parameters = destination
+        .map(|destination| BTreeMap::from([(String::from("destination"), destination.into())]))
+        .unwrap_or_default();
+    let action = forge_kernel::enumerate_legal_actions(session.state(), content)
+        .map_err(|_| VerifyError::new("could not enumerate ash-cart seed actions"))?
+        .into_iter()
+        .find(|action| action.definition_id == definition_id && action.parameters == parameters)
+        .ok_or_else(|| {
+            VerifyError::new(format!(
+                "ash-cart seed action {definition_id} ({destination:?}) was not legal"
+            ))
+        })?;
+    session
+        .record(&action)
+        .map(|_| ())
+        .map_err(crate::replay_error)
+}
+
+fn record_crawl_actions(
+    session: &mut forge_replay::Session<'_>,
+    content: &CompiledContent,
+    actions: &[(&str, Option<&str>)],
+) -> Result<(), VerifyError> {
+    for (definition_id, destination) in actions {
+        record_crawl_action(session, content, definition_id, *destination)?;
+    }
+    Ok(())
+}
+
+fn fresh_spoiled_bay<'content>(
+    content: &'content CompiledContent,
+) -> Result<forge_replay::Session<'content>, VerifyError> {
+    let mut session =
+        crate::scenarios::run(crate::scenarios::get("m1-outcome-hold-market")?, content)?;
+    record_crawl_actions(
+        &mut session,
+        content,
+        &[
+            ("return.visit_workshop", None),
+            ("fume_yards.take_stock", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.ash_beds")),
+            ("fume_yards.buy_collateral_filter", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.prepare_charge", None),
+            ("fume_yards.fit_dust_filter", None),
+            ("fume_yards.take_fuel", None),
+            ("fume_yards.ignite_batch", None),
+            ("fume_yards.bank_kiln", None),
+        ],
+    )?;
+    Ok(session)
+}
+
+fn ash_cart_trace_seeds<'content>(
+    content: &'content CompiledContent,
+) -> Result<Vec<(String, forge_replay::Session<'content>)>, VerifyError> {
+    let broken_spec = crate::scenarios::get("m2-fume-salvage-broken")?;
+    let spoiled_bay = fresh_spoiled_bay(content)?;
+    let mut spoiled_ash = fresh_spoiled_bay(content)?;
+    record_crawl_action(
+        &mut spoiled_ash,
+        content,
+        "fume_yards.bring_pera_to_ash",
+        None,
+    )?;
+
+    let mut wet_bay = crate::scenarios::run(broken_spec, content)?;
+    record_crawl_actions(
+        &mut wet_bay,
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.take_cask", None),
+        ],
+    )?;
+
+    let mut filter_bay = crate::scenarios::run(broken_spec, content)?;
+    record_crawl_actions(
+        &mut filter_bay,
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("fume_yards.take_stock", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.prepare_charge", None),
+            ("fume_yards.reclaim_charge", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.ash_beds")),
+            ("fume_yards.buy_collateral_filter", None),
+            ("world.enter_aftermath", None),
+            ("return.patch_stand", None),
+            ("return.order_water_stand", None),
+            ("return.fit_market_filter", None),
+            ("return.visit_workshop", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+        ],
+    )?;
+
+    let mut cancel_ready = crate::scenarios::run(broken_spec, content)?;
+    record_crawl_actions(
+        &mut cancel_ready,
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.take_cask", None),
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_broken_ash", None),
+        ],
+    )?;
+
+    let mut dirty_unload = fresh_spoiled_bay(content)?;
+    record_crawl_actions(
+        &mut dirty_unload,
+        content,
+        &[
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_spoiled_ash", None),
+            ("fume_yards.prepare_dry_ash_freight", None),
+            ("fume_yards.escort_ash_freight", None),
+        ],
+    )?;
+
+    let mut clean_unload = crate::scenarios::run(broken_spec, content)?;
+    record_crawl_actions(
+        &mut clean_unload,
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.take_cask", None),
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_broken_ash", None),
+            ("fume_yards.prepare_wet_ash_freight", None),
+            ("fume_yards.escort_ash_freight", None),
+        ],
+    )?;
+
+    let mut filtered_unload = crate::scenarios::run(broken_spec, content)?;
+    record_crawl_actions(
+        &mut filtered_unload,
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("fume_yards.take_stock", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.prepare_charge", None),
+            ("fume_yards.reclaim_charge", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.ash_beds")),
+            ("fume_yards.buy_collateral_filter", None),
+            ("world.enter_aftermath", None),
+            ("return.patch_stand", None),
+            ("return.order_water_stand", None),
+            ("return.fit_market_filter", None),
+            ("return.visit_workshop", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_broken_ash", None),
+            ("fume_yards.prepare_dry_ash_freight", None),
+            ("fume_yards.escort_ash_freight", None),
+        ],
+    )?;
+
+    Ok(vec![
+        ("trace:m2-fume-ash-cart-spoiled-bay".to_owned(), spoiled_bay),
+        ("trace:m2-fume-ash-cart-spoiled-ash".to_owned(), spoiled_ash),
+        ("trace:m2-fume-ash-cart-wet-bay".to_owned(), wet_bay),
+        ("trace:m2-fume-ash-cart-filter-bay".to_owned(), filter_bay),
+        (
+            "trace:m2-fume-ash-cart-cancel-ready".to_owned(),
+            cancel_ready,
+        ),
+        (
+            "trace:m2-fume-ash-cart-dirty-unload".to_owned(),
+            dirty_unload,
+        ),
+        (
+            "trace:m2-fume-ash-cart-clean-unload".to_owned(),
+            clean_unload,
+        ),
+        (
+            "trace:m2-fume-ash-cart-filtered-unload".to_owned(),
+            filtered_unload,
+        ),
+    ])
+}
+
+fn reviewed_ash_cart_starting_sessions(
+    content: &CompiledContent,
+) -> Result<Vec<crate::crawler::CrawlStartingSession>, VerifyError> {
+    let mut starts = reviewed_aftermath_starting_sessions(content)?;
+    for (label, session) in ash_cart_trace_seeds(content)? {
+        starts.push(crate::crawler::CrawlStartingSession {
+            label,
+            start: session.trace().start.clone(),
+            depth: session.trace().steps.len(),
+            final_receipt: session.trace().final_receipt.clone(),
+            state_id: session.state().state_id(),
+        });
+    }
     Ok(starts)
 }
 
@@ -709,7 +1035,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -736,7 +1062,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -757,12 +1083,39 @@ mod tests {
     }
 
     #[test]
+    fn ash_cart_crawl_covers_eleven_targets_under_its_separate_fixed_budget() {
+        let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
+        let report = crawl_ash_cart(&content).unwrap();
+        assert_eq!(report.budget, ASH_CART_BUDGET);
+        assert_eq!(report.required_definitions, ids(ASH_CART_ACTIONS));
+        assert_eq!(report.required_definitions.len(), 11);
+        assert_eq!(report.advertised_definitions.len(), 111);
+        assert!(report.is_complete());
+        assert_eq!(report.starting_sessions.len(), 11);
+        assert_eq!(
+            report
+                .starting_sessions
+                .iter()
+                .map(|start| start.depth)
+                .collect::<Vec<_>>(),
+            vec![0, 0, 7, 20, 21, 13, 24, 15, 24, 17, 28]
+        );
+        assert!(report.expanded_states <= ASH_CART_BUDGET.max_expanded_states);
+        assert!(report.discovered_frontiers <= ASH_CART_BUDGET.max_discovered_frontiers);
+        assert!(report.successful_actions <= ASH_CART_BUDGET.max_action_executions);
+        eprintln!(
+            "ash-cart: {} states, {} frontiers, {} actions",
+            report.expanded_states, report.discovered_frontiers, report.successful_actions
+        );
+    }
+
+    #[test]
     fn market_water_crawl_covers_ten_targets_under_its_predeclared_budget() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -792,7 +1145,7 @@ mod tests {
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
         assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -822,7 +1175,7 @@ mod tests {
         let report = crawl_cold_shift_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
         assert_eq!(report.required_definitions.len(), 5);
-        assert_eq!(report.advertised_definitions.len(), 100);
+        assert_eq!(report.advertised_definitions.len(), 111);
         assert_eq!(report.budget, COLD_SHIFT_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -868,6 +1221,24 @@ mod tests {
         }
     }
 
+    fn optional_reports(
+        batchworks: CrawlReport,
+        salvage: CrawlReport,
+        ash_cart: CrawlReport,
+        market_water: CrawlReport,
+        staffing: CrawlReport,
+        cold_shift: CrawlReport,
+    ) -> ExpansionCrawlReports {
+        ExpansionCrawlReports {
+            batchworks,
+            salvage,
+            ash_cart,
+            market_water,
+            staffing,
+            cold_shift,
+        }
+    }
+
     #[test]
     fn combined_scope_rejects_missing_coverage_identity_and_budget_substitution() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
@@ -879,6 +1250,8 @@ mod tests {
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
+        ash_cart.starting_sessions = reviewed_ash_cart_starting_sessions(&content).unwrap();
         let mut market_water =
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
@@ -889,14 +1262,17 @@ mod tests {
         let combined = combine_crawls(
             &content,
             regression.clone(),
-            batchworks.clone(),
-            salvage.clone(),
-            market_water.clone(),
-            staffing.clone(),
-            cold_shift.clone(),
+            optional_reports(
+                batchworks.clone(),
+                salvage.clone(),
+                ash_cart.clone(),
+                market_water.clone(),
+                staffing.clone(),
+                cold_shift.clone(),
+            ),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 100);
+        assert_eq!(combined.advertised_definitions.len(), 111);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions
@@ -922,11 +1298,14 @@ mod tests {
                 combine_crawls(
                     &content,
                     regression.clone(),
-                    changed,
-                    salvage.clone(),
-                    market_water.clone(),
-                    staffing.clone(),
-                    cold_shift.clone(),
+                    optional_reports(
+                        changed,
+                        salvage.clone(),
+                        ash_cart.clone(),
+                        market_water.clone(),
+                        staffing.clone(),
+                        cold_shift.clone(),
+                    ),
                 )
                 .is_err()
             );
@@ -948,11 +1327,14 @@ mod tests {
             combine_crawls(
                 &content,
                 missing_location,
-                missing_location_batch,
-                missing_location_salvage,
-                market_water.clone(),
-                staffing.clone(),
-                cold_shift.clone(),
+                optional_reports(
+                    missing_location_batch,
+                    missing_location_salvage,
+                    ash_cart.clone(),
+                    market_water.clone(),
+                    staffing.clone(),
+                    cold_shift.clone(),
+                ),
             )
             .is_err()
         );
@@ -962,11 +1344,14 @@ mod tests {
             combine_crawls(
                 &content,
                 omitted,
-                batchworks,
-                salvage,
-                market_water,
-                staffing.clone(),
-                cold_shift.clone(),
+                optional_reports(
+                    batchworks,
+                    salvage,
+                    ash_cart,
+                    market_water,
+                    staffing.clone(),
+                    cold_shift.clone(),
+                ),
             )
             .is_err()
         );
@@ -989,6 +1374,8 @@ mod tests {
         .unwrap();
         let mut batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
+        ash_cart.starting_sessions = reviewed_ash_cart_starting_sessions(&content).unwrap();
         let mut market_water =
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
@@ -1006,11 +1393,14 @@ mod tests {
         combine_crawls(
             &content,
             regression.clone(),
-            batchworks.clone(),
-            salvage.clone(),
-            market_water.clone(),
-            staffing.clone(),
-            cold_shift.clone(),
+            optional_reports(
+                batchworks.clone(),
+                salvage.clone(),
+                ash_cart.clone(),
+                market_water.clone(),
+                staffing.clone(),
+                cold_shift.clone(),
+            ),
         )
         .unwrap();
         for mutation in 0..7 {
@@ -1042,11 +1432,14 @@ mod tests {
                 combine_crawls(
                     &content,
                     regression.clone(),
-                    batchworks.clone(),
-                    changed,
-                    market_water.clone(),
-                    staffing.clone(),
-                    cold_shift.clone(),
+                    optional_reports(
+                        batchworks.clone(),
+                        changed,
+                        ash_cart.clone(),
+                        market_water.clone(),
+                        staffing.clone(),
+                        cold_shift.clone(),
+                    ),
                 )
                 .is_err(),
                 "mutation {mutation} must not weaken combined coverage"
@@ -1065,6 +1458,8 @@ mod tests {
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
+        ash_cart.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut market_water =
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
@@ -1157,11 +1552,14 @@ mod tests {
                 combine_crawls(
                     &content,
                     regression.clone(),
-                    batchworks.clone(),
-                    salvage.clone(),
-                    changed,
-                    staffing.clone(),
-                    cold_shift.clone(),
+                    optional_reports(
+                        batchworks.clone(),
+                        salvage.clone(),
+                        ash_cart.clone(),
+                        changed,
+                        staffing.clone(),
+                        cold_shift.clone(),
+                    ),
                 )
                 .is_err(),
                 "combined report accepted market-water {mutation}"
@@ -1180,6 +1578,8 @@ mod tests {
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
+        ash_cart.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
@@ -1272,11 +1672,14 @@ mod tests {
                 combine_crawls(
                     &content,
                     regression.clone(),
-                    batchworks.clone(),
-                    salvage.clone(),
-                    market_water.clone(),
-                    changed,
-                    cold_shift.clone(),
+                    optional_reports(
+                        batchworks.clone(),
+                        salvage.clone(),
+                        ash_cart.clone(),
+                        market_water.clone(),
+                        changed,
+                        cold_shift.clone(),
+                    ),
                 )
                 .is_err(),
                 "combined report accepted staffing {mutation}"
@@ -1295,6 +1698,8 @@ mod tests {
         .unwrap();
         let batchworks = declared_report(&content, ids(BATCHWORKS_ACTIONS), BATCHWORKS_BUDGET);
         let salvage = declared_report(&content, ids(SALVAGE_ACTIONS), SALVAGE_BUDGET);
+        let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
+        ash_cart.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
         staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
@@ -1387,11 +1792,14 @@ mod tests {
                 combine_crawls(
                     &content,
                     regression.clone(),
-                    batchworks.clone(),
-                    salvage.clone(),
-                    market_water.clone(),
-                    staffing.clone(),
-                    changed,
+                    optional_reports(
+                        batchworks.clone(),
+                        salvage.clone(),
+                        ash_cart.clone(),
+                        market_water.clone(),
+                        staffing.clone(),
+                        changed,
+                    ),
                 )
                 .is_err(),
                 "combined report accepted cold-shift {mutation}"
