@@ -181,7 +181,7 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     assert_eq!(content.world_id(), "veyra-basin");
     assert_eq!(content.locations().count(), 9);
     assert_eq!(content.npcs().count(), 9);
-    assert_eq!(content.actions().count(), 111);
+    assert_eq!(content.actions().count(), 112);
     for id in [
         "fume_yards.share_rescue_account",
         "fume_yards.assign_brann_salvage",
@@ -197,7 +197,7 @@ fn split_tide_is_a_production_pack_with_two_full_presets() {
     }
     assert!(content.has_location("fume_yards.ash_beds"));
     assert!(content.npcs().any(|(id, _)| id == "fume_yards.daro_venn"));
-    assert_eq!(content.recipes().len(), 21);
+    assert_eq!(content.recipes().len(), 22);
     assert!(content.recipes().contains_key("fume_yards.break_filter"));
     assert!(
         content

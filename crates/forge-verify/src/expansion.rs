@@ -109,6 +109,7 @@ pub(super) const ASH_CART_ACTIONS: &[&str] = &[
     "fume_yards.load_broken_ash",
     "fume_yards.prepare_wet_ash_freight",
     "fume_yards.prepare_dry_ash_freight",
+    "fume_yards.settle_ash_lane",
     "fume_yards.escort_ash_freight",
     "return.unload_clean_ash_freight",
     "return.unload_dirty_ash_freight",
@@ -760,6 +761,17 @@ fn ash_cart_trace_seeds<'content>(
         None,
     )?;
 
+    let mut settle_ready = fresh_spoiled_bay(content)?;
+    record_crawl_actions(
+        &mut settle_ready,
+        content,
+        &[
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_spoiled_ash", None),
+            ("fume_yards.prepare_dry_ash_freight", None),
+        ],
+    )?;
+
     let mut wet_bay = crate::scenarios::run(broken_spec, content)?;
     record_crawl_actions(
         &mut wet_bay,
@@ -862,6 +874,10 @@ fn ash_cart_trace_seeds<'content>(
     Ok(vec![
         ("trace:m2-fume-ash-cart-spoiled-bay".to_owned(), spoiled_bay),
         ("trace:m2-fume-ash-cart-spoiled-ash".to_owned(), spoiled_ash),
+        (
+            "trace:m2-fume-ash-cart-settle-ready".to_owned(),
+            settle_ready,
+        ),
         ("trace:m2-fume-ash-cart-wet-bay".to_owned(), wet_bay),
         ("trace:m2-fume-ash-cart-filter-bay".to_owned(), filter_bay),
         (
@@ -1035,7 +1051,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1062,7 +1078,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1083,22 +1099,22 @@ mod tests {
     }
 
     #[test]
-    fn ash_cart_crawl_covers_eleven_targets_under_its_separate_fixed_budget() {
+    fn ash_cart_crawl_covers_twelve_targets_under_its_separate_fixed_budget() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
         let report = crawl_ash_cart(&content).unwrap();
         assert_eq!(report.budget, ASH_CART_BUDGET);
         assert_eq!(report.required_definitions, ids(ASH_CART_ACTIONS));
-        assert_eq!(report.required_definitions.len(), 11);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.required_definitions.len(), 12);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert!(report.is_complete());
-        assert_eq!(report.starting_sessions.len(), 11);
+        assert_eq!(report.starting_sessions.len(), 12);
         assert_eq!(
             report
                 .starting_sessions
                 .iter()
                 .map(|start| start.depth)
                 .collect::<Vec<_>>(),
-            vec![0, 0, 7, 20, 21, 13, 24, 15, 24, 17, 28]
+            vec![0, 0, 7, 20, 21, 23, 13, 24, 15, 24, 17, 28]
         );
         assert!(report.expanded_states <= ASH_CART_BUDGET.max_expanded_states);
         assert!(report.discovered_frontiers <= ASH_CART_BUDGET.max_discovered_frontiers);
@@ -1115,7 +1131,7 @@ mod tests {
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1145,7 +1161,7 @@ mod tests {
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
         assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1175,7 +1191,7 @@ mod tests {
         let report = crawl_cold_shift_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
         assert_eq!(report.required_definitions.len(), 5);
-        assert_eq!(report.advertised_definitions.len(), 111);
+        assert_eq!(report.advertised_definitions.len(), 112);
         assert_eq!(report.budget, COLD_SHIFT_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1272,7 +1288,7 @@ mod tests {
             ),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 111);
+        assert_eq!(combined.advertised_definitions.len(), 112);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions

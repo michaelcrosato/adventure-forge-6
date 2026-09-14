@@ -201,6 +201,13 @@
       }
     },
     {
+      "id": "fume_yards.settle_ash_lane",
+      "inputs": {
+        "fume_yards.water_cask": 1
+      },
+      "outputs": {}
+    },
+    {
       "id": "fume_yards.unload_ash_freight",
       "inputs": {
         "fume_yards.ash_freight": 1
@@ -22124,6 +22131,15 @@
           "value": true
         },
         {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_freight_dirty",
+          "value": false
+        },
+        {
           "kind": "add_npc_memory",
           "npc": {
             "kind": "literal",
@@ -22204,6 +22220,15 @@
           "value": true
         },
         {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_freight_dirty",
+          "value": true
+        },
+        {
           "kind": "add_npc_memory",
           "npc": {
             "kind": "literal",
@@ -22211,6 +22236,128 @@
           },
           "memory_id": "fume_yards.ash_dirty",
           "subject": "Pera watched the player load one ash freight lot without water.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.settle_ash_lane",
+      "label": "Settle Ash Lane",
+      "category": "Work",
+      "result": "Pera's cask settles the Ash Beds lane; the delivered freight remains dirty.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_freight_prepared"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_dirty"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_lane_settled"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.cask_taken"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.market_cask_installed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "transfer_npc_item_to_character",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "item": "fume_yards.water_cask",
+          "count": 1
+        },
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.settle_ash_lane"
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_dirty",
+          "value": false
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_lane_settled",
+          "value": true
+        },
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "knowledge_id": "fume_yards.ash_lane_settled",
+          "subject": "Pera watched the player settle the Ash Beds lane with her cask.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_lane_settled",
+          "subject": "Pera watched the player settle the Ash Beds lane with her cask.",
           "provenance": {
             "kind": "witnessed"
           }
@@ -22472,7 +22619,7 @@
           {
             "kind": "location_flag",
             "location": "fume_yards.ash_beds",
-            "flag": "fume_yards.ash_dirty"
+            "flag": "fume_yards.ash_freight_dirty"
           },
           {
             "kind": "has_item",
@@ -22582,7 +22729,7 @@
           {
             "kind": "location_flag",
             "location": "fume_yards.ash_beds",
-            "flag": "fume_yards.ash_dirty"
+            "flag": "fume_yards.ash_freight_dirty"
           },
           {
             "kind": "location_flag",

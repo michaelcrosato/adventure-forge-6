@@ -287,3 +287,64 @@ fn installed_market_filter_removes_dirty_ash_unloading_cost() {
     assert_eq!(state.character.resources["coin"], 9);
     assert_eq!(state.character.inventory.get(FREIGHT), None);
 }
+
+#[test]
+fn settling_the_lane_spends_peras_real_cask_without_retroactively_cleaning_freight() {
+    let content = content();
+    let mut no_cask = banked_with_filter(&content, 71, true);
+    no_cask = act(no_cask, &content, "fume_yards.bring_pera_to_ash");
+    no_cask = act(no_cask, &content, "fume_yards.load_spoiled_ash");
+    no_cask = act(no_cask, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(!definitions(&no_cask, &content).contains("fume_yards.settle_ash_lane"));
+
+    let mut state = banked_with_filter(&content, 71, false);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(definitions(&state, &content).contains("fume_yards.settle_ash_lane"));
+    let stale = select(&state, &content, "fume_yards.settle_ash_lane");
+
+    state = act(state, &content, "fume_yards.settle_ash_lane");
+    assert_eq!(state.character.inventory.get(CASK), None);
+    assert_eq!(state.world.npcs[PERA].inventory.get(CASK), None);
+    assert!(
+        !state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_dirty")
+    );
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_freight_dirty")
+    );
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_lane_settled")
+    );
+    assert_eq!(
+        state.world.npcs[PERA].knowledge["fume_yards.ash_lane_settled"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_recipe(&state, "fume_yards.settle_ash_lane", (CASK, 1), None);
+    assert!(step(&state, &stale, &content, &state.entropy).is_err());
+    assert!(!definitions(&state, &content).contains("return.unload_clean_ash_freight"));
+
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    let stamina = state.character.resources["stamina"];
+    state = act(state, &content, "return.unload_dirty_ash_freight");
+    assert_eq!(state.character.resources["stamina"], stamina - 2);
+    state = act(state, &content, "return.send_pera_home");
+    state = act(state, &content, "return.visit_workshop");
+    state = travel(state, &content, ASH);
+    assert!(
+        !state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_dirty")
+    );
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_lane_settled")
+    );
+}
