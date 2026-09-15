@@ -16,6 +16,8 @@ const PERA: &str = "fume_yards.pera_senn";
 const NESSA: &str = "fume_yards.nessa_tern";
 const FILTER: &str = "fume_yards.filter";
 const SHARD: &str = "fume_yards.shard";
+const FUEL: &str = "fume_yards.fuel";
+const CASK: &str = "fume_yards.water_cask";
 const PULL: &str = "fume_yards.pull_rack_filter";
 const FACT: &str = "fume_yards.rack_cleared";
 const ROLLS: &[(u64, u64, u32, u32)] = &[
@@ -118,6 +120,16 @@ fn owned(state: &GameState, item: &str) -> u32 {
     state.character.inventory.get(item).copied().unwrap_or(0)
 }
 
+fn assert_absent(session: &Session<'_>, content: &CompiledContent, id: &str) {
+    assert!(
+        !enumerate_legal_actions(session.state(), content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == id),
+        "{id} returned"
+    );
+}
+
 fn checkpoint<'a>(session: &Session<'a>, content: &'a CompiledContent) -> Session<'a> {
     let encoded = session.player_trace().unwrap().to_json().unwrap();
     for hidden in [
@@ -159,6 +171,46 @@ fn checkpoint_custom_route<'a>(
 ) {
     for checkpoint_index in 0..=specs.len() {
         let mut prefix = custom_start(content, mask, 71);
+        for &(id, destination) in &specs[..checkpoint_index] {
+            record(&mut prefix, content, id, destination);
+        }
+        let mut resumed = checkpoint(&prefix, content);
+        for &(id, destination) in &specs[checkpoint_index..] {
+            record(&mut resumed, content, id, destination);
+        }
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+    }
+    checkpoint(uninterrupted, content);
+}
+
+fn checkpoint_hold_route<'a>(
+    content: &'a CompiledContent,
+    specs: &[(&str, Option<&str>)],
+    uninterrupted: &Session<'a>,
+) {
+    for checkpoint_index in 0..=specs.len() {
+        let mut prefix = hold_return(content, 71);
         for &(id, destination) in &specs[..checkpoint_index] {
             record(&mut prefix, content, id, destination);
         }
@@ -616,6 +668,124 @@ fn safe_salvage_report_moves_its_source_before_teaching_the_uninformed_foreman()
     }
     checkpoint(&informed, &content);
     checkpoint(&uninformed, &content);
+}
+
+#[test]
+fn composed_salvage_manufacture_and_export_replays_across_public_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let specs = [
+        ("return.visit_workshop", None),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.enter_ash_hatch", None),
+        ("fume_yards.brace_rack", None),
+        ("fume_yards.recover_braced_filter", None),
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.enter_ash_hatch", None),
+        ("fume_yards.report_with_daro", None),
+        ("fume_yards.fit_dust_filter", None),
+        ("fume_yards.take_fuel", None),
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("fume_yards.take_stock", None),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.prepare_charge", None),
+        ("fume_yards.ignite_batch", None),
+        ("wait_tide", None),
+        ("fume_yards.draw_filter", None),
+        ("fume_yards.load_filtered_kiln_freight", None),
+        ("world.enter_aftermath", None),
+        ("return.sell_filter", None),
+        ("return.visit_workshop", None),
+        ("travel_adjacent", Some(ASH)),
+    ];
+    let mut session = hold_return(&content, 71);
+    for &(id, destination) in &specs {
+        record(&mut session, &content, id, destination);
+    }
+
+    assert_eq!(session.state().world.time, 30);
+    assert_eq!(session.state().world.current_location, ASH);
+    assert_eq!(session.state().character.resources["coin"], 18);
+    assert_eq!(session.state().character.resources["stamina"], 1);
+    assert_eq!(
+        session.state().character.inventory,
+        BTreeMap::from([(String::from("rope"), 1)])
+    );
+    assert_eq!(session.state().entropy, EntropyState::new(71));
+    assert!(
+        session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.rack_cleared")
+    );
+    assert!(
+        session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.report_paid")
+    );
+    assert!(
+        session.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.dust_filter_fitted")
+    );
+    assert!(
+        session.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.batch_drawn")
+    );
+    assert!(
+        session.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.kiln_freight_loaded")
+    );
+    assert!(
+        !session.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.batch_spoiled")
+    );
+    assert!(session.state().world.npcs[DARO].inventory.is_empty());
+    assert_eq!(session.state().world.npcs[PERA].inventory[CASK], 1);
+    assert_eq!(session.state().world.npcs[BRANN].inventory.get(FUEL), None);
+    assert_eq!(
+        session.state().world.npcs[NESSA]
+            .inventory
+            .get("fume_yards.clay"),
+        None
+    );
+    assert_eq!(
+        session.state().world.npcs[NESSA]
+            .inventory
+            .get("fume_yards.mesh"),
+        None
+    );
+    assert_eq!(
+        session.state().world.npcs[DARO].knowledge[FACT].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        session.state().world.npcs[BRANN].knowledge[FACT].provenance,
+        KnowledgeProvenance::Told {
+            by: DARO.to_owned()
+        }
+    );
+    assert_eq!(
+        session.state().world.npcs["oren_pell"].memories["fume_yards.filter_bought"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    for item in [FILTER, SHARD, "fume_yards.repair_lot"] {
+        assert!(!session.state().character.inventory.contains_key(item));
+    }
+    for id in [
+        PULL,
+        "fume_yards.brace_rack",
+        "fume_yards.recover_braced_filter",
+        "fume_yards.thread_rack_filter",
+        "return.sell_filter",
+    ] {
+        assert_absent(&session, &content, id);
+    }
+
+    checkpoint_hold_route(&content, &specs, &session);
+    checkpoint(&session, &content);
 }
 
 #[test]
