@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, and the cross-outcome ordinary delivery witness are accepted through cycle 46. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, and the late-entry ordinary delivery witness are accepted through cycle 47. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -384,6 +384,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 Each path starts from its actual canonical aftermath, banks real spoiled waste, prepares dry freight, escorts Pera, unloads through the ordinary dirty route, and sends Pera home. The witness preserves each context's ending flags while binding Pera's physical custody, Oren's Told-by-Pera provenance, three-coin payment, two-stamina cost, retained cask, consumed freight, and physical return.
 
 This closes one cross-outcome freight matrix row, not the complete area matrix, cast routines, character-method matrix, or district admission. The focused Ash suite has twelve tests; the full gate passes 509 Rust tests, including 105 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 47 amendment: preserve ordinary delivery on first late entry
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one focused witness that holds the existing market outcome, waits from turn 7 to turn 129 in Lowsail Return, and only then enters Fume Yards.
+
+The late path banks a real spoiled charge, prepares dry freight, escorts Pera, unloads ordinary dirty freight, and sends her home. The witness preserves the held-market flags, Pera's cask, Oren's Told-by-Pera provenance, exact three-coin payment and two-stamina cost, consumed freight, and physical return.
+
+This is bounded late-entry evidence, not complete event-collision, cast, character, freight, or area admission. The focused Ash suite has thirteen tests; the full gate passes 510 Rust tests, including 106 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 

@@ -964,3 +964,37 @@ fn ordinary_dirty_delivery_preserves_each_reviewed_tide_context() {
         assert_eq!(state.world.npcs[PERA].location, BAY);
     }
 }
+
+#[test]
+fn first_ash_delivery_after_long_old_world_traversal_preserves_tide_and_custody() {
+    let content = content();
+    let mut state = hold_market(&content, 71);
+    let tide_flags = state.world.flags.clone();
+    while state.world.time < 129 {
+        state = act(state, &content, "wait_tide");
+    }
+    assert_eq!(state.world.current_location, RETURN);
+    assert_eq!(state.world.time, 129);
+    assert_eq!(state.world.npcs[PERA].location, BAY);
+
+    state = banked_with_filter_from_return(&content, state, false);
+    let coin = state.character.resources["coin"];
+    let stamina = state.character.resources["stamina"];
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    state = act(state, &content, "return.unload_dirty_ash_freight");
+    assert_eq!(state.world.flags, tide_flags);
+    assert_eq!(state.character.resources["coin"], coin + 3);
+    assert_eq!(state.character.resources["stamina"], stamina - 2);
+    assert_eq!(state.world.npcs[PERA].inventory[CASK], 1);
+    assert_eq!(state.character.inventory.get(FREIGHT), None);
+    assert_eq!(state.world.npcs[PERA].location, RETURN);
+    assert_eq!(
+        state.world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"].provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    state = act(state, &content, "return.send_pera_home");
+    assert_eq!(state.world.npcs[PERA].location, BAY);
+}
