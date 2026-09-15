@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, and its clean/filtered cargo witnesses are accepted through cycle 43. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, and Rook's ordinary dirty-delivery witness are accepted through cycle 44. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -360,6 +360,14 @@ This slice changes no production content, action definition, recipe, build ident
 Acceptance binds physical Pera release before payment, player-owned freight until unloading, exact three-coin payment, unchanged stamina, wet cask consumption, dry cask custody, market-filter relief, retained dirty cargo history, local cleanup, stale manifest rejection, and retirement of `Send Pera Home`. The Ash suite now has nine focused tests. The full gate passes 506 Rust tests, including 102 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 This closes the three manifest-release unload conditions and the filtered cleanup continuation as evidence. It does not admit complete freight containment, all character methods, the full cast matrix, or a counted complete area.
+
+## Cycle 44 amendment: preserve Rook's ordinary freight method
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one focused character-method witness for Rook's ordinary route beside the ledger-clerk release route: Rook prepares real spoiled ash as dry freight, escorts Pera to Oren, and unloads dirty freight without exposing either the clerk-only audit or filing action.
+
+The witness binds Rook's absence from manifest release, Pera's physical inspection and `Told { by: Pera }` transfer to Oren, exact collateral-filter accounting, retained cask custody, freight consumption, Oren's payment memory, and Pera's later physical return to Kiln Bay. With the setup's five coins and four stamina, dirty unloading ends at four coins and two stamina. The focused Ash suite has ten tests; the full gate passes 507 Rust tests, including 103 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+This is a bounded counterfactual proving that the ordinary route remains viable for Rook while clerk-only manifest release remains distinct. It does not complete the character-method matrix, cast routines, full freight matrix, or district admission.
 
 ## Witness acceptance matrix
 
