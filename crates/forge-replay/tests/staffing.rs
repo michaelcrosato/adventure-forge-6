@@ -29,6 +29,25 @@ const PREFIX: &[Action] = &[
     ("travel_adjacent", Some(BAY)),
     ("fume_yards.fit_dust_filter", None),
 ];
+const ALTERNATE_PREFIX: &[Action] = &[
+    ("checkpoint.read_flag", None),
+    ("checkpoint.ask_sava", None),
+    ("travel_adjacent", Some("lowsail.docks")),
+    ("docks.ask_oren", None),
+    ("travel_adjacent", Some("lowsail.levee")),
+    ("levee.culvert_path", None),
+    ("travel_adjacent", Some("red_sluice.top")),
+    ("top.break_toll", None),
+    ("world.enter_aftermath", None),
+    ("return.visit_workshop", None),
+    ("travel_adjacent", Some(BAY)),
+    ("travel_adjacent", Some("fume_yards.workshop")),
+    ("travel_adjacent", Some(ASH)),
+    ("fume_yards.buy_collateral_filter", None),
+    ("travel_adjacent", Some("fume_yards.workshop")),
+    ("travel_adjacent", Some(BAY)),
+    ("fume_yards.fit_dust_filter", None),
+];
 const STAFFED: &[Action] = &[
     ("fume_yards.share_rescue_account", None),
     ("fume_yards.assign_brann_salvage", None),
@@ -60,19 +79,40 @@ const WATER: &[Action] = &[
     ("return.install_market_cask", None),
     ("return.draw_clean_water", None),
 ];
+const DEFAULT_AXES: [(&str, &str); 4] = [
+    ("lineage", "fenborn"),
+    ("origin", "lowsail"),
+    ("calling", "ledger-clerk"),
+    ("value", "order"),
+];
+const ALTERNATE_AXES: [(&str, &str); 4] = [
+    ("lineage", "kilnborn"),
+    ("origin", "red-sluice"),
+    ("calling", "lock-runner"),
+    ("value", "freedom"),
+];
 
 fn start<'a>(content: &'a CompiledContent, history: &str) -> Session<'a> {
     start_with(content, "indebted", history)
 }
 
 fn start_with<'a>(content: &'a CompiledContent, burden: &str, history: &str) -> Session<'a> {
+    start_with_axes(content, burden, history, DEFAULT_AXES)
+}
+
+fn start_with_axes<'a>(
+    content: &'a CompiledContent,
+    burden: &str,
+    history: &str,
+    axes: [(&str, &str); 4],
+) -> Session<'a> {
     let selection = CharacterSelection {
         name: "Staffing save comparison".into(),
         choices: [
-            ("lineage", "fenborn"),
-            ("origin", "lowsail"),
-            ("calling", "ledger-clerk"),
-            ("value", "order"),
+            axes[0],
+            axes[1],
+            axes[2],
+            axes[3],
             ("burden", burden),
             ("history", history),
         ]
@@ -212,9 +252,47 @@ fn checkpoint_history_route(
     actions: &[Action],
     uninterrupted: &Session<'_>,
 ) {
+    checkpoint_history_route_with_axes(
+        content,
+        "wanted",
+        history,
+        actions,
+        uninterrupted,
+        DEFAULT_AXES,
+    );
+}
+
+fn checkpoint_history_route_with_axes(
+    content: &CompiledContent,
+    burden: &str,
+    history: &str,
+    actions: &[Action],
+    uninterrupted: &Session<'_>,
+    axes: [(&str, &str); 4],
+) {
+    checkpoint_history_route_with_axes_and_prefix(
+        content,
+        burden,
+        history,
+        PREFIX,
+        actions,
+        uninterrupted,
+        axes,
+    );
+}
+
+fn checkpoint_history_route_with_axes_and_prefix(
+    content: &CompiledContent,
+    burden: &str,
+    history: &str,
+    prefix_actions: &[Action],
+    actions: &[Action],
+    uninterrupted: &Session<'_>,
+    axes: [(&str, &str); 4],
+) {
     for checkpoint_index in 0..=actions.len() {
-        let mut prefix = start_with(content, "wanted", history);
-        for &action in PREFIX {
+        let mut prefix = start_with_axes(content, burden, history, axes);
+        for &action in prefix_actions {
             record(&mut prefix, content, action);
         }
         for &action in &actions[..checkpoint_index] {
@@ -453,6 +531,94 @@ fn staffing_history_methods_preserve_composed_water_after_checkpoints() {
             .knowledge
             .contains_key("fume_yards.rescue_account_heard")
     );
+    assert_eq!(saved.state().entropy, EntropyState::new(71));
+    assert_eq!(unearned.state().entropy, EntropyState::new(71));
+}
+
+#[test]
+fn staffing_history_methods_replay_for_an_alternate_creation_profile() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut staffed_route = STAFFED.to_vec();
+    staffed_route.extend_from_slice(WATER);
+    let mut ordinary_route = ORDINARY.to_vec();
+    ordinary_route.extend_from_slice(WATER);
+
+    let mut saved = start_with_axes(&content, "indebted", "saved-worker", ALTERNATE_AXES);
+    let mut unearned = start_with_axes(&content, "indebted", "stole-permit", ALTERNATE_AXES);
+    for &action in ALTERNATE_PREFIX {
+        record(&mut saved, &content, action);
+        record(&mut unearned, &content, action);
+    }
+    for &action in &staffed_route {
+        record(&mut saved, &content, action);
+    }
+    for &action in &ordinary_route {
+        record(&mut unearned, &content, action);
+    }
+
+    checkpoint_history_route_with_axes_and_prefix(
+        &content,
+        "indebted",
+        "saved-worker",
+        ALTERNATE_PREFIX,
+        &staffed_route,
+        &saved,
+        ALTERNATE_AXES,
+    );
+    checkpoint_history_route_with_axes_and_prefix(
+        &content,
+        "indebted",
+        "stole-permit",
+        ALTERNATE_PREFIX,
+        &ordinary_route,
+        &unearned,
+        ALTERNATE_AXES,
+    );
+
+    assert_eq!(saved.state().world.time, 37);
+    assert_eq!(unearned.state().world.time, 37);
+    assert_eq!(
+        saved.state().character.resources,
+        BTreeMap::from([("coin".into(), 5), ("stamina".into(), 6)])
+    );
+    assert_eq!(
+        unearned.state().character.resources,
+        BTreeMap::from([("coin".into(), 5), ("stamina".into(), 4)])
+    );
+    assert_eq!(
+        saved.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), ("wire".into(), 1)])
+    );
+    assert_eq!(
+        unearned.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), ("wire".into(), 1)])
+    );
+    assert_eq!(saved.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(unearned.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(saved.state().world.npcs[DARO].location, ASH);
+    assert_eq!(unearned.state().world.npcs[DARO].location, BAY);
+    assert_eq!(
+        saved.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        unearned.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Told { by: DARO.into() }
+    );
+    assert!(
+        saved.state().world.npcs[BRANN]
+            .knowledge
+            .contains_key("fume_yards.rescue_account_heard")
+    );
+    assert!(
+        !unearned.state().world.npcs[BRANN]
+            .knowledge
+            .contains_key("fume_yards.rescue_account_heard")
+    );
+    assert_eq!(saved.state().world.npcs[PERA].location, "lowsail.return");
+    assert_eq!(unearned.state().world.npcs[PERA].location, "lowsail.return");
+    assert!(saved.state().world.npcs[PERA].inventory.is_empty());
+    assert!(unearned.state().world.npcs[PERA].inventory.is_empty());
     assert_eq!(saved.state().entropy, EntropyState::new(71));
     assert_eq!(unearned.state().entropy, EntropyState::new(71));
 }
