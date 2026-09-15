@@ -62,6 +62,10 @@ const WATER: &[Action] = &[
 ];
 
 fn start<'a>(content: &'a CompiledContent, history: &str) -> Session<'a> {
+    start_with(content, "indebted", history)
+}
+
+fn start_with<'a>(content: &'a CompiledContent, burden: &str, history: &str) -> Session<'a> {
     let selection = CharacterSelection {
         name: "Staffing save comparison".into(),
         choices: [
@@ -69,7 +73,7 @@ fn start<'a>(content: &'a CompiledContent, history: &str) -> Session<'a> {
             ("origin", "lowsail"),
             ("calling", "ledger-clerk"),
             ("value", "order"),
-            ("burden", "indebted"),
+            ("burden", burden),
             ("history", history),
         ]
         .into_iter()
@@ -80,6 +84,73 @@ fn start<'a>(content: &'a CompiledContent, history: &str) -> Session<'a> {
         .collect(),
     };
     Session::new_custom_game(&selection, 71, content).unwrap()
+}
+
+#[test]
+fn wanted_saved_worker_keeps_brann_route_after_witnessed_account() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut saved = start_with(&content, "wanted", "saved-worker");
+    let mut unearned = start_with(&content, "wanted", "stole-permit");
+    for &action in PREFIX {
+        record(&mut saved, &content, action);
+        record(&mut unearned, &content, action);
+    }
+    assert_eq!(saved.state().world.time, 13);
+    assert_eq!(unearned.state().world.time, 13);
+    assert!(
+        enumerate_legal_actions(saved.state(), &content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == STAFFED[0].0)
+    );
+    for id in [STAFFED[0].0, STAFFED[1].0] {
+        assert!(
+            !enumerate_legal_actions(unearned.state(), &content)
+                .unwrap()
+                .iter()
+                .any(|action| action.definition_id == id),
+            "unearned history opened {id}"
+        );
+    }
+
+    record(&mut saved, &content, STAFFED[0]);
+    let account = &saved.state().world.npcs[BRANN].knowledge["fume_yards.rescue_account_heard"];
+    assert_eq!(
+        (account.turn, &account.provenance),
+        (13, &KnowledgeProvenance::Witnessed)
+    );
+    for &action in &STAFFED[1..] {
+        record(&mut saved, &content, action);
+    }
+    assert!(saved.state().character.flaws.contains("wanted"));
+    assert_eq!(
+        saved.state().character.resources,
+        BTreeMap::from([("coin".into(), 10), ("stamina".into(), 3)])
+    );
+    assert_eq!(
+        saved.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), (FILTER.into(), 1)])
+    );
+    assert_eq!(saved.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(saved.state().world.npcs[DARO].location, ASH);
+    assert!(saved.state().world.npcs[DARO].inventory.is_empty());
+    let cleared = &saved.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"];
+    assert_eq!(
+        (cleared.turn, &cleared.provenance),
+        (15, &KnowledgeProvenance::Witnessed)
+    );
+    assert!(
+        saved.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.salvage_assignment_spent")
+    );
+    assert!(
+        !saved.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.salvage_assignment_active")
+    );
+    checkpoint(&saved, &content);
+    checkpoint(&unearned, &content);
 }
 
 fn select(

@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, and the Ash replay-boundary witness are accepted through cycle 50. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, and the Wanted-history staffing witness are accepted through cycle 51. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -416,6 +416,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 Each public trace omits hidden inventory, storage, knowledge, events, and entropy. Every checkpoint resumes to the uninterrupted state, trace, player trace, receipt, legal catalog, dirty freight custody, exact three-coin payment, two-stamina cost, Told-by-Pera provenance, and physical Pera return.
 
 This closes one persistence boundary, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The Fume replay suite has six tests; the full gate passes 513 Rust tests, including 108 content tests and 33 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 51 amendment: preserve Wanted-history gating for Brann's staffed route
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one replay integration using matched custom starts with Fenborn lineage, Lowsail origin, Ledger Clerk calling, Order value, Wanted burden, and either `saved-worker` or `stole-permit` history.
+
+After the same Hold Market prefix and real dust-filter installation, only the saved-worker character can share the rescue account and ask Brann's help. The staffed route records Witnessed account and rack-clearing provenance, returns Brann to Kiln Bay, clears the active assignment, preserves the Wanted burden, and ends at exact coin 10, stamina 3, rope 1, and filter 1. The counterfactual remains at the prefix without either staffing action. Both public traces round-trip without hidden inventory, knowledge, events, or entropy.
+
+This closes one history-and-reaction replay comparison, not complete cast routines, remaining character methods, freight containment, or district admission. The staffing replay suite has four tests; the full gate passes 514 Rust tests, including 108 content tests and 34 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 
