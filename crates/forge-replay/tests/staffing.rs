@@ -362,6 +362,102 @@ fn staffing_history_method_replays_across_public_checkpoints() {
 }
 
 #[test]
+fn staffing_history_methods_preserve_composed_water_after_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut staffed_route = STAFFED.to_vec();
+    staffed_route.extend_from_slice(WATER);
+    let mut ordinary_route = ORDINARY.to_vec();
+    ordinary_route.extend_from_slice(WATER);
+
+    let mut saved = start_with(&content, "wanted", "saved-worker");
+    let mut unearned = start_with(&content, "wanted", "stole-permit");
+    for &action in PREFIX {
+        record(&mut saved, &content, action);
+        record(&mut unearned, &content, action);
+    }
+    for &action in &staffed_route {
+        record(&mut saved, &content, action);
+    }
+    for &action in &ordinary_route {
+        record(&mut unearned, &content, action);
+    }
+
+    checkpoint_history_route(&content, "saved-worker", &staffed_route, &saved);
+    checkpoint_history_route(&content, "stole-permit", &ordinary_route, &unearned);
+
+    assert_eq!(saved.state().world.time, 33);
+    assert_eq!(unearned.state().world.time, 33);
+    assert_eq!(
+        saved.trace().steps.len(),
+        PREFIX.len() + staffed_route.len()
+    );
+    assert_eq!(
+        unearned.trace().steps.len(),
+        PREFIX.len() + ordinary_route.len()
+    );
+    assert_eq!(
+        saved.state().character.resources,
+        BTreeMap::from([("coin".into(), 10), ("stamina".into(), 5)])
+    );
+    assert_eq!(
+        unearned.state().character.resources,
+        BTreeMap::from([("coin".into(), 10), ("stamina".into(), 3)])
+    );
+    assert_eq!(
+        saved.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1)])
+    );
+    assert_eq!(
+        unearned.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1)])
+    );
+    assert_eq!(saved.state().world.npcs[PERA].location, "lowsail.return");
+    assert_eq!(unearned.state().world.npcs[PERA].location, "lowsail.return");
+    assert!(saved.state().world.npcs[PERA].inventory.is_empty());
+    assert!(unearned.state().world.npcs[PERA].inventory.is_empty());
+    assert_eq!(
+        saved.state().world.npcs[PERA].knowledge["fume_yards.market_cask"].turn,
+        30
+    );
+    assert_eq!(
+        unearned.state().world.npcs[PERA].knowledge["fume_yards.market_cask"].turn,
+        30
+    );
+    assert_eq!(
+        saved.state().world.npcs["oren_pell"].knowledge["fume_yards.market_cask"].provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert_eq!(
+        unearned.state().world.npcs["oren_pell"].knowledge["fume_yards.market_cask"].provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert_eq!(saved.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(unearned.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(saved.state().world.npcs[DARO].location, ASH);
+    assert_eq!(unearned.state().world.npcs[DARO].location, BAY);
+    assert_eq!(
+        saved.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        unearned.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Told { by: DARO.into() }
+    );
+    assert!(
+        saved.state().world.npcs[BRANN]
+            .knowledge
+            .contains_key("fume_yards.rescue_account_heard")
+    );
+    assert!(
+        !unearned.state().world.npcs[BRANN]
+            .knowledge
+            .contains_key("fume_yards.rescue_account_heard")
+    );
+    assert_eq!(saved.state().entropy, EntropyState::new(71));
+    assert_eq!(unearned.state().entropy, EntropyState::new(71));
+}
+
+#[test]
 fn staffing_serialized_boundaries_preserve_three_tick_lift_and_composed_water() {
     let content = parse_and_compile_production(SOURCE).unwrap();
     let mut continuous = start(&content, "saved-worker");
