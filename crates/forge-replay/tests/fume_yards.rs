@@ -1,5 +1,8 @@
 use forge_content::parse_and_compile_production;
-use forge_kernel::{CompiledContent, EventKind, KnowledgeProvenance, enumerate_legal_actions};
+use forge_kernel::{
+    CharacterChoiceSelection, CharacterSelection, CompiledContent, EventKind, KnowledgeProvenance,
+    enumerate_legal_actions,
+};
 use forge_replay::{PlayerTrace, Session, Trace, resume_player_trace, verify};
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
@@ -188,9 +191,126 @@ const ASH_MANIFEST_CLEAN_EXTENSION: &[ActionSpec] = &[
     act("return.file_ash_manifest"),
     act("return.unload_clean_ash_freight"),
 ];
+const CUSTOM_BANK_PREFIX: &[ActionSpec] = &[
+    act("checkpoint.read_flag"),
+    act("checkpoint.ask_sava"),
+    travel("lowsail.docks"),
+    act("docks.ask_oren"),
+    travel("lowsail.levee"),
+    act("levee.culvert_path"),
+    travel("red_sluice.top"),
+    act("top.break_toll"),
+    act("world.enter_aftermath"),
+    act("return.visit_workshop"),
+    act("fume_yards.take_stock"),
+    travel(BAY),
+    act("fume_yards.prepare_charge"),
+    travel(WORKSHOP),
+    travel(ASH),
+    act("fume_yards.buy_collateral_filter"),
+    travel(WORKSHOP),
+    travel(BAY),
+    act("fume_yards.fit_dust_filter"),
+    act("fume_yards.take_fuel"),
+    act("fume_yards.ignite_batch"),
+    act("fume_yards.bank_kiln"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_spoiled_ash"),
+    act("fume_yards.prepare_dry_ash_freight"),
+];
+const CUSTOM_CLERK_EXTENSION: &[ActionSpec] = &[
+    act("fume_yards.audit_ash_manifest"),
+    act("fume_yards.escort_ash_freight"),
+    act("return.file_ash_manifest"),
+    act("return.unload_dirty_ash_freight"),
+];
+const CUSTOM_RUNNER_EXTENSION: &[ActionSpec] = &[
+    act("fume_yards.escort_ash_freight"),
+    act("return.unload_dirty_ash_freight"),
+    act("return.send_pera_home"),
+];
 
 fn content() -> CompiledContent {
     parse_and_compile_production(SOURCE).expect("cold workshop production pack compiles")
+}
+
+fn custom_start<'a>(content: &'a CompiledContent, calling: &str) -> Session<'a> {
+    let selection = CharacterSelection {
+        name: "Manifest method comparison".to_owned(),
+        choices: [
+            ("lineage", "fenborn"),
+            ("origin", "lowsail"),
+            ("calling", calling),
+            ("value", "order"),
+            ("burden", "indebted"),
+            ("history", "saved-worker"),
+        ]
+        .into_iter()
+        .map(|(slot_id, choice_id)| CharacterChoiceSelection {
+            slot_id: slot_id.to_owned(),
+            choice_id: choice_id.to_owned(),
+        })
+        .collect(),
+    };
+    Session::new_custom_game(&selection, 71, content).unwrap()
+}
+
+fn custom_banked_with_filter<'a>(content: &'a CompiledContent, calling: &str) -> Session<'a> {
+    let mut session = custom_start(content, calling);
+    record_all(&mut session, content, CUSTOM_BANK_PREFIX);
+    session
+}
+
+fn checkpoint_custom_route(
+    content: &CompiledContent,
+    calling: &str,
+    actions: &[ActionSpec],
+    uninterrupted: &Session<'_>,
+) {
+    for checkpoint in 0..=actions.len() {
+        let mut prefix = custom_start(content, calling);
+        record_all(&mut prefix, content, CUSTOM_BANK_PREFIX);
+        record_all(&mut prefix, content, &actions[..checkpoint]);
+        let encoded = prefix.player_trace().unwrap().to_json().unwrap();
+        for private in [
+            "\"inventory\"",
+            "\"storages\"",
+            "\"knowledge\"",
+            "\"events\"",
+            "\"entropy\"",
+        ] {
+            assert!(
+                !encoded.contains(private),
+                "checkpoint {checkpoint}: {private}"
+            );
+        }
+        let decoded = PlayerTrace::from_json(&encoded).unwrap();
+        let mut resumed = resume_player_trace(&decoded, content).unwrap();
+        assert_eq!(resumed.trace(), prefix.trace(), "checkpoint {checkpoint}");
+        record_all(&mut resumed, content, &actions[checkpoint..]);
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint}"
+        );
+    }
 }
 
 fn record(session: &mut Session<'_>, content: &CompiledContent, spec: ActionSpec) {
@@ -970,4 +1090,101 @@ fn filed_wet_manifest_save_resume_preserves_custody_and_pera_release_before_paym
         );
     }
     assert_replay(&uninterrupted, &content);
+}
+
+#[test]
+fn custom_manifest_method_replays_against_ordinary_dirty_delivery() {
+    let content = content();
+    let mut clerk = custom_banked_with_filter(&content, "ledger-clerk");
+    let mut runner = custom_banked_with_filter(&content, "lock-runner");
+    assert_eq!(clerk.state().world.time, 25);
+    assert_eq!(runner.state().world.time, 25);
+    assert!(
+        enumerate_legal_actions(clerk.state(), &content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == "fume_yards.audit_ash_manifest")
+    );
+    assert_absent(&runner, &content, "fume_yards.audit_ash_manifest");
+
+    record_all(&mut clerk, &content, CUSTOM_CLERK_EXTENSION);
+    record_all(&mut runner, &content, CUSTOM_RUNNER_EXTENSION);
+    assert_eq!(clerk.state().world.time, 29);
+    assert_eq!(runner.state().world.time, 28);
+    assert_eq!(clerk.state().world.current_location, RETURN);
+    assert_eq!(runner.state().world.current_location, RETURN);
+    assert_eq!(clerk.state().world.npcs[PERA].location, BAY);
+    assert_eq!(runner.state().world.npcs[PERA].location, BAY);
+    assert_eq!(clerk.state().character.resources["coin"], 9);
+    assert_eq!(runner.state().character.resources["coin"], 4);
+    assert_eq!(clerk.state().character.resources["stamina"], 1);
+    assert_eq!(runner.state().character.resources["stamina"], 2);
+    assert_eq!(
+        clerk.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1)])
+    );
+    assert_eq!(
+        runner.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1), ("wire".into(), 1)])
+    );
+    assert_eq!(clerk.state().world.npcs[PERA].inventory[CASK], 1);
+    assert_eq!(runner.state().world.npcs[PERA].inventory[CASK], 1);
+    assert!(
+        clerk.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_freight_dirty")
+    );
+    assert!(
+        runner.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_freight_dirty")
+    );
+    assert!(
+        clerk.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        !runner.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        clerk.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert!(
+        runner.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert_eq!(
+        clerk.state().world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"].provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert_eq!(
+        runner.state().world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"].provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert_eq!(
+        clerk.state().world.npcs[OREN].knowledge["fume_yards.ash_manifest_filed"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        !runner.state().world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert_absent(&clerk, &content, "return.file_ash_manifest");
+    assert_absent(&clerk, &content, "return.send_pera_home");
+    assert_absent(&runner, &content, "return.file_ash_manifest");
+    assert_absent(&runner, &content, "return.send_pera_home");
+    assert_eq!(clerk.state().entropy, forge_kernel::EntropyState::new(71));
+    assert_eq!(runner.state().entropy, forge_kernel::EntropyState::new(71));
+
+    checkpoint_custom_route(&content, "ledger-clerk", CUSTOM_CLERK_EXTENSION, &clerk);
+    checkpoint_custom_route(&content, "lock-runner", CUSTOM_RUNNER_EXTENSION, &runner);
+    assert_replay(&clerk, &content);
+    assert_replay(&runner, &content);
 }
