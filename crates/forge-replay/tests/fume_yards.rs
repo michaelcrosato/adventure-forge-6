@@ -229,6 +229,39 @@ const CUSTOM_RUNNER_EXTENSION: &[ActionSpec] = &[
     act("return.unload_dirty_ash_freight"),
     act("return.send_pera_home"),
 ];
+const ROOK_OUTCOME_PREFIX: &[ActionSpec] = &[
+    act("checkpoint.read_flag"),
+    act("checkpoint.ask_sava"),
+    travel("lowsail.docks"),
+    act("docks.ask_oren"),
+    travel("lowsail.levee"),
+    act("levee.culvert_path"),
+    travel("red_sluice.top"),
+    act("top.break_toll"),
+    act("world.enter_aftermath"),
+];
+const PRESET_MANIFEST_DIRTY_EXTENSION: &[ActionSpec] = &[
+    act("return.visit_workshop"),
+    act("fume_yards.take_stock"),
+    travel(BAY),
+    travel(WORKSHOP),
+    travel(ASH),
+    act("fume_yards.buy_collateral_filter"),
+    travel(WORKSHOP),
+    travel(BAY),
+    act("fume_yards.prepare_charge"),
+    act("fume_yards.fit_dust_filter"),
+    act("fume_yards.take_fuel"),
+    act("fume_yards.ignite_batch"),
+    act("fume_yards.bank_kiln"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_spoiled_ash"),
+    act("fume_yards.prepare_dry_ash_freight"),
+    act("fume_yards.audit_ash_manifest"),
+    act("fume_yards.escort_ash_freight"),
+    act("return.file_ash_manifest"),
+    act("return.unload_dirty_ash_freight"),
+];
 
 fn content() -> CompiledContent {
     parse_and_compile_production(SOURCE).expect("cold workshop production pack compiles")
@@ -309,6 +342,59 @@ fn checkpoint_custom_route(
                 .action_page(uninterrupted.state(), 0, usize::MAX)
                 .unwrap(),
             "checkpoint {checkpoint}"
+        );
+    }
+}
+
+fn checkpoint_preset_route(
+    content: &CompiledContent,
+    character: &str,
+    prefix: &[ActionSpec],
+    actions: &[ActionSpec],
+    uninterrupted: &Session<'_>,
+) {
+    for checkpoint in 0..=actions.len() {
+        let mut resumed = Session::new_game(character, 71, content).unwrap();
+        record_all(&mut resumed, content, prefix);
+        record_all(&mut resumed, content, &actions[..checkpoint]);
+        let encoded = resumed.player_trace().unwrap().to_json().unwrap();
+        for private in [
+            "\"inventory\"",
+            "\"storages\"",
+            "\"knowledge\"",
+            "\"events\"",
+            "\"entropy\"",
+        ] {
+            assert!(
+                !encoded.contains(private),
+                "{character} checkpoint {checkpoint}: {private}"
+            );
+        }
+        let decoded = PlayerTrace::from_json(&encoded).unwrap();
+        resumed = resume_player_trace(&decoded, content).unwrap();
+        assert_eq!(resumed.trace().steps.len(), prefix.len() + checkpoint);
+        record_all(&mut resumed, content, &actions[checkpoint..]);
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "{character} checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "{character} checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "{character} checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "{character} checkpoint {checkpoint}"
         );
     }
 }
@@ -1187,4 +1273,101 @@ fn custom_manifest_method_replays_against_ordinary_dirty_delivery() {
     checkpoint_custom_route(&content, "lock-runner", CUSTOM_RUNNER_EXTENSION, &runner);
     assert_replay(&clerk, &content);
     assert_replay(&runner, &content);
+}
+
+#[test]
+fn preset_rook_ordinary_route_replays_against_ilyan_manifest_release() {
+    let content = content();
+    let mut ilyan = Session::new_game("ilyan", 71, &content).unwrap();
+    record_all(&mut ilyan, &content, HOLD);
+    record_all(&mut ilyan, &content, PRESET_MANIFEST_DIRTY_EXTENSION);
+
+    let mut rook = Session::new_game("rook", 71, &content).unwrap();
+    record_all(&mut rook, &content, ROOK_OUTCOME_PREFIX);
+    record_all(&mut rook, &content, ASH_ORDINARY_EXTENSION);
+
+    assert_eq!(ilyan.state().world.time, 27);
+    assert_eq!(rook.state().world.time, 28);
+    assert_eq!(ilyan.state().world.current_location, RETURN);
+    assert_eq!(rook.state().world.current_location, RETURN);
+    assert_eq!(ilyan.state().world.npcs[PERA].location, BAY);
+    assert_eq!(rook.state().world.npcs[PERA].location, BAY);
+    assert_eq!(ilyan.state().character.resources["coin"], 9);
+    assert_eq!(rook.state().character.resources["coin"], 4);
+    assert_eq!(ilyan.state().character.resources["stamina"], 1);
+    assert_eq!(rook.state().character.resources["stamina"], 2);
+    assert_eq!(
+        ilyan.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1)])
+    );
+    assert_eq!(
+        rook.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1), ("wire".into(), 1)])
+    );
+    for session in [&ilyan, &rook] {
+        assert_eq!(session.state().world.npcs[PERA].inventory[CASK], 1);
+        assert!(
+            session.state().world.locations[ASH]
+                .flags
+                .contains("fume_yards.ash_freight_dirty")
+        );
+        assert!(
+            session.state().world.locations[RETURN]
+                .flags
+                .contains("fume_yards.ash_freight_unloaded")
+        );
+        assert_eq!(
+            session.state().world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"]
+                .provenance,
+            KnowledgeProvenance::Told { by: PERA.into() }
+        );
+        assert!(!session.state().character.inventory.contains_key(FREIGHT));
+        assert!(
+            !session.state().world.npcs[PERA]
+                .inventory
+                .contains_key(FREIGHT)
+        );
+        assert_eq!(session.state().entropy, forge_kernel::EntropyState::new(71));
+    }
+    assert!(
+        ilyan.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        !rook.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert_eq!(
+        ilyan.state().world.npcs[OREN].knowledge["fume_yards.ash_manifest_filed"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        !rook.state().world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert_absent(&ilyan, &content, "return.file_ash_manifest");
+    assert_absent(&ilyan, &content, "return.send_pera_home");
+    assert_absent(&rook, &content, "fume_yards.audit_ash_manifest");
+    assert_absent(&rook, &content, "return.file_ash_manifest");
+    assert_absent(&rook, &content, "return.send_pera_home");
+
+    checkpoint_preset_route(
+        &content,
+        "ilyan",
+        HOLD,
+        PRESET_MANIFEST_DIRTY_EXTENSION,
+        &ilyan,
+    );
+    checkpoint_preset_route(
+        &content,
+        "rook",
+        ROOK_OUTCOME_PREFIX,
+        ASH_ORDINARY_EXTENSION,
+        &rook,
+    );
+    assert_replay(&ilyan, &content);
+    assert_replay(&rook, &content);
 }
