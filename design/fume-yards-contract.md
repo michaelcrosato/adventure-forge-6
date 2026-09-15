@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, the Wanted-history staffing witness, the broken-ash Pera-return witness, the paid dirty-settlement checkpoint witness, and the filed wet-manifest checkpoint witness are accepted through cycle 54. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, the Wanted-history staffing witness, the broken-ash Pera-return witness, the paid dirty-settlement checkpoint witness, the filed wet-manifest checkpoint witness, and the custom rear-rack method checkpoint witness are accepted through cycle 55. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -448,6 +448,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 Every public checkpoint resumes the uninterrupted state, trace, player trace, receipt, and legal catalog. The final state preserves exactly rope 1, coin 9, stamina 3, no cask or freight in player/Pera custody, contained rather than dirty freight history, Oren's Told-by-Pera condition and Witnessed manifest provenance, clean payment, and Pera released to Kiln Bay before unloading.
 
 This closes one filed-manifest persistence boundary, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The Fume replay suite has nine tests; the full gate passes 517 Rust tests, including 108 content tests and 37 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 55 amendment: preserve custom rear-rack method across public-trace checkpoints
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one replay integration with matched canonical custom starts: Kilnborn/Lowsail/Lock Runner/Order versus Fenborn/Lowsail/Lock Runner/Order, the same burden/history/seed, and the same rear-hatch approach.
+
+Every public checkpoint resumes exact state, trace, player trace, receipt, catalog, and final outcome. The heat-sense path threads the rack in one step with stamina 4 and retained rope/wire; the same-calling no-heat-sense fallback braces and recovers in two steps at stamina 2. Both yield filter 1, clear the rack, draw no entropy, empty Daro's custody, and record the exact witnessed Daro memory and custody consequences.
+
+This closes one custom-method checkpoint comparison, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The salvage replay suite has five tests; the full gate passes 518 Rust tests, including 108 content tests and 38 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 

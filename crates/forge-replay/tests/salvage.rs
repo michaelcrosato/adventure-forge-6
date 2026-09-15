@@ -1,13 +1,14 @@
 use forge_content::parse_and_compile_production;
 use forge_kernel::{
-    CanonicalAction, CompiledContent, EntropyState, Event, EventKind, GameState,
-    KnowledgeProvenance, enumerate_legal_actions,
+    CanonicalAction, CharacterChoiceSelection, CharacterSelection, CompiledContent, EntropyState,
+    Event, EventKind, GameState, KnowledgeProvenance, enumerate_legal_actions,
 };
 use forge_replay::{PlayerTrace, Session, Trace, TraceStep, resume_player_trace, verify};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
 const ASH: &str = "fume_yards.ash_beds";
+const WORKSHOP: &str = "fume_yards.workshop";
 const KILN: &str = "fume_yards.kiln_bay";
 const DARO: &str = "fume_yards.daro_venn";
 const BRANN: &str = "fume_yards.brann_coil";
@@ -72,6 +73,24 @@ fn hold_return(content: &CompiledContent, seed: u64) -> Session<'_> {
     session
 }
 
+fn custom_start(content: &CompiledContent, mask: usize, seed: u64) -> Session<'_> {
+    let selection = CharacterSelection {
+        name: "Rear rack comparison".to_owned(),
+        choices: content
+            .character_creation()
+            .unwrap()
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(index, slot)| CharacterChoiceSelection {
+                slot_id: slot.id.clone(),
+                choice_id: slot.choices[(mask >> index) & 1].id.clone(),
+            })
+            .collect(),
+    };
+    Session::new_custom_game(&selection, seed, content).unwrap()
+}
+
 fn rack_prefix(content: &CompiledContent, seed: u64) -> Session<'_> {
     let mut session = hold_return(content, seed);
     record(&mut session, content, "return.visit_workshop", None);
@@ -130,6 +149,47 @@ fn checkpoint<'a>(session: &Session<'a>, content: &'a CompiledContent) -> Sessio
     let detailed = Trace::from_json(&session.trace().to_json().unwrap()).unwrap();
     assert_eq!(verify(&detailed, content).unwrap(), *session.state());
     resumed
+}
+
+fn checkpoint_custom_route<'a>(
+    content: &'a CompiledContent,
+    mask: usize,
+    specs: &[(&str, Option<&str>)],
+    uninterrupted: &Session<'a>,
+) {
+    for checkpoint_index in 0..=specs.len() {
+        let mut prefix = custom_start(content, mask, 71);
+        for &(id, destination) in &specs[..checkpoint_index] {
+            record(&mut prefix, content, id, destination);
+        }
+        let mut resumed = checkpoint(&prefix, content);
+        for &(id, destination) in &specs[checkpoint_index..] {
+            record(&mut resumed, content, id, destination);
+        }
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+    }
+    checkpoint(uninterrupted, content);
 }
 
 fn assert_roll(step: &TraceStep, seed: u64, value: u64, turn: u64, broken: bool) {
@@ -556,4 +616,156 @@ fn safe_salvage_report_moves_its_source_before_teaching_the_uninformed_foreman()
     }
     checkpoint(&informed, &content);
     checkpoint(&uninformed, &content);
+}
+
+#[test]
+fn custom_threaded_rack_method_replays_against_the_heat_sense_counterfactual() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let common = [
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("travel_adjacent", Some(ASH)),
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.enter_ash_hatch", None),
+    ];
+    let threaded = [
+        common[0],
+        common[1],
+        common[2],
+        common[3],
+        common[4],
+        common[5],
+        ("fume_yards.thread_rack_filter", None),
+    ];
+    let braced = [
+        common[0],
+        common[1],
+        common[2],
+        common[3],
+        common[4],
+        common[5],
+        ("fume_yards.brace_rack", None),
+        ("fume_yards.recover_braced_filter", None),
+    ];
+
+    let mut threaded_session = custom_start(&content, 5, 71);
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[0].0,
+        threaded[0].1,
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[1].0,
+        threaded[1].1,
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[2].0,
+        threaded[2].1,
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[3].0,
+        threaded[3].1,
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[4].0,
+        threaded[4].1,
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[5].0,
+        threaded[5].1,
+    );
+    assert!(
+        enumerate_legal_actions(threaded_session.state(), &content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == "fume_yards.thread_rack_filter")
+    );
+    record(
+        &mut threaded_session,
+        &content,
+        threaded[6].0,
+        threaded[6].1,
+    );
+
+    let mut braced_session = custom_start(&content, 4, 71);
+    for &(id, destination) in &braced[..6] {
+        record(&mut braced_session, &content, id, destination);
+    }
+    assert!(
+        !enumerate_legal_actions(braced_session.state(), &content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == "fume_yards.thread_rack_filter")
+    );
+    for &(id, destination) in &braced[6..] {
+        record(&mut braced_session, &content, id, destination);
+    }
+
+    assert_eq!(threaded_session.state().world.time, 7);
+    assert_eq!(braced_session.state().world.time, 8);
+    assert_eq!(threaded_session.state().world.current_location, ASH);
+    assert_eq!(braced_session.state().world.current_location, ASH);
+    assert_eq!(
+        threaded_session.state().character.inventory,
+        BTreeMap::from([(FILTER.into(), 1), ("rope".into(), 1), ("wire".into(), 1),])
+    );
+    assert_eq!(
+        braced_session.state().character.inventory,
+        BTreeMap::from([(FILTER.into(), 1), ("rope".into(), 1), ("wire".into(), 1),])
+    );
+    assert_eq!(threaded_session.state().character.resources["stamina"], 4);
+    assert_eq!(braced_session.state().character.resources["stamina"], 2);
+    assert_eq!(threaded_session.state().entropy, EntropyState::new(71));
+    assert_eq!(braced_session.state().entropy, EntropyState::new(71));
+    assert!(
+        threaded_session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.rack_cleared")
+    );
+    assert!(
+        braced_session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.rack_cleared")
+    );
+    assert!(
+        !threaded_session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.rack_braced")
+    );
+    assert!(
+        braced_session.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.rack_braced")
+    );
+    assert!(
+        threaded_session.state().world.npcs[DARO]
+            .memories
+            .contains_key("fume_yards.rack_threaded")
+    );
+    assert!(
+        braced_session.state().world.npcs[DARO]
+            .memories
+            .contains_key("fume_yards.rack_braced")
+    );
+    assert!(
+        threaded_session.state().world.npcs[DARO]
+            .inventory
+            .is_empty()
+    );
+    assert!(braced_session.state().world.npcs[DARO].inventory.is_empty());
+
+    checkpoint_custom_route(&content, 5, &threaded, &threaded_session);
+    checkpoint_custom_route(&content, 4, &braced, &braced_session);
 }
