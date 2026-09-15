@@ -2,8 +2,8 @@ use std::collections::BTreeSet;
 
 use forge_content::parse_and_compile_production;
 use forge_kernel::{
-    CanonicalAction, CompiledContent, EventKind, GameState, KnowledgeProvenance,
-    enumerate_legal_actions, step,
+    CanonicalAction, CharacterChoiceSelection, CharacterSelection, CompiledContent, EventKind,
+    GameState, KnowledgeProvenance, enumerate_legal_actions, step,
 };
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
@@ -140,6 +140,59 @@ fn banked_with_filter_for(
     state = travel(state, content, BAY);
     for id in [
         "fume_yards.prepare_charge",
+        "fume_yards.fit_dust_filter",
+        "fume_yards.take_fuel",
+        "fume_yards.ignite_batch",
+        "fume_yards.bank_kiln",
+    ] {
+        state = act(state, content, id);
+    }
+    assert_eq!(state.character.inventory.get(SPOILED), Some(&1));
+    state
+}
+
+fn custom_banked_with_filter(content: &CompiledContent, mask: usize, seed: u64) -> GameState {
+    let selection = CharacterSelection {
+        name: "Ash route comparison".into(),
+        choices: content
+            .character_creation()
+            .unwrap()
+            .slots
+            .iter()
+            .enumerate()
+            .map(|(index, slot)| CharacterChoiceSelection {
+                slot_id: slot.id.clone(),
+                choice_id: slot.choices[(mask >> index) & 1].id.clone(),
+            })
+            .collect(),
+    };
+    let mut state = content.new_custom_game(&selection, seed).unwrap();
+    for (id, destination) in [
+        ("checkpoint.read_flag", None),
+        ("checkpoint.ask_sava", None),
+        ("travel_adjacent", Some("lowsail.docks")),
+        ("docks.ask_oren", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.culvert_path", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.break_toll", None),
+        ("world.enter_aftermath", None),
+        ("return.visit_workshop", None),
+    ] {
+        state = match destination {
+            Some(destination) => travel(state, content, destination),
+            None => act(state, content, id),
+        };
+    }
+    state = act(state, content, "fume_yards.take_stock");
+    state = travel(state, content, BAY);
+    state = act(state, content, "fume_yards.prepare_charge");
+    state = travel(state, content, WORKSHOP);
+    state = travel(state, content, ASH);
+    state = act(state, content, "fume_yards.buy_collateral_filter");
+    state = travel(state, content, WORKSHOP);
+    state = travel(state, content, BAY);
+    for id in [
         "fume_yards.fit_dust_filter",
         "fume_yards.take_fuel",
         "fume_yards.ignite_batch",
@@ -761,4 +814,45 @@ fn rook_can_complete_ordinary_dirty_delivery_without_audited_release() {
     assert!(definitions(&state, &content).contains("return.send_pera_home"));
     state = act(state, &content, "return.send_pera_home");
     assert_eq!(state.world.npcs[PERA].location, BAY);
+}
+
+#[test]
+fn every_custom_combination_can_complete_ordinary_dirty_delivery() {
+    let content = content();
+    for mask in 0..64 {
+        let mut state = custom_banked_with_filter(&content, mask, 71);
+        let coin = state.character.resources["coin"];
+        let stamina = state.character.resources["stamina"];
+        state = act(state, &content, "fume_yards.bring_pera_to_ash");
+        state = act(state, &content, "fume_yards.load_spoiled_ash");
+        state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+        assert!(
+            definitions(&state, &content).contains("fume_yards.escort_ash_freight"),
+            "mask {mask} at {} turn {} with Pera at {}: {:?}",
+            state.world.current_location,
+            state.world.time,
+            state.world.npcs[PERA].location,
+            definitions(&state, &content)
+        );
+        state = act(state, &content, "fume_yards.escort_ash_freight");
+        assert!(definitions(&state, &content).contains("return.unload_dirty_ash_freight"));
+
+        state = act(state, &content, "return.unload_dirty_ash_freight");
+        assert_eq!(state.character.resources["coin"], coin + 3, "mask {mask}");
+        assert_eq!(
+            state.character.resources["stamina"],
+            stamina - 2,
+            "mask {mask}"
+        );
+        assert_eq!(state.world.npcs[PERA].inventory[CASK], 1, "mask {mask}");
+        assert_eq!(state.character.inventory.get(FREIGHT), None, "mask {mask}");
+        assert_eq!(
+            state.world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"].provenance,
+            KnowledgeProvenance::Told { by: PERA.into() },
+            "mask {mask}"
+        );
+        assert!(definitions(&state, &content).contains("return.send_pera_home"));
+        state = act(state, &content, "return.send_pera_home");
+        assert_eq!(state.world.npcs[PERA].location, BAY, "mask {mask}");
+    }
 }
