@@ -1,6 +1,6 @@
 {
-  "verifier_id": "200df6d10786878bc701f415c83562ed07a6c36d1c6f665898ee12ad92d7ba24",
-  "build_id": "dc41187a3ca3ac0855378e63530fea63efdb7f46e362e550ff1580b3537812dc",
+  "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
+  "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
   "budget": {
     "max_depth": 35,
     "max_expanded_states": 128,
@@ -116,6 +116,7 @@
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
@@ -189,8 +190,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "5e1dd254bde45c051e3a9b79e7b4ba6d1091fbdc62a1362e5a915dafbe6f5c56",
-      "state_id": "540da88285682a1b8dd77faf48039cb8647b6ef502bd62eb153252e6f0535a9f"
+      "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
+      "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
     },
     {
       "label": "preset:rook",
@@ -200,8 +201,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "f1e649d2092a24d9f5e8f5ce3637a5c0599b852d4573aeb3150de930483c72bd",
-      "state_id": "ae7a595f2922d70905925651bddf8bf3a5f7a7588832d94e11deac516fc0f2ff"
+      "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
+      "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -211,9 +212,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "36c90780e77812c6d1820a02eb9f2ef9c6308ecb0f3d1108b8636cc9c35e6e3f",
-      "state_id": "4500c01864f60d649ae4b02475b446752176ae84ca9a3d905ea96325ea0d1eae"
+      "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
+      "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
     }
   ],
-  "execution_receipt": "a04c41003267f29c85d0b10f899fb43723bfb94aa708b04850fe7fc36de451d1"
+  "execution_receipt": "c19ad6f6938ce721c34a62764442e42b0e2649faaac53271bd0c63bc6067361c"
 }

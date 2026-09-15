@@ -112,6 +112,7 @@ pub(super) const ASH_CART_ACTIONS: &[&str] = &[
     "fume_yards.settle_ash_lane",
     "fume_yards.bring_pera_back_to_ash",
     "fume_yards.escort_ash_freight",
+    "fume_yards.return_pera_after_ash_cleanup",
     "return.unload_clean_ash_freight",
     "return.unload_dirty_ash_freight",
     "return.unload_filtered_ash_freight",
@@ -1056,7 +1057,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1083,7 +1084,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1104,13 +1105,13 @@ mod tests {
     }
 
     #[test]
-    fn ash_cart_crawl_covers_thirteen_targets_under_its_separate_fixed_budget() {
+    fn ash_cart_crawl_covers_fourteen_targets_under_its_separate_fixed_budget() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
         let report = crawl_ash_cart(&content).unwrap();
         assert_eq!(report.budget, ASH_CART_BUDGET);
         assert_eq!(report.required_definitions, ids(ASH_CART_ACTIONS));
-        assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.required_definitions.len(), 14);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 12);
         assert_eq!(
@@ -1136,7 +1137,7 @@ mod tests {
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1166,7 +1167,7 @@ mod tests {
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
         assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1196,7 +1197,7 @@ mod tests {
         let report = crawl_cold_shift_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
         assert_eq!(report.required_definitions.len(), 5);
-        assert_eq!(report.advertised_definitions.len(), 113);
+        assert_eq!(report.advertised_definitions.len(), 114);
         assert_eq!(report.budget, COLD_SHIFT_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1293,7 +1294,7 @@ mod tests {
             ),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 113);
+        assert_eq!(combined.advertised_definitions.len(), 114);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions

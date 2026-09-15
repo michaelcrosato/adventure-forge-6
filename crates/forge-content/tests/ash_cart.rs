@@ -415,3 +415,46 @@ fn dirty_lane_can_be_settled_after_paid_delivery_with_a_physical_pera_return() {
     no_cask = travel(no_cask, &content, BAY);
     assert!(!definitions(&no_cask, &content).contains("fume_yards.bring_pera_back_to_ash"));
 }
+
+#[test]
+fn settled_post_delivery_lane_can_send_pera_home_without_moving_the_player() {
+    let content = content();
+    let mut state = banked_with_filter(&content, 71, false);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    state = act(state, &content, "return.unload_dirty_ash_freight");
+    state = act(state, &content, "return.send_pera_home");
+    state = act(state, &content, "return.visit_workshop");
+    state = travel(state, &content, BAY);
+    assert!(!definitions(&state, &content).contains("fume_yards.return_pera_after_ash_cleanup"));
+
+    state = act(state, &content, "fume_yards.bring_pera_back_to_ash");
+    state = act(state, &content, "fume_yards.settle_ash_lane");
+    assert!(definitions(&state, &content).contains("fume_yards.return_pera_after_ash_cleanup"));
+    let stale = select(&state, &content, "fume_yards.return_pera_after_ash_cleanup");
+
+    state = act(state, &content, "fume_yards.return_pera_after_ash_cleanup");
+    assert_eq!(state.world.current_location, ASH);
+    assert_eq!(state.world.npcs[PERA].location, BAY);
+    assert!(
+        state.world.npcs[PERA]
+            .memories
+            .contains_key("fume_yards.returned_after_ash_cleanup")
+    );
+    assert_eq!(state.character.resources["coin"], 9);
+    assert_eq!(state.character.inventory.get(CASK), None);
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_lane_settled")
+    );
+    assert!(
+        state.world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert!(step(&state, &stale, &content, &state.entropy).is_err());
+    assert!(!definitions(&state, &content).contains("fume_yards.return_pera_after_ash_cleanup"));
+}

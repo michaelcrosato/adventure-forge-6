@@ -1,6 +1,6 @@
 {
-  "verifier_id": "200df6d10786878bc701f415c83562ed07a6c36d1c6f665898ee12ad92d7ba24",
-  "build_id": "dc41187a3ca3ac0855378e63530fea63efdb7f46e362e550ff1580b3537812dc",
+  "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
+  "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
   "budget": {
     "max_depth": 35,
     "max_expanded_states": 96,
@@ -8,9 +8,9 @@
     "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 10,
-  "discovered_frontiers": 61,
-  "successful_actions": 69,
+  "expanded_states": 12,
+  "discovered_frontiers": 67,
+  "successful_actions": 79,
   "max_legal_actions": 8,
   "reached_locations": [
     "fume_yards.ash_beds",
@@ -32,6 +32,7 @@
     "fume_yards.prepare_wet_ash_freight",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
+    "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.settle_ash_lane",
     "fume_yards.share_rescue_account",
@@ -111,6 +112,7 @@
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
@@ -171,6 +173,7 @@
     "fume_yards.load_spoiled_ash",
     "fume_yards.prepare_dry_ash_freight",
     "fume_yards.prepare_wet_ash_freight",
+    "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.settle_ash_lane",
     "return.send_pera_home",
@@ -187,8 +190,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "5e1dd254bde45c051e3a9b79e7b4ba6d1091fbdc62a1362e5a915dafbe6f5c56",
-      "state_id": "540da88285682a1b8dd77faf48039cb8647b6ef502bd62eb153252e6f0535a9f"
+      "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
+      "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
     },
     {
       "label": "preset:rook",
@@ -198,8 +201,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "f1e649d2092a24d9f5e8f5ce3637a5c0599b852d4573aeb3150de930483c72bd",
-      "state_id": "ae7a595f2922d70905925651bddf8bf3a5f7a7588832d94e11deac516fc0f2ff"
+      "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
+      "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -209,8 +212,8 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "36c90780e77812c6d1820a02eb9f2ef9c6308ecb0f3d1108b8636cc9c35e6e3f",
-      "state_id": "4500c01864f60d649ae4b02475b446752176ae84ca9a3d905ea96325ea0d1eae"
+      "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
+      "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
     },
     {
       "label": "trace:m2-fume-ash-cart-spoiled-bay",
@@ -220,8 +223,8 @@
         "seed": 71
       },
       "depth": 20,
-      "final_receipt": "65922113e51488224daed9c7a44a1a5b85867c4f9a7906b4f53556ed7fd29190",
-      "state_id": "5c4306010ba55baf1810d4a75fd7cbd7a3e1190e962d780f50931a9bc4a8c2db"
+      "final_receipt": "8539028f4b70003c45e00a09c52091a96f859ffe0ebac6fac51a40820066cfbf",
+      "state_id": "3ddf959f63867d28ee609c0550f51fccb9ff055809ac78f71243c51feefedf43"
     },
     {
       "label": "trace:m2-fume-ash-cart-spoiled-ash",
@@ -231,8 +234,8 @@
         "seed": 71
       },
       "depth": 21,
-      "final_receipt": "0755aaf4665bbf607356f19310959194a6288c3c3e1d22983a3dee5bcb511030",
-      "state_id": "467d3983176f2fc916a986e93b78718d3e6b005a07761119dd162e2430277642"
+      "final_receipt": "a93918755da8678a08b2f367f003477f37354ad61661e4bca7d9c9da2dcbba40",
+      "state_id": "977011f820c6ed0b92cb1637898fd6e5b32612e4ef386a10e8870a44466c6c01"
     },
     {
       "label": "trace:m2-fume-ash-cart-settle-ready",
@@ -242,8 +245,8 @@
         "seed": 71
       },
       "depth": 23,
-      "final_receipt": "0ba9fd94cfeed1c0e6f004d17c27694a77408c2f3aa26117b3bb1db1791d63a0",
-      "state_id": "95fe18d048fec2f17115517c16d0fa616aab5a456e9ab0cde36eba1e0e2eb116"
+      "final_receipt": "a0b88bfe4e4732a6017ec4e03dd413edcf8d48234d20f38b107dd4f31189db30",
+      "state_id": "a719291f817e13513891bc77c86f6f52c66d738f77d299968fb39c33bfa07912"
     },
     {
       "label": "trace:m2-fume-ash-cart-wet-bay",
@@ -253,8 +256,8 @@
         "seed": 123
       },
       "depth": 13,
-      "final_receipt": "19f25db9daa7f79123292700c0d47f20a48a05d31102990a719180cfc1903c8e",
-      "state_id": "1c8babf7a12b1bdcedbf075c95285cc3a3544661c7ec4b3b52462545cb2ea619"
+      "final_receipt": "6810fa740fc2f29b205aadf486aa7727fc6c0a03e8ce2da839a53e021f819a00",
+      "state_id": "b0a6c1df51861f0a18178c41b17d40ffd7d184dec52d6a60e8aa4bfeb2942313"
     },
     {
       "label": "trace:m2-fume-ash-cart-filter-bay",
@@ -264,8 +267,8 @@
         "seed": 123
       },
       "depth": 24,
-      "final_receipt": "3d8025913ab8c3356d27a07ac7a9c35ded61b9276f313925e7b1d052076150c7",
-      "state_id": "8e0e472a13431b4173441c3e420cf464f455945692a1f99e22dddada1a295be2"
+      "final_receipt": "918eeccf5ca5f6070547089e9cdb0579d0b18ccff1c19980ec82114493d76f29",
+      "state_id": "256fc0135f42137557db5b7d34d86330bc5e5ab4ab63d1b975e6b8151aa19ecd"
     },
     {
       "label": "trace:m2-fume-ash-cart-cancel-ready",
@@ -275,8 +278,8 @@
         "seed": 123
       },
       "depth": 15,
-      "final_receipt": "5949035f73eb806b83d6a48ad67dd61034b232808b0225da9cfc7b0e705d45a2",
-      "state_id": "f52cd68a1c403efe6ad4736e95295188edb79ceafd8414d55d597f6b92c5e654"
+      "final_receipt": "970443cd57ac5948090d054057d85ab58f5ebadaf1fbd103ee9c7fc944629928",
+      "state_id": "18d0684e0de3d97950e406f869cf81ebbf64d25e9d78a7057830f6958d3fb9c4"
     },
     {
       "label": "trace:m2-fume-ash-cart-dirty-unload",
@@ -286,8 +289,8 @@
         "seed": 71
       },
       "depth": 28,
-      "final_receipt": "dcd2181f5fc49ea61f20cf18eee07da0f15abfa414ad53be098bc5691691f3b1",
-      "state_id": "00c39e3ebd11a5040fbc370b6b1f1d17ced3f18b15b81953804e5500f6e1961a"
+      "final_receipt": "a76829a361dfa0c512a1b530b9389c1cb6d33aa0d58fea6d74192fd98982bc39",
+      "state_id": "0adaacaf70f72233f04f5215950fa0ad3d4a9ffac3d01e432605afc54a43c3a7"
     },
     {
       "label": "trace:m2-fume-ash-cart-clean-unload",
@@ -297,8 +300,8 @@
         "seed": 123
       },
       "depth": 17,
-      "final_receipt": "87a1ea78515b52f7b7aebc803119c59299e0c9bd7aa5f07a9c00a0135d0fcbdd",
-      "state_id": "4256ffe703ce9d0a2dbdad834d3f277472f151a551630f2c1fb3259890e3923b"
+      "final_receipt": "a05504628d9a287538fdc6f2bd3a24509b0105411911651ef5ddd43877e915db",
+      "state_id": "6d0c8c9a48bdce041e06036ffd2164abdca4108df73c04029db38d8b38b28012"
     },
     {
       "label": "trace:m2-fume-ash-cart-filtered-unload",
@@ -308,9 +311,9 @@
         "seed": 123
       },
       "depth": 28,
-      "final_receipt": "884c9bd4550300ed0bd4e33a3591171c6969d1b96f012af9fe1e44b398efbbb4",
-      "state_id": "89d9189eedaabbe969a460e5da39ebd51f7f91c21905effe8dbb28c4da80224d"
+      "final_receipt": "7ca8f99f7b61280f37397433f59b47caca562f68cfdf182fc0fda17f3970f84b",
+      "state_id": "ed6b7859c5014d824552d1911b514c1f0009d7af25e62bb65f54088ed2f485a4"
     }
   ],
-  "execution_receipt": "6b8298852b205f94678974fef8291cb90879840cc31000f6837366c40484d8e1"
+  "execution_receipt": "a27925149f4e52d19df202a5921695383e0c5cd85fa8e28a147191b4a214287f"
 }

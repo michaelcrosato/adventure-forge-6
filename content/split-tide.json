@@ -22606,6 +22606,83 @@
       "movement": true
     },
     {
+      "id": "fume_yards.return_pera_after_ash_cleanup",
+      "label": "Return Pera Home",
+      "category": "Travel",
+      "result": "Pera returns her cart to Kiln Bay after the Ash Beds lane is settled.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_lane_settled"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_unloaded"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "has_item",
+              "item": "fume_yards.ash_feed",
+              "count": 1
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "has_item",
+              "item": "fume_yards.ash_freight",
+              "count": 1
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.returned_after_ash_cleanup",
+          "subject": "Pera returned to Kiln Bay after the settled Ash Beds lane.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
       "id": "return.unload_clean_ash_freight",
       "label": "Unload Clean Ash (+3 coin)",
       "category": "Work",
