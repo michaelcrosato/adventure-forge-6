@@ -1,6 +1,6 @@
 {
-  "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-  "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+  "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+  "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 96,
@@ -60,6 +60,7 @@
     "floor.stabilize_gauge",
     "floor.test_pressure",
     "fume_yards.assign_brann_salvage",
+    "fume_yards.audit_ash_manifest",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
     "fume_yards.bring_pera_back_to_ash",
@@ -122,6 +123,7 @@
     "return.count_dry_stalls",
     "return.draw_clean_water",
     "return.face_flood",
+    "return.file_ash_manifest",
     "return.fit_market_filter",
     "return.install_market_cask",
     "return.move_inland",
@@ -169,8 +171,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-      "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+      "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+      "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
     },
     {
       "label": "preset:rook",
@@ -180,8 +182,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-      "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+      "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+      "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -191,9 +193,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-      "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+      "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+      "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
     }
   ],
-  "execution_receipt": "719d9a0778837564f75f8722be332ef08050bd43894d7ac0e4bdea2bcf6dfce8"
+  "execution_receipt": "01c4ca581b7196215fd1d0d1cf63438d2491d4dbdc099378553aee5b9c261c9a"
 }

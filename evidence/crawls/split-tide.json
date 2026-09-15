@@ -1,6 +1,6 @@
 {
-  "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
-  "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
+  "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
+  "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
   "advertised_definitions": [
     "checkpoint.ask_sava",
     "checkpoint.audit_order",
@@ -28,6 +28,7 @@
     "floor.stabilize_gauge",
     "floor.test_pressure",
     "fume_yards.assign_brann_salvage",
+    "fume_yards.audit_ash_manifest",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
     "fume_yards.bring_pera_back_to_ash",
@@ -90,6 +91,7 @@
     "return.count_dry_stalls",
     "return.draw_clean_water",
     "return.face_flood",
+    "return.file_ash_manifest",
     "return.fit_market_filter",
     "return.install_market_cask",
     "return.move_inland",
@@ -144,6 +146,7 @@
     "floor.stabilize_gauge",
     "floor.test_pressure",
     "fume_yards.assign_brann_salvage",
+    "fume_yards.audit_ash_manifest",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
     "fume_yards.bring_pera_back_to_ash",
@@ -206,6 +209,7 @@
     "return.count_dry_stalls",
     "return.draw_clean_water",
     "return.face_flood",
+    "return.file_ash_manifest",
     "return.fit_market_filter",
     "return.install_market_cask",
     "return.move_inland",
@@ -245,8 +249,8 @@
     "red_sluice.top"
   ],
   "regression": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 13,
       "max_expanded_states": 4096,
@@ -357,6 +361,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -419,6 +424,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -517,8 +523,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -528,11 +534,11 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       }
     ],
-    "execution_receipt": "78670158b1f45dd77366dcad946b97f8af6267f8ece0da9b97b4adc0dfa89c32",
+    "execution_receipt": "6e23e89695148851f2da96b98499fd238c65d5b8172a071d5b66017f35e419d2",
     "split_tide_projection": {
       "required_definitions": [
         "checkpoint.ask_sava",
@@ -659,8 +665,8 @@
     }
   },
   "batchworks": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 128,
@@ -733,6 +739,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -795,6 +802,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -846,8 +854,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -857,8 +865,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -868,15 +876,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       }
     ],
-    "execution_receipt": "e6f95b0863a9859767fe9691dba11d96bc73eaa3412d0ab504d9b1370cb8d2da"
+    "execution_receipt": "95714508367e19ae3529708b82f9121f372321b535d45c80dec6887844360d51"
   },
   "salvage": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -954,6 +962,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -1016,6 +1025,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -1062,8 +1072,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -1073,8 +1083,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1084,15 +1094,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       }
     ],
-    "execution_receipt": "a4807196f422633bec55b0c306a56e06e77ec7bf8ce83d5651c127a9aa1707eb"
+    "execution_receipt": "04b589af8d2f683b0357de556358942c558ee787a9f7884554ae58804de54fbc"
   },
   "ash_cart": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 35,
       "max_expanded_states": 96,
@@ -1101,15 +1111,16 @@
       "catalog_page_size": 7
     },
     "expanded_states": 12,
-    "discovered_frontiers": 67,
-    "successful_actions": 79,
-    "max_legal_actions": 8,
+    "discovered_frontiers": 71,
+    "successful_actions": 81,
+    "max_legal_actions": 9,
     "reached_locations": [
       "fume_yards.ash_beds",
       "fume_yards.kiln_bay",
       "lowsail.return"
     ],
     "covered_definitions": [
+      "fume_yards.audit_ash_manifest",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
       "fume_yards.bring_pera_to_ash",
@@ -1130,6 +1141,7 @@
       "fume_yards.share_rescue_account",
       "fume_yards.take_market_cask",
       "return.ask_oren",
+      "return.file_ash_manifest",
       "return.read_tide",
       "return.send_pera_home",
       "return.sort_dry_goods",
@@ -1168,6 +1180,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -1230,6 +1243,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -1258,6 +1272,7 @@
       "world.enter_aftermath"
     ],
     "required_definitions": [
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bring_pera_back_to_ash",
       "fume_yards.bring_pera_to_ash",
       "fume_yards.escort_ash_freight",
@@ -1268,6 +1283,7 @@
       "fume_yards.return_pera_after_ash_cleanup",
       "fume_yards.return_pera_from_ash",
       "fume_yards.settle_ash_lane",
+      "return.file_ash_manifest",
       "return.send_pera_home",
       "return.unload_clean_ash_freight",
       "return.unload_dirty_ash_freight",
@@ -1282,8 +1298,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -1293,8 +1309,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1304,8 +1320,8 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       },
       {
         "label": "trace:m2-fume-ash-cart-spoiled-bay",
@@ -1315,8 +1331,8 @@
           "seed": 71
         },
         "depth": 20,
-        "final_receipt": "8539028f4b70003c45e00a09c52091a96f859ffe0ebac6fac51a40820066cfbf",
-        "state_id": "3ddf959f63867d28ee609c0550f51fccb9ff055809ac78f71243c51feefedf43"
+        "final_receipt": "97c0a9b3a267c2f3df159ecf591a1d761d0aa3d4fd857e1e68b7ec7103803b30",
+        "state_id": "397a1c0a7ee77fd305acc82a80d40f194dd1ed2972eab66b6dad6eaab568ac54"
       },
       {
         "label": "trace:m2-fume-ash-cart-spoiled-ash",
@@ -1326,8 +1342,8 @@
           "seed": 71
         },
         "depth": 21,
-        "final_receipt": "a93918755da8678a08b2f367f003477f37354ad61661e4bca7d9c9da2dcbba40",
-        "state_id": "977011f820c6ed0b92cb1637898fd6e5b32612e4ef386a10e8870a44466c6c01"
+        "final_receipt": "09e1f41656ddfea7e2eb41e8f798c0d9952dfb0a7d07e174d5eb026d9fa4981d",
+        "state_id": "e9eaba03f99c156b08685fa8c5ad4526895b49441e508ed8a357512a986524fe"
       },
       {
         "label": "trace:m2-fume-ash-cart-settle-ready",
@@ -1337,8 +1353,19 @@
           "seed": 71
         },
         "depth": 23,
-        "final_receipt": "a0b88bfe4e4732a6017ec4e03dd413edcf8d48234d20f38b107dd4f31189db30",
-        "state_id": "a719291f817e13513891bc77c86f6f52c66d738f77d299968fb39c33bfa07912"
+        "final_receipt": "a82a1f8327c1bc9036c3f6a03a42d5b0985f4a2200d86738c42ce7ed50bdcf3f",
+        "state_id": "80111bccb8835d6481c408a77b390d2ad63f72943002c70a8b60b8c12a1cfdd1"
+      },
+      {
+        "label": "trace:m2-fume-ash-cart-manifest-ready",
+        "start": {
+          "kind": "character_preset",
+          "character_preset_id": "ilyan",
+          "seed": 71
+        },
+        "depth": 25,
+        "final_receipt": "a17e04e0a62ec51972001f35b5ec9081596ebd2e7b285c6ebbe225d82e07a223",
+        "state_id": "e0ab3b94a4b76811cef31634fbb65faa8231bc7f601a68a35a2dc8967efea725"
       },
       {
         "label": "trace:m2-fume-ash-cart-wet-bay",
@@ -1348,8 +1375,8 @@
           "seed": 123
         },
         "depth": 13,
-        "final_receipt": "6810fa740fc2f29b205aadf486aa7727fc6c0a03e8ce2da839a53e021f819a00",
-        "state_id": "b0a6c1df51861f0a18178c41b17d40ffd7d184dec52d6a60e8aa4bfeb2942313"
+        "final_receipt": "0bac8564b253e5c96c1a467f94ac92a889f4c5c0ff5f9e999b961c34bd59768b",
+        "state_id": "912811dfab04c6fae72d4d7051eddf5990a94cf51b2ac1f15c4f0d92f455c40a"
       },
       {
         "label": "trace:m2-fume-ash-cart-filter-bay",
@@ -1359,8 +1386,8 @@
           "seed": 123
         },
         "depth": 24,
-        "final_receipt": "918eeccf5ca5f6070547089e9cdb0579d0b18ccff1c19980ec82114493d76f29",
-        "state_id": "256fc0135f42137557db5b7d34d86330bc5e5ab4ab63d1b975e6b8151aa19ecd"
+        "final_receipt": "028747ec8a64c956689be03b516a0af3f68a93454924b433142a3ba9203e8eb6",
+        "state_id": "c1fb4ff8749f8fc68516eff50a078224af0aa79bb5e797e81197d7222cb177c9"
       },
       {
         "label": "trace:m2-fume-ash-cart-cancel-ready",
@@ -1370,8 +1397,8 @@
           "seed": 123
         },
         "depth": 15,
-        "final_receipt": "970443cd57ac5948090d054057d85ab58f5ebadaf1fbd103ee9c7fc944629928",
-        "state_id": "18d0684e0de3d97950e406f869cf81ebbf64d25e9d78a7057830f6958d3fb9c4"
+        "final_receipt": "3b61f28d5f85988f69f3b0c7f5bcb95329618990fbe2f095c20949dfcf9b6854",
+        "state_id": "d3d08c30ba381082e8269e510863273fd8fcf5f77a99c4ebac913f2a17d991e7"
       },
       {
         "label": "trace:m2-fume-ash-cart-dirty-unload",
@@ -1381,8 +1408,8 @@
           "seed": 71
         },
         "depth": 28,
-        "final_receipt": "a76829a361dfa0c512a1b530b9389c1cb6d33aa0d58fea6d74192fd98982bc39",
-        "state_id": "0adaacaf70f72233f04f5215950fa0ad3d4a9ffac3d01e432605afc54a43c3a7"
+        "final_receipt": "2c3a21b47470754116d034a55661ecbad93d571c03cbc67673fd41674c071621",
+        "state_id": "4ec060d3471c597a702e8d3a7ff43c3b86718b7ccfdba088eb33f2da8b5710e5"
       },
       {
         "label": "trace:m2-fume-ash-cart-clean-unload",
@@ -1392,8 +1419,8 @@
           "seed": 123
         },
         "depth": 17,
-        "final_receipt": "a05504628d9a287538fdc6f2bd3a24509b0105411911651ef5ddd43877e915db",
-        "state_id": "6d0c8c9a48bdce041e06036ffd2164abdca4108df73c04029db38d8b38b28012"
+        "final_receipt": "587c2c9d1c4d9aadfdbde6c8aa55105b07e304bfcd97953445f6288e79ccaff4",
+        "state_id": "73a20f89e34637c95604bfab4f5a49294d9c122246e4b001e8375892178f7981"
       },
       {
         "label": "trace:m2-fume-ash-cart-filtered-unload",
@@ -1403,15 +1430,15 @@
           "seed": 123
         },
         "depth": 28,
-        "final_receipt": "7ca8f99f7b61280f37397433f59b47caca562f68cfdf182fc0fda17f3970f84b",
-        "state_id": "ed6b7859c5014d824552d1911b514c1f0009d7af25e62bb65f54088ed2f485a4"
+        "final_receipt": "72baaf56eeb0cadd69ff24ffc3914e79e21e3679f9421c9f03e1a302eea88708",
+        "state_id": "d91ef38aea811009708931a62864c65c738ee82fc9808118ab463467e05443a2"
       }
     ],
-    "execution_receipt": "a27925149f4e52d19df202a5921695383e0c5cd85fa8e28a147191b4a214287f"
+    "execution_receipt": "d02dd489e02c748223cbf6dfcfc39edf8245d4e5c26e3f044d9addcb3cb6b361"
   },
   "market_water": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 35,
       "max_expanded_states": 128,
@@ -1491,6 +1518,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -1553,6 +1581,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -1601,8 +1630,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -1612,8 +1641,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1623,15 +1652,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       }
     ],
-    "execution_receipt": "c19ad6f6938ce721c34a62764442e42b0e2649faaac53271bd0c63bc6067361c"
+    "execution_receipt": "a4d3dbdf2496fbefc5270220f8b8f835c38adf11220b5f919ec65c7e016b2ad9"
   },
   "staffing": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -1700,6 +1729,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -1762,6 +1792,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -1804,8 +1835,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -1815,8 +1846,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -1826,15 +1857,15 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       }
     ],
-    "execution_receipt": "d5a0f8b04792380db6d470156c5d1ec5aff8a0fbf0783b94ad3c123f01c66a10"
+    "execution_receipt": "016eb451cbb1b33ca965114747f7ac79ade62b6858f155a15e5b3ee94d3a5c92"
   },
   "cold_shift": {
-    "verifier_id": "b3c865d0f46415ddcd3b21cf4d67c9a52d7a7b9fa856a5476e4e8454e31a6aaf",
-    "build_id": "0402d8e03b40ab1a28e2ea4285b5af9fbc585b358372a10c0dc0b6889a283381",
+    "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
+    "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
     "budget": {
       "max_depth": 20,
       "max_expanded_states": 96,
@@ -1904,6 +1935,7 @@
       "floor.stabilize_gauge",
       "floor.test_pressure",
       "fume_yards.assign_brann_salvage",
+      "fume_yards.audit_ash_manifest",
       "fume_yards.bank_kiln",
       "fume_yards.brace_rack",
       "fume_yards.bring_pera_back_to_ash",
@@ -1966,6 +1998,7 @@
       "return.count_dry_stalls",
       "return.draw_clean_water",
       "return.face_flood",
+      "return.file_ash_manifest",
       "return.fit_market_filter",
       "return.install_market_cask",
       "return.move_inland",
@@ -2009,8 +2042,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "06c1c7497421e9d331fd7cf82eda842d29e0009b0d9568ab1c7d7636a95273ec",
-        "state_id": "46a5a859d5ee4efd01106b097914c1feaad51c9138c165f0919d28ed28186809"
+        "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
+        "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
       },
       {
         "label": "preset:rook",
@@ -2020,8 +2053,8 @@
           "seed": 71
         },
         "depth": 0,
-        "final_receipt": "99f478bd0566aaa824af0194734da9c98044700782520c43bcaa05ca056e70a3",
-        "state_id": "d09006b253e52dada07bc7bf8ba95aa3406cd6e0c180b1cc713c811f07753812"
+        "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
+        "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
       },
       {
         "label": "scenario:m1-outcome-hold-market",
@@ -2031,10 +2064,10 @@
           "seed": 71
         },
         "depth": 7,
-        "final_receipt": "06ea085a9b37cc47faa8b0a2d9c3718e75d6b90cb72bce29f23ad1763ee36d1f",
-        "state_id": "1a1407e84d8b689c5f9f374071c7c4f517a86297a37facd87b740b5b0aff42b6"
+        "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
+        "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
       }
     ],
-    "execution_receipt": "effcd24c0ef1912865345f5b3911c8d4e29d36c7758f9fe8996f3eff99d7a53b"
+    "execution_receipt": "e07eddac03cdff0e94ee32713ebe887407380a7fb4b07ab6c752fd992c7dcca5"
   }
 }

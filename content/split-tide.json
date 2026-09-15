@@ -22250,6 +22250,102 @@
       "movement": false
     },
     {
+      "id": "fume_yards.audit_ash_manifest",
+      "label": "Audit Ash Manifest",
+      "category": "Records",
+      "result": "You audit the ash freight before Pera carries it to Oren.",
+      "locations": [
+        "fume_yards.ash_beds"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "facet_equals",
+            "axis": "background",
+            "value": {
+              "kind": "text",
+              "value": "ledger-clerk"
+            }
+          },
+          {
+            "kind": "facet_equals",
+            "axis": "appearance.marking",
+            "value": {
+              "kind": "text",
+              "value": "council-ink"
+            }
+          },
+          {
+            "kind": "has_tag",
+            "tag": "order"
+          },
+          {
+            "kind": "facet_at_least",
+            "axis": "aptitude.insight",
+            "value": 6
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_freight_prepared"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.ash_manifest_audited"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.ash_manifest_audited",
+          "value": true
+        },
+        {
+          "kind": "add_character_deed",
+          "deed_id": "fume_yards.ash_manifest_audited"
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_manifest_audited",
+          "subject": "Pera witnessed the ledger clerk audit the ash freight manifest.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
       "id": "fume_yards.settle_ash_lane",
       "label": "Settle Ash Lane",
       "category": "Work",
@@ -22683,6 +22779,124 @@
       "movement": true
     },
     {
+      "id": "return.file_ash_manifest",
+      "label": "File Ash Manifest",
+      "category": "Records",
+      "result": "Oren accepts the manifest; Pera takes the empty cart home.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.pera_senn",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_manifest_audited"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "oren_pell",
+            "knowledge_id": "fume_yards.ash_freight_condition",
+            "provenance": "told"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_manifest_filed"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "teach_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "knowledge_id": "fume_yards.ash_manifest_filed",
+          "subject": "Oren witnessed the player file the audited ash manifest.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_manifest_filed",
+          "subject": "Oren witnessed the player file the audited ash manifest.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_manifest_filed",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.pera_senn"
+          },
+          "memory_id": "fume_yards.ash_manifest_filed",
+          "subject": "Pera carried the filed ash manifest home after Oren accepted it.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
       "id": "return.unload_clean_ash_freight",
       "label": "Unload Clean Ash (+3 coin)",
       "category": "Work",
@@ -22699,9 +22913,19 @@
             "location": "lowsail.return"
           },
           {
-            "kind": "npc_at_location",
-            "npc": "fume_yards.pera_senn",
-            "location": "lowsail.return"
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.pera_senn",
+                "location": "lowsail.return"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.ash_manifest_filed"
+              }
+            ]
           },
           {
             "kind": "location_flag",
@@ -22791,9 +23015,19 @@
             "location": "lowsail.return"
           },
           {
-            "kind": "npc_at_location",
-            "npc": "fume_yards.pera_senn",
-            "location": "lowsail.return"
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.pera_senn",
+                "location": "lowsail.return"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.ash_manifest_filed"
+              }
+            ]
           },
           {
             "kind": "location_flag",
@@ -22901,9 +23135,19 @@
             "location": "lowsail.return"
           },
           {
-            "kind": "npc_at_location",
-            "npc": "fume_yards.pera_senn",
-            "location": "lowsail.return"
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.pera_senn",
+                "location": "lowsail.return"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.ash_manifest_filed"
+              }
+            ]
           },
           {
             "kind": "location_flag",

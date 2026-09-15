@@ -80,22 +80,54 @@ fn travel(state: GameState, content: &CompiledContent, destination: &str) -> Gam
     transition.into_state()
 }
 
-fn hold_market(content: &CompiledContent, seed: u64) -> GameState {
-    let mut state = content.new_game("ilyan", seed).unwrap();
-    state = act(state, content, "checkpoint.show_charter");
-    state = travel(state, content, "lowsail.levee");
-    state = act(state, content, "levee.authority_path");
+fn hold_market_for(content: &CompiledContent, character: &str, seed: u64) -> GameState {
+    let mut state = content.new_game(character, seed).unwrap();
+    if character == "ilyan" {
+        state = act(state, content, "checkpoint.show_charter");
+        state = travel(state, content, "lowsail.levee");
+        state = act(state, content, "levee.authority_path");
+    } else {
+        state = act(state, content, "checkpoint.read_flag");
+        state = act(state, content, "checkpoint.ask_sava");
+        state = travel(state, content, "lowsail.docks");
+        state = act(state, content, "docks.ask_oren");
+        state = travel(state, content, "lowsail.levee");
+        state = act(state, content, "levee.culvert_path");
+    }
     state = travel(state, content, "red_sluice.top");
-    state = act(state, content, "top.hold_market");
+    state = if character == "ilyan" {
+        act(state, content, "top.hold_market")
+    } else {
+        act(state, content, "top.break_toll")
+    };
     state = act(state, content, "world.enter_aftermath");
-    state = act(state, content, "return.count_dry_stalls");
-    assert_eq!(state.world.time, 7);
+    if character == "ilyan" {
+        state = act(state, content, "return.count_dry_stalls");
+        assert_eq!(state.world.time, 7);
+    }
     assert_eq!(state.world.current_location, RETURN);
     state
 }
 
+fn hold_market(content: &CompiledContent, seed: u64) -> GameState {
+    hold_market_for(content, "ilyan", seed)
+}
+
 fn banked_with_filter(content: &CompiledContent, seed: u64, take_cask: bool) -> GameState {
-    let mut state = act(hold_market(content, seed), content, "return.visit_workshop");
+    banked_with_filter_for(content, "ilyan", seed, take_cask)
+}
+
+fn banked_with_filter_for(
+    content: &CompiledContent,
+    character: &str,
+    seed: u64,
+    take_cask: bool,
+) -> GameState {
+    let mut state = act(
+        hold_market_for(content, character, seed),
+        content,
+        "return.visit_workshop",
+    );
     state = act(state, content, "fume_yards.take_stock");
     state = travel(state, content, BAY);
     if take_cask {
@@ -457,4 +489,86 @@ fn settled_post_delivery_lane_can_send_pera_home_without_moving_the_player() {
     );
     assert!(step(&state, &stale, &content, &state.entropy).is_err());
     assert!(!definitions(&state, &content).contains("fume_yards.return_pera_after_ash_cleanup"));
+}
+
+#[test]
+fn ledger_clerk_can_file_a_witnessed_ash_manifest_before_unload() {
+    let content = content();
+    let mut state = banked_with_filter(&content, 71, false);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(definitions(&state, &content).contains("fume_yards.audit_ash_manifest"));
+    let stale_audit = select(&state, &content, "fume_yards.audit_ash_manifest");
+
+    state = act(state, &content, "fume_yards.audit_ash_manifest");
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_manifest_audited")
+    );
+    assert!(
+        state
+            .character
+            .deeds
+            .contains("fume_yards.ash_manifest_audited")
+    );
+    assert_eq!(
+        state.world.npcs[PERA].memories["fume_yards.ash_manifest_audited"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        !state.world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(step(&state, &stale_audit, &content, &state.entropy).is_err());
+
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    assert!(definitions(&state, &content).contains("return.file_ash_manifest"));
+    assert!(definitions(&state, &content).contains("return.unload_dirty_ash_freight"));
+    let stale_file = select(&state, &content, "return.file_ash_manifest");
+
+    state = act(state, &content, "return.file_ash_manifest");
+    assert_eq!(state.world.current_location, RETURN);
+    assert_eq!(state.world.npcs[PERA].location, BAY);
+    assert_eq!(state.character.inventory.get(FREIGHT), Some(&1));
+    assert_eq!(
+        state.world.npcs[OREN].knowledge["fume_yards.ash_manifest_filed"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        state.world.npcs[OREN]
+            .memories
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        state.world.npcs[PERA]
+            .memories
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        state.world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert!(!definitions(&state, &content).contains("return.send_pera_home"));
+    assert!(definitions(&state, &content).contains("return.unload_dirty_ash_freight"));
+
+    state = act(state, &content, "return.unload_dirty_ash_freight");
+    assert_eq!(state.character.resources["coin"], 9);
+    assert_eq!(state.character.resources["stamina"], 1);
+    assert_eq!(state.character.inventory.get(FREIGHT), None);
+    assert!(
+        state.world.npcs[OREN]
+            .memories
+            .contains_key("fume_yards.ash_freight_paid")
+    );
+    assert!(step(&state, &stale_file, &content, &state.entropy).is_err());
+
+    let mut rook = banked_with_filter_for(&content, "rook", 71, false);
+    rook = act(rook, &content, "fume_yards.bring_pera_to_ash");
+    rook = act(rook, &content, "fume_yards.load_spoiled_ash");
+    rook = act(rook, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(!definitions(&rook, &content).contains("fume_yards.audit_ash_manifest"));
 }

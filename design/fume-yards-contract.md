@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, and Pera's post-cleanup return are accepted through cycle 41. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, and the ledger-clerk manifest release are accepted through cycle 42. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -345,6 +345,14 @@ The action requires Pera's actual Ash Beds presence, the local `ash_lane_settled
 
 Focused acceptance proves the action is unavailable before the post-delivery route, moves only Pera, preserves the player's location and all prior custody/payment history, records the witnessed memory, and rejects stale reuse. The Ash crawl covers fourteen targets at 12 expanded states, 67 frontiers, and 79 successful actions under the existing depth-35/state-96/frontier-768/execution-2,048/page-7 ceiling. Regenerated exact-build evidence and the complete repository gate pass. This remains bounded freight and cast coverage, not complete character combinations or district admission.
 
+## Cycle 42 amendment: file an audited ash manifest
+
+This slice adds two canonical Records actions and no new recipe, stock, location, NPC, timer, vocabulary, or client authority. A character with the ledger-clerk background, council ink, the order tag, and insight six or higher can audit a real prepared ash freight lot beside Pera. The audit records a character deed and Pera's Witnessed memory without teaching Oren remotely.
+
+After Pera physically escorts the lot to Oren, the same clerk can file the audited manifest. Oren receives a Witnessed filing fact and memory, Pera moves to Kiln Bay, and the player retains the freight at Lowsail. The three existing unload actions accept either Pera's physical Lowsail presence or the filed-manifest flag. Oren's presence, Pera-told cargo condition, cask/filter guards, stamina cost, three-coin payment, freight ownership, and one-shot retirement remain unchanged. Filing retires itself, suppresses the already-completed Send Pera Home action, and does not appear for Rook.
+
+The focused Ash suite passes seven tests, including audit provenance, pre-filing Oren ignorance, physical Pera release before payment, dirty unloading after filing, exact payment/stamina/cargo history, stale rejection, and Rook's absence. The Ash crawl covers sixteen targets at 12 expanded states, 71 frontiers, and 81 successful actions under the existing depth-35/state-96/frontier-768/execution-2,048/page-7 ceiling. It discloses ten real-state Ash trace seeds, including a manifest-ready frontier at depth 25, and the regenerated exact-build evidence plus complete repository gate pass. This remains bounded freight/cast coverage, not complete character methods, the full area matrix, or a counted complete area.
+
 ## Witness acceptance matrix
 
 The IDs below reserve intended claims. Before any claim ships, replace each recipe description with an exact reviewed start, seed, complete canonical action/parameter sequence, checkpoint set, and hidden predicates in the scenario registry. This document is not an executable witness and does not pre-approve future paths.
@@ -376,7 +384,7 @@ Every outcome claim uses a clean-process verifier bound to the exact candidate b
 
 Keep all sixty-eight accepted scenario IDs, starts, seeds, exact recipes and semantic predicates, including all fifty-five preceding this dust-test episode. New authoritative content will change build/state/catalog hashes, so regenerate checked artifacts through trusted tooling; never weaken an old expectation merely because a new build changed hashes. Preserve the existing 128-turn relief path, deadline at 16, single outcome exclusivity, paid towline's three-coin charge and retained gear, key ownership, warning provenance, cast return continuity, catalog completeness, supply privacy, and save/replay behavior.
 
-The current combined report covers 114 definitions and nine locations through the separately checked regression, batch, salvage, ash-cart, market-water, staffing and cold-shift components. The cold-pilot report is also checked separately. All eight retain their own targets and budgets. The exact legacy projection still proves six locations and 51 definitions under its reviewed budgets. Preserve every component target, ceiling, complete-catalog requirement, and canonical seed lineage. Future optional work needs a separately declared budget; the historical 56-state crawl does not establish expansion coverage. Keep the 500-location fixture labeled synthetic.
+The current combined report covers 116 definitions and nine locations through the separately checked regression, batch, salvage, ash-cart, market-water, staffing and cold-shift components. The cold-pilot report is also checked separately. All eight retain their own targets and budgets. The exact legacy projection still proves six locations and 51 definitions under its reviewed budgets. Preserve every component target, ceiling, complete-catalog requirement, and canonical seed lineage. Future optional work needs a separately declared budget; the historical 56-state crawl does not establish expansion coverage. Keep the 500-location fixture labeled synthetic.
 
 Preserve browser retry/reload/import, process-instance recovery, exact full-width numbers, capability isolation, and bundle reproduction. The browser displays kernel observations and submits canonical IDs; it gains no recipe calculator, timer authority, local legality, or client-only consequence logic.
 
