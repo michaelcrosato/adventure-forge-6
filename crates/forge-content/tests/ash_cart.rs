@@ -123,11 +123,19 @@ fn banked_with_filter_for(
     seed: u64,
     take_cask: bool,
 ) -> GameState {
-    let mut state = act(
-        hold_market_for(content, character, seed),
+    banked_with_filter_from_return(
         content,
-        "return.visit_workshop",
-    );
+        hold_market_for(content, character, seed),
+        take_cask,
+    )
+}
+
+fn banked_with_filter_from_return(
+    content: &CompiledContent,
+    mut state: GameState,
+    take_cask: bool,
+) -> GameState {
+    state = act(state, content, "return.visit_workshop");
     state = act(state, content, "fume_yards.take_stock");
     state = travel(state, content, BAY);
     if take_cask {
@@ -854,5 +862,105 @@ fn every_custom_combination_can_complete_ordinary_dirty_delivery() {
         assert!(definitions(&state, &content).contains("return.send_pera_home"));
         state = act(state, &content, "return.send_pera_home");
         assert_eq!(state.world.npcs[PERA].location, BAY, "mask {mask}");
+    }
+}
+
+#[test]
+fn ordinary_dirty_delivery_preserves_each_reviewed_tide_context() {
+    type Spec = (&'static str, Option<&'static str>);
+    const SPLIT: &[Spec] = &[
+        ("checkpoint.show_charter", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.authority_path", None),
+        ("floor.read_harmonics", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.check_wheels", None),
+        ("top.split_flow", None),
+        ("world.enter_aftermath", None),
+        ("return.share_water", None),
+    ];
+    const HOLD: &[Spec] = &[
+        ("checkpoint.show_charter", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.authority_path", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.hold_market", None),
+        ("world.enter_aftermath", None),
+        ("return.count_dry_stalls", None),
+    ];
+    const RELIEF: &[Spec] = &[
+        ("travel_adjacent", Some("lowsail.docks")),
+        ("docks.ring_warning", None),
+        ("docks.ask_oren", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.relay_warning", None),
+        ("levee.culvert_path", None),
+        ("floor.open_relief", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.divert_relief", None),
+        ("world.enter_aftermath", None),
+        ("return.move_inland", None),
+    ];
+    const FERRY: &[Spec] = &[
+        ("checkpoint.blend_workers", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.culvert_path", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.break_toll", None),
+        ("world.enter_aftermath", None),
+        ("return.open_ferry", None),
+    ];
+    const OVERLOAD: &[Spec] = &[
+        ("checkpoint.use_stolen_permit", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.stolen_path", None),
+        ("floor.force_wheel", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.overload", None),
+        ("world.enter_aftermath", None),
+        ("return.face_flood", None),
+    ];
+    let mut deadline = vec![("wait_tide", None); 16];
+    deadline.extend([("world.enter_aftermath", None), ("return.face_flood", None)]);
+    let cases = [
+        ("ilyan", SPLIT, "ending_accord"),
+        ("ilyan", HOLD, "ending_council"),
+        ("rook", RELIEF, "ending_relief"),
+        ("rook", FERRY, "ending_freedom"),
+        ("rook", OVERLOAD, "ending_disaster"),
+        ("ilyan", deadline.as_slice(), "ending_disaster"),
+    ];
+
+    let content = content();
+    for (character, prefix, ending) in cases {
+        let mut state = content.new_game(character, 71).unwrap();
+        for (id, destination) in prefix {
+            state = match destination {
+                Some(destination) => travel(state, &content, destination),
+                None => act(state, &content, id),
+            };
+        }
+        assert!(state.world.flags.contains(ending));
+        let flags = state.world.flags.clone();
+        state = banked_with_filter_from_return(&content, state, false);
+        let coin = state.character.resources["coin"];
+        let stamina = state.character.resources["stamina"];
+        state = act(state, &content, "fume_yards.bring_pera_to_ash");
+        state = act(state, &content, "fume_yards.load_spoiled_ash");
+        state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+        state = act(state, &content, "fume_yards.escort_ash_freight");
+        assert!(definitions(&state, &content).contains("return.unload_dirty_ash_freight"));
+        state = act(state, &content, "return.unload_dirty_ash_freight");
+        assert_eq!(state.character.resources["coin"], coin + 3);
+        assert_eq!(state.character.resources["stamina"], stamina - 2);
+        assert_eq!(state.world.flags, flags);
+        assert_eq!(state.world.npcs[PERA].inventory[CASK], 1);
+        assert_eq!(state.character.inventory.get(FREIGHT), None);
+        assert_eq!(
+            state.world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"].provenance,
+            KnowledgeProvenance::Told { by: PERA.into() }
+        );
+        state = act(state, &content, "return.send_pera_home");
+        assert_eq!(state.world.npcs[PERA].location, BAY);
     }
 }
