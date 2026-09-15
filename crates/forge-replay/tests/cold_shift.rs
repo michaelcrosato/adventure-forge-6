@@ -27,6 +27,36 @@ const PREFIX: &[Action] = &[
     ("fume_yards.prepare_charge", None),
     ("travel_adjacent", Some(W)),
 ];
+const ALTERNATE_PREFIX: &[Action] = &[
+    ("checkpoint.read_flag", None),
+    ("checkpoint.ask_sava", None),
+    ("travel_adjacent", Some("lowsail.docks")),
+    ("docks.ask_oren", None),
+    ("travel_adjacent", Some("lowsail.levee")),
+    ("levee.culvert_path", None),
+    ("travel_adjacent", Some("red_sluice.top")),
+    ("top.break_toll", None),
+    ("world.enter_aftermath", None),
+    ("return.visit_workshop", None),
+    ("travel_adjacent", Some(K)),
+    ("travel_adjacent", Some(W)),
+    ("fume_yards.take_stock", None),
+    ("travel_adjacent", Some(K)),
+    ("fume_yards.prepare_charge", None),
+    ("travel_adjacent", Some(W)),
+];
+const DEFAULT_AXES: [(&str, &str); 4] = [
+    ("lineage", "fenborn"),
+    ("origin", "lowsail"),
+    ("calling", "ledger-clerk"),
+    ("value", "order"),
+];
+const ALTERNATE_AXES: [(&str, &str); 4] = [
+    ("lineage", "kilnborn"),
+    ("origin", "red-sluice"),
+    ("calling", "lock-runner"),
+    ("value", "freedom"),
+];
 const WATER: &[Action] = &[
     ("world.enter_aftermath", None),
     ("return.patch_stand", None),
@@ -43,17 +73,25 @@ const WATER: &[Action] = &[
     ("return.draw_clean_water", None),
 ];
 fn start<'a>(content: &'a CompiledContent) -> Session<'a> {
-    start_with(content, "wanted")
+    start_with_axes(content, "wanted", DEFAULT_AXES)
 }
 
 fn start_with<'a>(content: &'a CompiledContent, burden: &str) -> Session<'a> {
+    start_with_axes(content, burden, DEFAULT_AXES)
+}
+
+fn start_with_axes<'a>(
+    content: &'a CompiledContent,
+    burden: &str,
+    axes: [(&str, &str); 4],
+) -> Session<'a> {
     let selection = CharacterSelection {
         name: "Cold shift comparison".into(),
         choices: [
-            ("lineage", "fenborn"),
-            ("origin", "lowsail"),
-            ("calling", "ledger-clerk"),
-            ("value", "order"),
+            axes[0],
+            axes[1],
+            axes[2],
+            axes[3],
             ("burden", burden),
             ("history", "stole-permit"),
         ]
@@ -264,6 +302,115 @@ fn cold_shift_custom_reaction_survives_public_trace_checkpoints() {
         indebted.state().world.npcs[BRANN]
             .memories
             .contains_key("fume_yards.returned_from_cold_shift")
+    );
+}
+
+#[test]
+fn cold_shift_replays_for_an_alternate_creation_profile() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut default = start(&content);
+    let mut alternate = start_with_axes(&content, "wanted", ALTERNATE_AXES);
+
+    for &action in PREFIX {
+        record(&mut default, &content, action);
+        default = checkpoint(&default, &content);
+    }
+    for &action in ALTERNATE_PREFIX {
+        record(&mut alternate, &content, action);
+        alternate = checkpoint(&alternate, &content);
+    }
+
+    assert_eq!(default.state().world.time, 12);
+    assert_eq!(alternate.state().world.time, 16);
+    assert_eq!(default.state().world.current_location, W);
+    assert_eq!(alternate.state().world.current_location, W);
+    assert_eq!(
+        default.state().character.inventory["fume_yards.prepared_charge"],
+        1
+    );
+    assert_eq!(
+        alternate.state().character.inventory["fume_yards.prepared_charge"],
+        1
+    );
+    assert_ne!(
+        default.state().character.inventory,
+        alternate.state().character.inventory
+    );
+    assert_ne!(
+        default.state().character.resources,
+        alternate.state().character.resources
+    );
+
+    let suffix: &[Action] = &[
+        ("fume_yards.test_unfired_charge", None),
+        ("fume_yards.report_test", None),
+        ("fume_yards.delegate_cold_shift", None),
+        ("fume_yards.return_brann_to_kiln", None),
+    ];
+    for &action in suffix {
+        record(&mut default, &content, action);
+        default = checkpoint(&default, &content);
+        record(&mut alternate, &content, action);
+        alternate = checkpoint(&alternate, &content);
+    }
+
+    assert_eq!(
+        default.state().character.resources,
+        BTreeMap::from([("coin".into(), 13), ("stamina".into(), 3)])
+    );
+    assert_eq!(
+        alternate.state().character.resources,
+        BTreeMap::from([("coin".into(), 8), ("stamina".into(), 4)])
+    );
+    assert_eq!(
+        default.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), ("fume_yards.repair_lot".into(), 1),])
+    );
+    assert_eq!(
+        alternate.state().character.inventory,
+        BTreeMap::from([
+            ("rope".into(), 1),
+            ("wire".into(), 1),
+            ("fume_yards.repair_lot".into(), 1),
+        ])
+    );
+    for (session, test_turn, report_turn, final_turn) in
+        [(&default, 12, 13, 18), (&alternate, 16, 17, 22)]
+    {
+        assert_eq!(session.state().world.time, final_turn);
+        assert_eq!(session.state().world.current_location, K);
+        assert_eq!(session.state().world.npcs[NESSA].location, W);
+        assert_eq!(session.state().world.npcs[BRANN].location, K);
+        assert_eq!(
+            session.state().world.npcs[NESSA].knowledge[TEST].turn,
+            test_turn
+        );
+        assert_eq!(
+            session.state().world.npcs[NESSA].knowledge[TEST].provenance,
+            KnowledgeProvenance::Witnessed
+        );
+        assert_eq!(
+            session.state().world.npcs[BRANN].knowledge[TEST].turn,
+            report_turn
+        );
+        assert_eq!(
+            session.state().world.npcs[BRANN].knowledge[TEST].provenance,
+            KnowledgeProvenance::Told { by: NESSA.into() }
+        );
+        assert!(
+            session.state().world.npcs[BRANN]
+                .memories
+                .contains_key("fume_yards.cold_shift_completed")
+        );
+        assert_eq!(
+            session.state().world.npcs[BRANN].inventory["fume_yards.fuel"],
+            1
+        );
+        assert_eq!(session.state().entropy.cursor, 0);
+    }
+    assert_ne!(
+        default.state().world.npcs[BRANN].knowledge[TEST].turn,
+        alternate.state().world.npcs[BRANN].knowledge[TEST].turn
     );
 }
 
