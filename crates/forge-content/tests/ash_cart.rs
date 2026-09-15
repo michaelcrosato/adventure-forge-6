@@ -825,6 +825,42 @@ fn rook_can_complete_ordinary_dirty_delivery_without_audited_release() {
 }
 
 #[test]
+fn oren_learns_only_peras_ash_condition_after_physical_escort() {
+    let content = content();
+    let mut state = banked_with_filter(&content, 71, false);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+
+    assert!(
+        !state.world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_freight_condition")
+    );
+    assert!(
+        !state.world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(state.world.npcs[OREN].inventory.is_empty());
+
+    let escort_turn = state.world.time;
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    let condition = &state.world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"];
+    assert_eq!(condition.turn, escort_turn);
+    assert_eq!(
+        condition.provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert!(
+        !state.world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(state.world.npcs[OREN].inventory.is_empty());
+}
+
+#[test]
 fn every_custom_combination_can_complete_ordinary_dirty_delivery() {
     let content = content();
     for mask in 0..64 {
