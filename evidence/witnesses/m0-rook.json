@@ -1,27 +1,27 @@
 {
   "format_version": "forge-evidence-witness-v3",
-  "verifier_id": "8865102dca68398134a709c49427af0e91f28d146950c5a80782a6fbb4877e72",
+  "verifier_id": "fbd901deab854454f54d56e1093f2e80be4da6ff71d7fc03e302677d9a71fc19",
   "scenario_id": "m0-rook",
   "scenario_binding": "e192fc82c2c5468e207172571059fa1afc26c87480ad1f60ca87043095618555",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
-    "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
+    "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
     "start": {
       "kind": "character_preset",
       "character_preset_id": "rook",
       "seed": 71
     },
     "action_ids": [
-      "7e2ecb8f5089b749432bd4cf9407ab64ac03ada1ae2f0de6315eae4632c258d9",
-      "2fbac84767c2f9300a809c8c314fd7996ffcb3f05dc17065ae519e089bf0c5e2"
+      "9a255a9ff1accf360c63212d51495e83b04e0ef26a9f2e8cbc9b1673fc28ad2e",
+      "12f67c1fa0b19df13a37f6635700921abee79e5cbe0cbdd3190079081e5c4b43"
     ],
-    "final_state_id": "db332e629e61734412631f5de7dcc5aaf85bd5863e2c4b5f026274b352828631",
-    "final_receipt": "1e4f4bfa85f20a5ad755adf1e69f9d0a2312fafc4b18744db5ecdbcfc449968f"
+    "final_state_id": "8be6b9f09d56c15e76a2936629ef407f671a5b104afb82b5991ba21687cd3ec6",
+    "final_receipt": "68b0f757b502aeacc8cfe2f51cd492f0566ed77cb1c175c71c78fd67058c36c3"
   },
-  "initial_state_id": "c5e7bb1308714459eb4007cecbc61c2055569b819a8e9a540e87b8ec80dc4e96",
+  "initial_state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b",
   "initial_observation": {
-    "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
-    "state_id": "c5e7bb1308714459eb4007cecbc61c2055569b819a8e9a540e87b8ec80dc4e96",
+    "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
+    "state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b",
     "location_id": "lowsail_market",
     "title": "Lowsail Checkpoint",
     "text": "Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
@@ -59,27 +59,27 @@
         "remaining_ticks": 16
       }
     ],
-    "action_set_digest": "8effd1776a2690d238ccad3b0ed7775616dd52e3d3352d573892382358d146be",
+    "action_set_digest": "b3cebafff7b557f97a8f387a786bf2f14e1fc7774526745686b1001691a65f3f",
     "action_count": 8
   },
-  "initial_observation_hash": "a1b3d92caf15d0c247eea9f4fd10f38ffd564175a0432f55bf2327450c251b0a",
-  "initial_receipt": "957b1397621ac8b9efeac44613d142e183d2879cc47c74051a3de95abe31d4f3",
+  "initial_observation_hash": "3ed841b1c0db4c369c1aacfdc563d46ef9aca1df9e5b4255368cc89b5cb3e89c",
+  "initial_receipt": "ea44ea36e5b2732a50cf844c7d280a75e9b1bd1c7552c907f28922e8cdcc43c1",
   "steps": [
     {
       "step_index": 0,
-      "action_id": "7e2ecb8f5089b749432bd4cf9407ab64ac03ada1ae2f0de6315eae4632c258d9",
+      "action_id": "9a255a9ff1accf360c63212d51495e83b04e0ef26a9f2e8cbc9b1673fc28ad2e",
       "action_definition_id": "checkpoint.blend_workers",
       "action_parameters": {},
-      "legal_action_set_digest": "8effd1776a2690d238ccad3b0ed7775616dd52e3d3352d573892382358d146be",
-      "pre_state_id": "c5e7bb1308714459eb4007cecbc61c2055569b819a8e9a540e87b8ec80dc4e96",
+      "legal_action_set_digest": "b3cebafff7b557f97a8f387a786bf2f14e1fc7774526745686b1001691a65f3f",
+      "pre_state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b",
       "events_hash": "ecba9cf35a9af50574db3ce6a159260cbe14dbe78d6e59f6cdf58a257c20369e",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "dfa3890cf4d86adda852d2dd5dc5b9004ee9614ae09a8493c42899bed4c250df",
+      "post_state_id": "39a77efff01ec1fd3eb73bf40659d170fca5447262127b2f80865d44a9c6f844",
       "observation": {
-        "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
-        "state_id": "dfa3890cf4d86adda852d2dd5dc5b9004ee9614ae09a8493c42899bed4c250df",
+        "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
+        "state_id": "39a77efff01ec1fd3eb73bf40659d170fca5447262127b2f80865d44a9c6f844",
         "location_id": "lowsail_market",
         "title": "Lowsail Checkpoint",
         "text": "The workers reveal the Culvert Path at Lowsail Levee and hide your passage. Their note confirms your crossing to Oren. Sava watches your wanted face while workers leave a gap; reach Red Sluice before the next surge.",
@@ -117,29 +117,29 @@
             "remaining_ticks": 15
           }
         ],
-        "action_set_digest": "68a164c477f2648a2ecbf306c327359387bbe18060f84bd55b8332580174d3de",
+        "action_set_digest": "31cf366bfa0e764d4b3725a6dc05df3a2a56305101b42fd7b89c54f0cccc5c4a",
         "action_count": 7
       },
-      "observation_hash": "96331fe699e8a5b1bd1f4288e04a4bfec3032e0166cb1c2d36fb44ddd2c1ad10",
-      "receipt": "155f93ae126e0cb3b7aa61cbd229e4f5480bdaf2c4137fe1d602b168a8c115da"
+      "observation_hash": "898db302b86404aace0f1a02019d34d2123759efb7789c24fe7a938df98a923f",
+      "receipt": "71f237ee6f7213e5214233780ab6748f3c6ec86dd5730df0b12fe5049b530a1c"
     },
     {
       "step_index": 1,
-      "action_id": "2fbac84767c2f9300a809c8c314fd7996ffcb3f05dc17065ae519e089bf0c5e2",
+      "action_id": "12f67c1fa0b19df13a37f6635700921abee79e5cbe0cbdd3190079081e5c4b43",
       "action_definition_id": "travel_adjacent",
       "action_parameters": {
         "destination": "lowsail.levee"
       },
-      "legal_action_set_digest": "68a164c477f2648a2ecbf306c327359387bbe18060f84bd55b8332580174d3de",
-      "pre_state_id": "dfa3890cf4d86adda852d2dd5dc5b9004ee9614ae09a8493c42899bed4c250df",
+      "legal_action_set_digest": "31cf366bfa0e764d4b3725a6dc05df3a2a56305101b42fd7b89c54f0cccc5c4a",
+      "pre_state_id": "39a77efff01ec1fd3eb73bf40659d170fca5447262127b2f80865d44a9c6f844",
       "events_hash": "41cc1bfa43ea2f44e54a025d0c4922459b501e9da8f7a366682c3a376f0683e8",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "db332e629e61734412631f5de7dcc5aaf85bd5863e2c4b5f026274b352828631",
+      "post_state_id": "8be6b9f09d56c15e76a2936629ef407f671a5b104afb82b5991ba21687cd3ec6",
       "observation": {
-        "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
-        "state_id": "db332e629e61734412631f5de7dcc5aaf85bd5863e2c4b5f026274b352828631",
+        "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
+        "state_id": "8be6b9f09d56c15e76a2936629ef407f671a5b104afb82b5991ba21687cd3ec6",
         "location_id": "lowsail.levee",
         "title": "Lowsail Levee",
         "text": "You move along the connected path. The levee road runs east to Red Sluice. Workers brace the wet embankment.",
@@ -177,13 +177,13 @@
             "remaining_ticks": 14
           }
         ],
-        "action_set_digest": "421969b323b355e5e8c667bfaf7e5ed95f608722906b6bb59cdbbc58ee674c74",
+        "action_set_digest": "d432bea257102618edddbfa11e7218bb492c18b7d8dd9fa81242624d98658938",
         "action_count": 6
       },
-      "observation_hash": "1242afba4ecee92f283f43971189f086e35aca8de23d03412cda401c4236e171",
-      "receipt": "1e4f4bfa85f20a5ad755adf1e69f9d0a2312fafc4b18744db5ecdbcfc449968f"
+      "observation_hash": "ba7fbd127ef377f49a587e8ba5404cf1125646237b94e7afb11d4f113c0926c1",
+      "receipt": "68b0f757b502aeacc8cfe2f51cd492f0566ed77cb1c175c71c78fd67058c36c3"
     }
   ],
-  "final_state_id": "db332e629e61734412631f5de7dcc5aaf85bd5863e2c4b5f026274b352828631",
-  "final_receipt": "1e4f4bfa85f20a5ad755adf1e69f9d0a2312fafc4b18744db5ecdbcfc449968f"
+  "final_state_id": "8be6b9f09d56c15e76a2936629ef407f671a5b104afb82b5991ba21687cd3ec6",
+  "final_receipt": "68b0f757b502aeacc8cfe2f51cd492f0566ed77cb1c175c71c78fd67058c36c3"
 }

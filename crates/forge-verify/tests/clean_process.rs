@@ -105,6 +105,12 @@ fn staffing_definitions() -> std::collections::BTreeSet<&'static str> {
         "fume_yards.assign_brann_salvage",
         "fume_yards.recover_staffed_filter",
         "fume_yards.return_with_brann",
+        "return.visit_freight_court",
+        "fume_yards.read_crew_board",
+        "fume_yards.inspect_freight_cradle",
+        "fume_yards.call_brann_to_court",
+        "fume_yards.return_brann_from_court",
+        "fume_yards.assign_court_salvage",
     ]
     .into_iter()
     .collect()
@@ -189,9 +195,9 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     );
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
-    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 9);
+    assert_eq!(report["reached_locations"].as_array().unwrap().len(), 10);
     let regression = &report["regression"];
     let batchworks = &report["batchworks"];
     let salvage = &report["salvage"];
@@ -365,7 +371,7 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -378,6 +384,10 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
 fn assert_aftermath_starts(report: &serde_json::Value) {
     let starts = report["starting_sessions"].as_array().unwrap();
     assert_eq!(starts.len(), 3);
+    assert_aftermath_prefix(starts);
+}
+
+fn assert_aftermath_prefix(starts: &[serde_json::Value]) {
     for (index, preset) in ["ilyan", "rook"].iter().enumerate() {
         assert_eq!(starts[index]["label"], format!("preset:{preset}"));
         assert_eq!(starts[index]["depth"], 0);
@@ -397,6 +407,45 @@ fn assert_aftermath_starts(report: &serde_json::Value) {
     assert_eq!(starts[2]["state_id"], hold["final_state_id"]);
 }
 
+fn assert_staffing_starts(report: &serde_json::Value) {
+    let starts = report["starting_sessions"].as_array().unwrap();
+    assert_eq!(starts.len(), 5);
+    assert_aftermath_prefix(starts);
+    assert_eq!(starts[3]["label"], "trace:m2-fume-staffing-workshop-ready");
+    assert_eq!(starts[3]["depth"], 22);
+    assert_eq!(starts[3]["start"]["seed"], 71);
+    assert_eq!(starts[4]["label"], "trace:m2-fume-staffing-freight-court");
+    assert_eq!(starts[4]["depth"], 25);
+    assert_eq!(starts[4]["start"]["seed"], 71);
+}
+
+fn assert_batchworks_starts(report: &serde_json::Value) {
+    let starts = report["starting_sessions"].as_array().unwrap();
+    assert_eq!(starts.len(), 4);
+    for (index, preset) in ["ilyan", "rook"].iter().enumerate() {
+        assert_eq!(starts[index]["label"], format!("preset:{preset}"));
+        assert_eq!(starts[index]["depth"], 0);
+        assert_eq!(starts[index]["start"]["character_preset_id"], *preset);
+        assert_eq!(starts[index]["start"]["seed"], 71);
+    }
+    let hold: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(witness_path("m1-outcome-hold-market")).unwrap())
+            .unwrap();
+    assert_eq!(starts[2]["label"], "scenario:m1-outcome-hold-market");
+    assert_eq!(starts[2]["depth"], 7);
+    assert_eq!(starts[2]["start"], starts[0]["start"]);
+    assert_eq!(starts[2]["final_receipt"], hold["final_receipt"]);
+    assert_eq!(starts[2]["state_id"], hold["final_state_id"]);
+    let batch: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(witness_path("m2-fume-batch-ready")).unwrap())
+            .unwrap();
+    assert_eq!(starts[3]["label"], "scenario:m2-fume-batch-ready");
+    assert_eq!(starts[3]["depth"], 16);
+    assert_eq!(starts[3]["start"], starts[0]["start"]);
+    assert_eq!(starts[3]["final_receipt"], batch["final_receipt"]);
+    assert_eq!(starts[3]["state_id"], batch["final_state_id"]);
+}
+
 fn assert_batchworks_scope(report: &serde_json::Value) {
     let required = report["required_definitions"].as_array().unwrap();
     let covered = report["covered_definitions"].as_array().unwrap();
@@ -404,14 +453,14 @@ fn assert_batchworks_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
     assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
     assert_eq!(report["budget"]["max_action_executions"], 2048);
     assert_eq!(report["budget"]["catalog_page_size"], 7);
-    assert_aftermath_starts(report);
+    assert_batchworks_starts(report);
 }
 
 #[test]
@@ -453,7 +502,7 @@ fn assert_salvage_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     let locations = report["reached_locations"].as_array().unwrap();
     for location in [
@@ -514,7 +563,7 @@ fn assert_ash_cart_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -607,7 +656,7 @@ fn assert_market_water_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -675,7 +724,7 @@ fn clean_process_market_water_crawls_match_checked_report() {
 fn assert_staffing_scope(report: &serde_json::Value) {
     let required = report["required_definitions"].as_array().unwrap();
     let covered = report["covered_definitions"].as_array().unwrap();
-    assert_eq!(required.len(), 4);
+    assert_eq!(required.len(), 10);
     assert_eq!(
         required
             .iter()
@@ -686,9 +735,9 @@ fn assert_staffing_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
-    assert_eq!(report["budget"]["max_depth"], 20);
+    assert_eq!(report["budget"]["max_depth"], 27);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
     assert_eq!(report["budget"]["max_discovered_frontiers"], 768);
     assert_eq!(report["budget"]["max_action_executions"], 2048);
@@ -698,6 +747,7 @@ fn assert_staffing_scope(report: &serde_json::Value) {
     assert!(report["successful_actions"].as_u64().unwrap() <= 2048);
     for location in [
         "fume_yards.ash_beds",
+        "fume_yards.freight_court",
         "fume_yards.kiln_bay",
         "fume_yards.workshop",
     ] {
@@ -709,7 +759,7 @@ fn assert_staffing_scope(report: &serde_json::Value) {
                 .any(|id| id.as_str() == Some(location))
         );
     }
-    assert_aftermath_starts(report);
+    assert_staffing_starts(report);
 }
 
 #[test]
@@ -764,7 +814,7 @@ fn assert_cold_shift_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        117
+        123
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 96);

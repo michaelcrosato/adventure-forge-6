@@ -10,12 +10,16 @@ const SOURCE: &str = include_str!("../../../content/split-tide.json");
 const ASH: &str = "fume_yards.ash_beds";
 const BAY: &str = "fume_yards.kiln_bay";
 const WORK: &str = "fume_yards.workshop";
+const COURT: &str = "fume_yards.freight_court";
 const RETURN: &str = "lowsail.return";
 const BRANN: &str = "fume_yards.brann_coil";
 const DARO: &str = "fume_yards.daro_venn";
 const FILTER: &str = "fume_yards.filter";
 const STORY: &str = "fume_yards.share_rescue_account";
 const ASSIGN: &str = "fume_yards.assign_brann_salvage";
+const COURT_CALL: &str = "fume_yards.call_brann_to_court";
+const COURT_ASSIGN: &str = "fume_yards.assign_court_salvage";
+const COURT_BACK: &str = "fume_yards.return_brann_from_court";
 const LIFT: &str = "fume_yards.recover_staffed_filter";
 const BACK: &str = "fume_yards.return_with_brann";
 const ACCOUNT: &str = "fume_yards.rescue_account_heard";
@@ -186,6 +190,20 @@ fn common13(content: &CompiledContent) -> GameState {
         (13, 6, 3)
     );
     state
+}
+fn court_ready(content: &CompiledContent) -> GameState {
+    let mut state = common12(content, "saved-worker");
+    state = travel(state, content, WORK);
+    state = act(state, content, "fume_yards.take_stock");
+    state = travel(state, content, BAY);
+    state = act(state, content, "fume_yards.prepare_charge");
+    state = travel(state, content, WORK);
+    state = act(state, content, "fume_yards.test_unfired_charge");
+    state = act(state, content, "fume_yards.report_test");
+    state = act(state, content, "fume_yards.fit_dust_filter");
+    state = act(state, content, STORY);
+    state = travel(state, content, WORK);
+    travel(state, content, COURT)
 }
 fn assigned(content: &CompiledContent) -> GameState {
     let state = act(common13(content), content, STORY);
@@ -682,6 +700,74 @@ fn a_three_step_lift_crosses_the_real_unresolved_surge_without_expiring_stock() 
     let state = act(state, &content, "return.face_flood");
     assert!(state.world.flags.contains("ending_disaster"));
     assert_eq!(surge(&state), vec![(18, true)]);
+}
+
+#[test]
+fn freight_court_board_calls_brann_only_after_credible_report_and_preserves_staffed_lift() {
+    let content = content();
+    let mut state = court_ready(&content);
+
+    assert_eq!(state.world.current_location, COURT);
+    assert_eq!(state.world.npcs[BRANN].location, BAY);
+    assert!(!legal(&state, &content).contains(COURT_CALL));
+    assert!(legal(&state, &content).contains("fume_yards.read_crew_board"));
+    assert!(legal(&state, &content).contains("fume_yards.inspect_freight_cradle"));
+
+    state = act(state, &content, "fume_yards.read_crew_board");
+    state = act(state, &content, "fume_yards.inspect_freight_cradle");
+    assert!(legal(&state, &content).contains(COURT_CALL));
+
+    let before_call = state.clone();
+    state = act(state, &content, COURT_CALL);
+    assert_eq!(state.world.time, before_call.world.time + 1);
+    assert_eq!(state.world.npcs[BRANN].location, COURT);
+    assert_eq!(
+        state.world.npcs[BRANN].memories["fume_yards.court_board_call"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(!legal(&state, &content).contains(COURT_CALL));
+    assert!(legal(&state, &content).contains(COURT_ASSIGN));
+    assert!(legal(&state, &content).contains(COURT_BACK));
+
+    let stamina = state.character.resources["stamina"];
+    state = act(state, &content, COURT_ASSIGN);
+    assert_eq!(state.world.current_location, ASH);
+    assert_eq!(state.world.npcs[BRANN].location, ASH);
+    assert_eq!(state.character.resources["stamina"], stamina);
+    assert!(flag(&state, ASH, ACTIVE));
+    assert!(flag(&state, ASH, SPENT));
+    assert!(flag(&state, COURT, "fume_yards.court_crew_assignment"));
+    assert!(legal(&state, &content).contains(LIFT));
+
+    state = act(state, &content, LIFT);
+    assert_eq!(state.character.inventory[FILTER], 1);
+    assert_eq!(state.character.resources["coin"], 7);
+    assert!(state.world.npcs[DARO].inventory.is_empty());
+    state = act(state, &content, BACK);
+    assert_eq!(state.world.npcs[BRANN].location, BAY);
+    assert_eq!(state.world.current_location, BAY);
+}
+
+#[test]
+fn freight_court_return_can_cancel_branns_call_without_spending_the_rack_assignment() {
+    let content = content();
+    let mut state = court_ready(&content);
+    state = act(state, &content, "fume_yards.read_crew_board");
+    state = act(state, &content, "fume_yards.inspect_freight_cradle");
+    state = act(state, &content, COURT_CALL);
+    state = act(state, &content, COURT_BACK);
+
+    assert_eq!(state.world.current_location, BAY);
+    assert_eq!(state.world.npcs[BRANN].location, BAY);
+    assert!(!flag(&state, ASH, ACTIVE));
+    assert!(!flag(&state, ASH, SPENT));
+    assert!(
+        !state.world.npcs[BRANN]
+            .memories
+            .contains_key("fume_yards.court_crew_assignment")
+    );
+    assert!(!legal(&state, &content).contains(COURT_ASSIGN));
+    assert!(legal(&state, &content).contains(ASSIGN));
 }
 
 #[test]

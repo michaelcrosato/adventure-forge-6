@@ -8,6 +8,8 @@ use std::collections::BTreeMap;
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
 const W: &str = "fume_yards.workshop";
 const K: &str = "fume_yards.kiln_bay";
+const A: &str = "fume_yards.ash_beds";
+const COURT: &str = "fume_yards.freight_court";
 const NESSA: &str = "fume_yards.nessa_tern";
 const BRANN: &str = "fume_yards.brann_coil";
 const PERA: &str = "fume_yards.pera_senn";
@@ -26,6 +28,25 @@ const PREFIX: &[Action] = &[
     ("travel_adjacent", Some(K)),
     ("fume_yards.prepare_charge", None),
     ("travel_adjacent", Some(W)),
+];
+const COURT_EXTENSION: &[Action] = &[
+    ("travel_adjacent", Some(K)),
+    ("fume_yards.enter_ash_hatch", None),
+    ("fume_yards.buy_collateral_filter", None),
+    ("fume_yards.leave_ash_hatch", None),
+    ("travel_adjacent", Some(W)),
+    ("fume_yards.test_unfired_charge", None),
+    ("fume_yards.report_test", None),
+    ("fume_yards.fit_dust_filter", None),
+    ("fume_yards.share_rescue_account", None),
+    ("travel_adjacent", Some(W)),
+    ("travel_adjacent", Some(COURT)),
+    ("fume_yards.read_crew_board", None),
+    ("fume_yards.inspect_freight_cradle", None),
+    ("fume_yards.call_brann_to_court", None),
+    ("fume_yards.assign_court_salvage", None),
+    ("fume_yards.recover_staffed_filter", None),
+    ("fume_yards.return_with_brann", None),
 ];
 const ALTERNATE_PREFIX: &[Action] = &[
     ("checkpoint.read_flag", None),
@@ -85,6 +106,15 @@ fn start_with_axes<'a>(
     burden: &str,
     axes: [(&str, &str); 4],
 ) -> Session<'a> {
+    start_with_history(content, burden, axes, "stole-permit")
+}
+
+fn start_with_history<'a>(
+    content: &'a CompiledContent,
+    burden: &str,
+    axes: [(&str, &str); 4],
+    history: &str,
+) -> Session<'a> {
     let selection = CharacterSelection {
         name: "Cold shift comparison".into(),
         choices: [
@@ -93,7 +123,7 @@ fn start_with_axes<'a>(
             axes[2],
             axes[3],
             ("burden", burden),
-            ("history", "stole-permit"),
+            ("history", history),
         ]
         .into_iter()
         .map(|(slot, choice)| CharacterChoiceSelection {
@@ -103,6 +133,10 @@ fn start_with_axes<'a>(
         .collect(),
     };
     Session::new_custom_game(&selection, 71, content).unwrap()
+}
+
+fn saved_worker_start<'a>(content: &'a CompiledContent) -> Session<'a> {
+    start_with_history(content, "indebted", DEFAULT_AXES, "saved-worker")
 }
 
 fn select(
@@ -412,6 +446,64 @@ fn cold_shift_replays_for_an_alternate_creation_profile() {
         default.state().world.npcs[BRANN].knowledge[TEST].turn,
         alternate.state().world.npcs[BRANN].knowledge[TEST].turn
     );
+}
+
+#[test]
+fn freight_court_staffing_replays_through_public_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut session = saved_worker_start(&content);
+
+    for &action in PREFIX.iter().chain(COURT_EXTENSION) {
+        record(&mut session, &content, action);
+        session = checkpoint(&session, &content);
+    }
+
+    assert_eq!(session.state().world.time, 31);
+    assert_eq!(session.state().world.current_location, K);
+    assert_eq!(session.state().world.npcs[BRANN].location, K);
+    assert_eq!(session.state().character.resources["coin"], 7);
+    assert_eq!(session.state().character.inventory["fume_yards.filter"], 1);
+    assert_eq!(
+        session.state().world.npcs["fume_yards.daro_venn"].inventory,
+        BTreeMap::new()
+    );
+    assert!(
+        session.state().world.locations[A]
+            .flags
+            .contains("fume_yards.rack_cleared")
+    );
+    assert!(
+        session.state().world.locations[A]
+            .flags
+            .contains("fume_yards.salvage_assignment_spent")
+    );
+    assert!(
+        session.state().world.locations[COURT]
+            .flags
+            .contains("fume_yards.court_crew_assignment")
+    );
+    assert_eq!(
+        session.state().world.npcs[BRANN].memories["fume_yards.court_board_call"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        session.state().world.npcs[BRANN].memories["fume_yards.court_crew_assignment"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    let legal: Vec<_> = enumerate_legal_actions(session.state(), &content)
+        .unwrap()
+        .into_iter()
+        .map(|action| action.definition_id)
+        .collect();
+    assert!(!legal.iter().any(|id| {
+        matches!(
+            id.as_str(),
+            "fume_yards.call_brann_to_court"
+                | "fume_yards.assign_court_salvage"
+                | "fume_yards.assign_brann_salvage"
+        )
+    }));
+    assert_eq!(verify(session.trace(), &content).unwrap(), *session.state());
 }
 
 fn reject_stale(session: &mut Session<'_>, action: &CanonicalAction) {

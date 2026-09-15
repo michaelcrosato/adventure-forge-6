@@ -115,6 +115,10 @@ BASELINE_HOLD="$MUTANT_WORKSPACE/evidence/witnesses/m1-outcome-hold-market.json.
 env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" emit m1-outcome-hold-market >"$BASELINE_HOLD"
 env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" check "$BASELINE_HOLD" >/dev/null
 mv -f -- "$BASELINE_HOLD" "$MUTANT_WORKSPACE/evidence/witnesses/m1-outcome-hold-market.json"
+BASELINE_BATCH_READY="$MUTANT_WORKSPACE/evidence/witnesses/m2-fume-batch-ready.json.next"
+env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" emit m2-fume-batch-ready >"$BASELINE_BATCH_READY"
+env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" check "$BASELINE_BATCH_READY" >/dev/null
+mv -f -- "$BASELINE_BATCH_READY" "$MUTANT_WORKSPACE/evidence/witnesses/m2-fume-batch-ready.json"
 BASELINE_REPORT="$MUTANT_WORKSPACE/evidence/crawls/split-tide.json.next"
 env "${MUTANT_UNSET_ARGS[@]}" "$MUTANT_VERIFIER" crawl >"$BASELINE_REPORT"
 mv -f -- "$BASELINE_REPORT" "$MUTANT_WORKSPACE/evidence/crawls/split-tide.json"

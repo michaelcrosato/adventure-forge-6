@@ -1,5 +1,5 @@
 use crate::{CrawlBudget, CrawlReport, VerifyError};
-use forge_kernel::CompiledContent;
+use forge_kernel::{CharacterChoiceSelection, CharacterSelection, CompiledContent};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -141,6 +141,12 @@ pub(super) const STAFFING_ACTIONS: &[&str] = &[
     "fume_yards.assign_brann_salvage",
     "fume_yards.recover_staffed_filter",
     "fume_yards.return_with_brann",
+    "return.visit_freight_court",
+    "fume_yards.read_crew_board",
+    "fume_yards.inspect_freight_cradle",
+    "fume_yards.call_brann_to_court",
+    "fume_yards.return_brann_from_court",
+    "fume_yards.assign_court_salvage",
 ];
 
 pub(super) const COLD_SHIFT_ACTIONS: &[&str] = &[
@@ -161,10 +167,10 @@ pub(super) const COLD_SHIFT_BUDGET: CrawlBudget = CrawlBudget {
     catalog_page_size: 7,
 };
 
-// Declared in cycle 35 before the first trial. Depth counts canonical actions;
-// the three-tick lift remains one action, and the reviewed H7 prefix costs seven.
+// Declared in cycle 35 before the first trial. The cycle-67 Court extension
+// adds a reviewed depth-26 trace seed; the three-tick lift remains one action.
 pub(super) const STAFFING_BUDGET: CrawlBudget = CrawlBudget {
-    max_depth: 20,
+    max_depth: 27,
     max_expanded_states: 96,
     max_discovered_frontiers: 768,
     max_action_executions: 2048,
@@ -524,7 +530,7 @@ pub(super) fn crawl_batchworks(content: &CompiledContent) -> Result<CrawlReport,
         content,
         BATCHWORKS_BUDGET,
         ids(BATCHWORKS_ACTIONS),
-        &["m1-outcome-hold-market"],
+        &["m1-outcome-hold-market", "m2-fume-batch-ready"],
     )?;
     if ![
         "fume_yards.kiln_bay",
@@ -636,11 +642,17 @@ pub(super) fn crawl_staffing_production(
     content: &CompiledContent,
 ) -> Result<CrawlReport, VerifyError> {
     validate_expansion_catalog(content)?;
-    let report = crate::crawler::crawl_targets_with_scenarios(
+    let trace_seeds = staffing_trace_seeds(content)?;
+    let trace_refs: Vec<_> = trace_seeds
+        .iter()
+        .map(|(label, session)| (label.as_str(), session.trace()))
+        .collect();
+    let report = crate::crawler::crawl_targets_with_traces(
         content,
         STAFFING_BUDGET,
         ids(STAFFING_ACTIONS),
         &["m1-outcome-hold-market"],
+        &trace_refs,
     )?;
     check_staffing_report(content, &report)?;
     Ok(report)
@@ -688,6 +700,95 @@ fn reviewed_aftermath_starting_sessions(
         final_receipt: hold.trace().final_receipt.clone(),
         state_id: hold.state().state_id(),
     });
+    Ok(starts)
+}
+
+fn staffing_seed_session<'content>(
+    content: &'content CompiledContent,
+    extension: &[(&str, Option<&str>)],
+) -> Result<forge_replay::Session<'content>, VerifyError> {
+    let selection = CharacterSelection {
+        name: "Court crew coverage".to_owned(),
+        choices: [
+            ("lineage", "fenborn"),
+            ("origin", "lowsail"),
+            ("calling", "ledger-clerk"),
+            ("value", "order"),
+            ("burden", "indebted"),
+            ("history", "saved-worker"),
+        ]
+        .into_iter()
+        .map(|(slot_id, choice_id)| CharacterChoiceSelection {
+            slot_id: slot_id.to_owned(),
+            choice_id: choice_id.to_owned(),
+        })
+        .collect(),
+    };
+    let mut court = forge_replay::Session::new_custom_game(&selection, 71, content)
+        .map_err(crate::replay_error)?;
+    record_crawl_actions(
+        &mut court,
+        content,
+        &[
+            ("checkpoint.show_charter", None),
+            ("travel_adjacent", Some("lowsail.levee")),
+            ("levee.authority_path", None),
+            ("travel_adjacent", Some("red_sluice.top")),
+            ("top.hold_market", None),
+            ("world.enter_aftermath", None),
+            ("return.count_dry_stalls", None),
+            ("return.visit_workshop", None),
+            ("travel_adjacent", Some("fume_yards.ash_beds")),
+            ("fume_yards.buy_collateral_filter", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("fume_yards.take_stock", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.prepare_charge", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("fume_yards.test_unfired_charge", None),
+            ("fume_yards.report_test", None),
+            ("fume_yards.fit_dust_filter", None),
+            ("fume_yards.share_rescue_account", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+        ],
+    )?;
+    record_crawl_actions(&mut court, content, extension)?;
+    Ok(court)
+}
+
+fn staffing_trace_seeds<'content>(
+    content: &'content CompiledContent,
+) -> Result<Vec<(String, forge_replay::Session<'content>)>, VerifyError> {
+    let workshop = staffing_seed_session(content, &[])?;
+    let court = staffing_seed_session(
+        content,
+        &[
+            ("travel_adjacent", Some("fume_yards.freight_court")),
+            ("fume_yards.read_crew_board", None),
+            ("fume_yards.inspect_freight_cradle", None),
+        ],
+    )?;
+    Ok(vec![
+        ("trace:m2-fume-staffing-workshop-ready".to_owned(), workshop),
+        ("trace:m2-fume-staffing-freight-court".to_owned(), court),
+    ])
+}
+
+fn reviewed_staffing_starting_sessions(
+    content: &CompiledContent,
+) -> Result<Vec<crate::crawler::CrawlStartingSession>, VerifyError> {
+    let mut starts = reviewed_aftermath_starting_sessions(content)?;
+    for (label, session) in staffing_trace_seeds(content)? {
+        starts.push(crate::crawler::CrawlStartingSession {
+            label,
+            start: session.trace().start.clone(),
+            depth: session.trace().steps.len(),
+            final_receipt: session.trace().final_receipt.clone(),
+            state_id: session.state().state_id(),
+        });
+    }
     Ok(starts)
 }
 
@@ -1048,6 +1149,7 @@ pub(super) fn check_staffing_report(
     if !report.reached_locations.is_subset(&locations)
         || ![
             "fume_yards.ash_beds",
+            "fume_yards.freight_court",
             "fume_yards.kiln_bay",
             "fume_yards.workshop",
         ]
@@ -1058,7 +1160,7 @@ pub(super) fn check_staffing_report(
             "staffing crawl missed a consequence location or added an unknown location",
         ));
     }
-    if report.starting_sessions != reviewed_aftermath_starting_sessions(content)? {
+    if report.starting_sessions != reviewed_staffing_starting_sessions(content)? {
         return Err(VerifyError::new(
             "staffing crawl starting sessions differ from canonical preset and H7 lineage",
         ));
@@ -1117,16 +1219,16 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert!(report.is_complete());
-        assert_eq!(report.starting_sessions.len(), 3);
+        assert_eq!(report.starting_sessions.len(), 4);
         assert_eq!(
             report
                 .starting_sessions
                 .iter()
                 .map(|start| start.depth)
                 .collect::<Vec<_>>(),
-            vec![0, 0, 7]
+            vec![0, 0, 7, 16]
         );
         assert!(report.expanded_states <= 128);
         assert!(report.discovered_frontiers <= 768);
@@ -1144,7 +1246,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1171,7 +1273,7 @@ mod tests {
         assert_eq!(report.budget, ASH_CART_BUDGET);
         assert_eq!(report.required_definitions, ids(ASH_CART_ACTIONS));
         assert_eq!(report.required_definitions.len(), 17);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 14);
         assert_eq!(
@@ -1197,7 +1299,7 @@ mod tests {
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1222,17 +1324,17 @@ mod tests {
     }
 
     #[test]
-    fn staffing_crawl_covers_four_targets_under_its_predeclared_budget() {
+    fn staffing_crawl_covers_ten_targets_under_its_predeclared_budget() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
-        assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.required_definitions.len(), 10);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
             report.starting_sessions,
-            reviewed_aftermath_starting_sessions(&content).unwrap()
+            reviewed_staffing_starting_sessions(&content).unwrap()
         );
         assert_eq!(
             report
@@ -1240,7 +1342,7 @@ mod tests {
                 .iter()
                 .map(|start| start.depth)
                 .collect::<Vec<_>>(),
-            vec![0, 0, 7]
+            vec![0, 0, 7, 22, 25]
         );
         assert!(report.expanded_states <= 96);
         assert!(report.discovered_frontiers <= 768);
@@ -1257,7 +1359,7 @@ mod tests {
         let report = crawl_cold_shift_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
         assert_eq!(report.required_definitions.len(), 5);
-        assert_eq!(report.advertised_definitions.len(), 117);
+        assert_eq!(report.advertised_definitions.len(), 123);
         assert_eq!(report.budget, COLD_SHIFT_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1338,7 +1440,7 @@ mod tests {
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
-        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        staffing.starting_sessions = reviewed_staffing_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
         cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let combined = combine_crawls(
@@ -1354,12 +1456,12 @@ mod tests {
             ),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 117);
+        assert_eq!(combined.advertised_definitions.len(), 123);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions
         );
-        assert_eq!(combined.reached_locations.len(), 9);
+        assert_eq!(combined.reached_locations.len(), 10);
         for mutation in 0..6 {
             let mut changed = batchworks.clone();
             match mutation {
@@ -1462,7 +1564,7 @@ mod tests {
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
-        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        staffing.starting_sessions = reviewed_staffing_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
         cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         // The established salvage component must retain its own consequence
@@ -1546,7 +1648,7 @@ mod tests {
             declared_report(&content, ids(MARKET_WATER_ACTIONS), MARKET_WATER_BUDGET);
         market_water.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
-        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        staffing.starting_sessions = reviewed_staffing_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
         cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         check_market_water_report(&content, &market_water).unwrap();
@@ -1663,7 +1765,7 @@ mod tests {
         let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
         ash_cart.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
-        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        staffing.starting_sessions = reviewed_staffing_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
         cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut market_water =
@@ -1783,7 +1885,7 @@ mod tests {
         let mut ash_cart = declared_report(&content, ids(ASH_CART_ACTIONS), ASH_CART_BUDGET);
         ash_cart.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut staffing = declared_report(&content, ids(STAFFING_ACTIONS), STAFFING_BUDGET);
-        staffing.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
+        staffing.starting_sessions = reviewed_staffing_starting_sessions(&content).unwrap();
         let mut cold_shift = declared_report(&content, ids(COLD_SHIFT_ACTIONS), COLD_SHIFT_BUDGET);
         cold_shift.starting_sessions = reviewed_aftermath_starting_sessions(&content).unwrap();
         let mut market_water =

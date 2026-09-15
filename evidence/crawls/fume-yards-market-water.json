@@ -1,6 +1,6 @@
 {
-  "verifier_id": "8865102dca68398134a709c49427af0e91f28d146950c5a80782a6fbb4877e72",
-  "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
+  "verifier_id": "fbd901deab854454f54d56e1093f2e80be4da6ff71d7fc03e302677d9a71fc19",
+  "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
   "budget": {
     "max_depth": 35,
     "max_expanded_states": 128,
@@ -8,17 +8,17 @@
     "max_action_executions": 4096,
     "catalog_page_size": 7
   },
-  "expanded_states": 47,
-  "discovered_frontiers": 187,
-  "successful_actions": 291,
-  "max_legal_actions": 9,
+  "expanded_states": 25,
+  "discovered_frontiers": 162,
+  "successful_actions": 187,
+  "max_legal_actions": 11,
   "reached_locations": [
     "fume_yards.ash_beds",
+    "fume_yards.freight_court",
     "fume_yards.kiln_bay",
     "fume_yards.workshop",
-    "lowsail.docks",
-    "lowsail.levee",
-    "lowsail.return"
+    "lowsail.return",
+    "lowsail_market"
   ],
   "covered_definitions": [
     "fume_yards.brace_rack",
@@ -26,12 +26,14 @@
     "fume_yards.enter_ash_hatch",
     "fume_yards.escort_market_cask",
     "fume_yards.fit_dust_filter",
+    "fume_yards.inspect_freight_cradle",
     "fume_yards.leave_ash_hatch",
     "fume_yards.load_freight",
     "fume_yards.pack_catch_screen",
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
+    "fume_yards.read_crew_board",
     "fume_yards.report_with_daro",
     "fume_yards.return_to_cage",
     "fume_yards.settle_collateral_fuel",
@@ -48,6 +50,7 @@
     "return.read_tide",
     "return.sell_filter",
     "return.sort_dry_goods",
+    "return.visit_freight_court",
     "return.visit_workshop",
     "travel_adjacent",
     "wait_tide",
@@ -80,12 +83,14 @@
     "floor.stabilize_gauge",
     "floor.test_pressure",
     "fume_yards.assign_brann_salvage",
+    "fume_yards.assign_court_salvage",
     "fume_yards.audit_ash_manifest",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
     "fume_yards.bring_pera_back_to_ash",
     "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
+    "fume_yards.call_brann_to_court",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
@@ -95,6 +100,7 @@
     "fume_yards.fit_dust_filter",
     "fume_yards.fit_wet_screen",
     "fume_yards.ignite_batch",
+    "fume_yards.inspect_freight_cradle",
     "fume_yards.inspect_spoiled_batch",
     "fume_yards.leave_ash_hatch",
     "fume_yards.load_broken_ash",
@@ -111,11 +117,13 @@
     "fume_yards.press_repair_plugs",
     "fume_yards.pull_rack_filter",
     "fume_yards.read_collateral_docket",
+    "fume_yards.read_crew_board",
     "fume_yards.reclaim_charge",
     "fume_yards.recover_braced_filter",
     "fume_yards.recover_staffed_filter",
     "fume_yards.report_test",
     "fume_yards.report_with_daro",
+    "fume_yards.return_brann_from_court",
     "fume_yards.return_brann_to_kiln",
     "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
@@ -159,6 +167,7 @@
     "return.unload_dirty_ash_freight",
     "return.unload_filtered_ash_freight",
     "return.unload_worker_ash_freight",
+    "return.visit_freight_court",
     "return.visit_workshop",
     "top.break_toll",
     "top.check_wheels",
@@ -193,8 +202,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "15169169de2b2beb68fdca56f8177fdef4327201abb7c7092fb108e326a5e3d5",
-      "state_id": "15b6d8db0a8663f9ca6463ab668293452d934506d4c1e61568cc4b90cee56099"
+      "final_receipt": "a27ca5ff719f0135fbf917b8b19c281ef56026b59b377427b6041b440ed685f5",
+      "state_id": "84d40821a66276557215a737cf1f067ce8c9ec7f69f3d57ddaa06f9c88d5eb86"
     },
     {
       "label": "preset:rook",
@@ -204,8 +213,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "957b1397621ac8b9efeac44613d142e183d2879cc47c74051a3de95abe31d4f3",
-      "state_id": "c5e7bb1308714459eb4007cecbc61c2055569b819a8e9a540e87b8ec80dc4e96"
+      "final_receipt": "ea44ea36e5b2732a50cf844c7d280a75e9b1bd1c7552c907f28922e8cdcc43c1",
+      "state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -215,9 +224,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "a3be9f505044f8c12d0cdacda7fb29b64fbd962fd3c538babd896e94628a7f2a",
-      "state_id": "889629a11ac11067d6de9bac1d6ef415b83a3d78326702c4b846c9788500fafd"
+      "final_receipt": "cc30c70b4432e36ecd7597bb83eb77011f214dd98ea12859c62b7a30881b5fde",
+      "state_id": "2c7b3cf96f05615d26c1c5e6d0e3d574b3949c13b11ad8fa0bc0ffe92c7ce7f5"
     }
   ],
-  "execution_receipt": "892be9700c69e71d2ce25cd325a05980508c1ce85a89d084cf4e99620a3469c4"
+  "execution_receipt": "63cbc31d2a28ac8b982c2a28446b16aa8cb795bbfb57acb45a020d6926a181b7"
 }

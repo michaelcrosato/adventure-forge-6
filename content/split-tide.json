@@ -2867,7 +2867,8 @@
       "exits": [
         "lowsail.levee",
         "fume_yards.kiln_bay",
-        "fume_yards.ash_beds"
+        "fume_yards.ash_beds",
+        "fume_yards.freight_court"
       ],
       "terminal": false
     },
@@ -9377,7 +9378,71 @@
         }
       ],
       "exits": [
-        "fume_yards.workshop"
+        "fume_yards.workshop",
+        "fume_yards.freight_court"
+      ],
+      "terminal": false
+    },
+    {
+      "id": "fume_yards.freight_court",
+      "name": "Fume Yards Freight Court",
+      "description": "A crew board hangs above an empty freight cradle. Safe work and paid filter claims start here.",
+      "description_variants": [
+        {
+          "id": "board_read",
+          "priority": 20,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.crew_board_read"
+          },
+          "text": "The board records a witnessed dust report as the gate to Brann's safe crew."
+        },
+        {
+          "id": "cradle_checked",
+          "priority": 20,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.freight_cradle_checked"
+          },
+          "text": "The cradle is sound; Daro's filter claim still needs a witnessed handover."
+        },
+        {
+          "id": "board_and_cradle_checked",
+          "priority": 30,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.crew_board_read"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.freight_cradle_checked"
+              }
+            ]
+          },
+          "text": "The checked board and cradle let Brann answer a witnessed report here."
+        },
+        {
+          "id": "brann_at_board",
+          "priority": 40,
+          "condition": {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.freight_court"
+          },
+          "text": "Brann stands by the board, ready to take a safe rack assignment or return to the kiln."
+        }
+      ],
+      "exits": [
+        "fume_yards.workshop",
+        "fume_yards.kiln_bay",
+        "fume_yards.ash_beds"
       ],
       "terminal": false
     }
@@ -12898,7 +12963,8 @@
         "red_sluice.top",
         "fume_yards.workshop",
         "fume_yards.kiln_bay",
-        "fume_yards.ash_beds"
+        "fume_yards.ash_beds",
+        "fume_yards.freight_court"
       ],
       "condition": {
         "kind": "world_flag",
@@ -23503,6 +23569,537 @@
           "subject": "Pera returned her empty cart to Kiln Bay after delivery.",
           "provenance": {
             "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "return.visit_freight_court",
+      "label": "Visit Freight Court",
+      "category": "Travel",
+      "result": "You follow the raised road to the Freight Court's crew board.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "world_flag",
+        "flag": "sluice_outcome_chosen"
+      },
+      "effects": [
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.read_crew_board",
+      "label": "Read Crew Board",
+      "category": "Inspect",
+      "result": "The board lists a safe rack lift and requires a witnessed dust report before paid crew work.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "not",
+        "condition": {
+          "kind": "location_flag",
+          "location": "fume_yards.freight_court",
+          "flag": "fume_yards.crew_board_read"
+        }
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.crew_board_read",
+          "value": true
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.inspect_freight_cradle",
+      "label": "Inspect Freight Cradle",
+      "category": "Inspect",
+      "result": "The empty cradle holds one filter-sized load; Daro's claim still needs a witnessed handover.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "not",
+        "condition": {
+          "kind": "location_flag",
+          "location": "fume_yards.freight_court",
+          "flag": "fume_yards.freight_cradle_checked"
+        }
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.freight_cradle_checked",
+          "value": true
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.call_brann_to_court",
+      "label": "Call Brann to Court",
+      "category": "Talk",
+      "result": "Brann leaves the kiln for the board after hearing your rescue account and dust report.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "character_has_deed",
+            "deed_id": "saved_worker"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.kiln_bay"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.brann_coil",
+            "knowledge_id": "fume_yards.rescue_account_heard",
+            "provenance": "witnessed"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.brann_coil",
+            "knowledge_id": "fume_yards.charge_dust_test",
+            "provenance": "told"
+          },
+          {
+            "kind": "npc_remembers",
+            "npc": "fume_yards.brann_coil",
+            "memory_id": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.test_report_delivered"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.salvage_assignment_spent"
+            }
+          },
+          {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.crew_board_read"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.freight_cradle_checked"
+              }
+            ]
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_brann_called"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_brann_called",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.court_board_call",
+          "subject": "Brann came to the Freight Court after the player showed the witnessed board requirements.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.return_brann_from_court",
+      "label": "Return Brann to Kiln",
+      "category": "Travel",
+      "result": "Brann returns to the kiln; the crew board stays posted.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.freight_court"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_brann_called"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.salvage_assignment_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_brann_returned"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.kiln_bay"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_brann_returned",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.court_board_returned",
+          "subject": "Brann returned to the kiln after reviewing the Freight Court board.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": true
+    },
+    {
+      "id": "fume_yards.assign_court_salvage",
+      "label": "Assign Court Crew",
+      "category": "Travel",
+      "result": "Brann takes the board's safe assignment; he brings you through the hatch without spending stamina.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "character_has_deed",
+            "deed_id": "saved_worker"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.brann_coil",
+            "location": "fume_yards.freight_court"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "fume_yards.brann_coil",
+            "knowledge_id": "fume_yards.rescue_account_heard",
+            "provenance": "witnessed"
+          },
+          {
+            "kind": "npc_remembers",
+            "npc": "fume_yards.brann_coil",
+            "memory_id": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.kiln_bay",
+            "flag": "fume_yards.dust_filter_fitted"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.crew_board_read"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.freight_cradle_checked"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_brann_called"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "has_item",
+              "item": "fume_yards.filter",
+              "count": 1
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.filter_sold"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.market_filter_fitted"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.batch_active"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.kiln_freight_loaded"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.kiln_bay",
+              "flag": "fume_yards.freight_spoiled"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_cleared"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.rack_braced"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.ash_beds",
+              "flag": "fume_yards.salvage_assignment_spent"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.salvage_assignment_spent",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.salvage_assignment_active",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          },
+          "flag": "fume_yards.rack_rear_open",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_crew_assignment",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "memory_id": "fume_yards.court_crew_assignment",
+          "subject": "Brann took the Freight Court assignment and brought the player to the rack.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.brann_coil"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "move_character",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
           }
         },
         {
