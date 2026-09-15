@@ -206,6 +206,47 @@ fn checkpoint<'a>(session: &Session<'a>, content: &'a CompiledContent) -> Sessio
     resumed
 }
 
+fn checkpoint_history_route(
+    content: &CompiledContent,
+    history: &str,
+    actions: &[Action],
+    uninterrupted: &Session<'_>,
+) {
+    for checkpoint_index in 0..=actions.len() {
+        let mut prefix = start_with(content, "wanted", history);
+        for &action in PREFIX {
+            record(&mut prefix, content, action);
+        }
+        for &action in &actions[..checkpoint_index] {
+            record(&mut prefix, content, action);
+        }
+        let mut resumed = checkpoint(&prefix, content);
+        for &action in &actions[checkpoint_index..] {
+            record(&mut resumed, content, action);
+        }
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+        assert_eq!(
+            enumerate_legal_actions(resumed.state(), content).unwrap(),
+            enumerate_legal_actions(uninterrupted.state(), content).unwrap(),
+            "checkpoint {checkpoint_index}"
+        );
+    }
+}
+
 fn reject_stale(session: &mut Session<'_>, action: &CanonicalAction) {
     let state = session.state().clone();
     let trace = session.trace().clone();
@@ -214,6 +255,110 @@ fn reject_stale(session: &mut Session<'_>, action: &CanonicalAction) {
     assert_eq!(session.state(), &state);
     assert_eq!(session.trace(), &trace);
     assert_eq!(session.player_trace().unwrap().to_json().unwrap(), save);
+}
+
+#[test]
+fn staffing_history_method_replays_across_public_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut saved = start_with(&content, "wanted", "saved-worker");
+    let mut unearned = start_with(&content, "wanted", "stole-permit");
+    for &action in PREFIX {
+        record(&mut saved, &content, action);
+        record(&mut unearned, &content, action);
+    }
+    assert_eq!(saved.state().world.time, 13);
+    assert_eq!(unearned.state().world.time, 13);
+    assert!(
+        enumerate_legal_actions(saved.state(), &content)
+            .unwrap()
+            .iter()
+            .any(|action| action.definition_id == "fume_yards.share_rescue_account")
+    );
+    for id in [
+        "fume_yards.share_rescue_account",
+        "fume_yards.assign_brann_salvage",
+    ] {
+        assert!(
+            !enumerate_legal_actions(unearned.state(), &content)
+                .unwrap()
+                .iter()
+                .any(|action| action.definition_id == id),
+            "unearned history opened {id}"
+        );
+    }
+
+    for &action in STAFFED {
+        record(&mut saved, &content, action);
+    }
+    for &action in ORDINARY {
+        record(&mut unearned, &content, action);
+    }
+    checkpoint_history_route(&content, "saved-worker", STAFFED, &saved);
+    checkpoint_history_route(&content, "stole-permit", ORDINARY, &unearned);
+
+    assert_eq!(saved.state().world.time, 20);
+    assert_eq!(unearned.state().world.time, 20);
+    assert_eq!(saved.trace().steps.len(), PREFIX.len() + STAFFED.len());
+    assert_eq!(unearned.trace().steps.len(), PREFIX.len() + ORDINARY.len());
+    assert_eq!(
+        saved.state().character.resources,
+        BTreeMap::from([("coin".into(), 10), ("stamina".into(), 3)])
+    );
+    assert_eq!(
+        unearned.state().character.resources,
+        BTreeMap::from([("coin".into(), 10), ("stamina".into(), 1)])
+    );
+    assert_eq!(
+        saved.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), (FILTER.into(), 1)])
+    );
+    assert_eq!(
+        unearned.state().character.inventory,
+        BTreeMap::from([("rope".into(), 1), (FILTER.into(), 1)])
+    );
+    assert_eq!(saved.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(unearned.state().world.npcs[BRANN].location, BAY);
+    assert_eq!(saved.state().world.npcs[DARO].location, ASH);
+    assert_eq!(unearned.state().world.npcs[DARO].location, BAY);
+    assert!(saved.state().world.npcs[DARO].inventory.is_empty());
+    assert!(unearned.state().world.npcs[DARO].inventory.is_empty());
+    assert_eq!(
+        saved.state().world.npcs[PERA].inventory["fume_yards.water_cask"],
+        1
+    );
+    assert_eq!(
+        unearned.state().world.npcs[PERA].inventory["fume_yards.water_cask"],
+        1
+    );
+    assert_eq!(
+        saved.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        unearned.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].provenance,
+        KnowledgeProvenance::Told { by: DARO.into() }
+    );
+    assert_eq!(
+        saved.state().world.npcs[BRANN].knowledge["fume_yards.rescue_account_heard"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        !unearned.state().world.npcs[BRANN]
+            .knowledge
+            .contains_key("fume_yards.rescue_account_heard")
+    );
+    assert!(
+        saved.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.salvage_assignment_spent")
+    );
+    assert!(
+        !saved.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.salvage_assignment_active")
+    );
+    assert_eq!(saved.state().entropy, EntropyState::new(71));
+    assert_eq!(unearned.state().entropy, EntropyState::new(71));
 }
 
 #[test]
