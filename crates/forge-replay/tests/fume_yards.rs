@@ -4,11 +4,18 @@ use forge_replay::{PlayerTrace, Session, Trace, resume_player_trace, verify};
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
 const WORKSHOP: &str = "fume_yards.workshop";
+const BAY: &str = "fume_yards.kiln_bay";
+const ASH: &str = "fume_yards.ash_beds";
 const NESSA: &str = "fume_yards.nessa_tern";
 const CLAY: &str = "fume_yards.clay";
 const MESH: &str = "fume_yards.mesh";
 const PLUGS: &str = "fume_yards.repair_lot";
 const SCREEN: &str = "fume_yards.catch_screen";
+const PERA: &str = "fume_yards.pera_senn";
+const OREN: &str = "oren_pell";
+const CASK: &str = "fume_yards.water_cask";
+const FREIGHT: &str = "fume_yards.ash_freight";
+const RETURN: &str = "lowsail.return";
 
 #[derive(Clone, Copy)]
 struct ActionSpec {
@@ -116,6 +123,27 @@ const SCREEN_EXTENSION: &[ActionSpec] = &[
     act("fume_yards.load_screened_freight"),
     act("world.enter_aftermath"),
     act("return.visit_workshop"),
+];
+const ASH_ORDINARY_EXTENSION: &[ActionSpec] = &[
+    act("return.visit_workshop"),
+    act("fume_yards.take_stock"),
+    travel(BAY),
+    travel(WORKSHOP),
+    travel(ASH),
+    act("fume_yards.buy_collateral_filter"),
+    travel(WORKSHOP),
+    travel(BAY),
+    act("fume_yards.prepare_charge"),
+    act("fume_yards.fit_dust_filter"),
+    act("fume_yards.take_fuel"),
+    act("fume_yards.ignite_batch"),
+    act("fume_yards.bank_kiln"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_spoiled_ash"),
+    act("fume_yards.prepare_dry_ash_freight"),
+    act("fume_yards.escort_ash_freight"),
+    act("return.unload_dirty_ash_freight"),
+    act("return.send_pera_home"),
 ];
 
 fn content() -> CompiledContent {
@@ -469,4 +497,83 @@ fn an_early_cold_detour_can_still_split_the_tide_and_deliver_its_goods_without_e
     assert!(session.state().world.scheduled_events.is_empty());
     assert_eq!(session.state().event_log.iter().filter(|event| matches!(&event.kind, EventKind::ScheduledEventResolved { event_id, applied: false, .. } if event_id == "lowsail.next_surge")).count(), 1);
     assert_replay(&session, &content);
+}
+
+#[test]
+fn ash_dirty_delivery_save_resume_preserves_custody_and_provenance() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("ilyan", 71, &content).unwrap();
+    record_all(&mut uninterrupted, &content, HOLD);
+    record_all(&mut uninterrupted, &content, ASH_ORDINARY_EXTENSION);
+    assert_eq!(uninterrupted.state().world.time, 26);
+    assert_eq!(uninterrupted.state().world.current_location, RETURN);
+    assert_eq!(uninterrupted.state().character.resources["coin"], 9);
+    assert_eq!(uninterrupted.state().character.resources["stamina"], 1);
+    assert_eq!(
+        uninterrupted.state().world.npcs[PERA].inventory.get(CASK),
+        Some(&1)
+    );
+    assert!(
+        !uninterrupted
+            .state()
+            .character
+            .inventory
+            .contains_key(FREIGHT)
+    );
+    assert_eq!(uninterrupted.state().world.npcs[PERA].location, BAY);
+    assert_eq!(
+        uninterrupted.state().world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"]
+            .provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+
+    for checkpoint in 0..=ASH_ORDINARY_EXTENSION.len() {
+        let mut prefix = Session::new_game("ilyan", 71, &content).unwrap();
+        record_all(&mut prefix, &content, HOLD);
+        record_all(&mut prefix, &content, &ASH_ORDINARY_EXTENSION[..checkpoint]);
+        let encoded = prefix.player_trace().unwrap().to_json().unwrap();
+        for private in [
+            "\"inventory\"",
+            "\"storages\"",
+            "\"knowledge\"",
+            "\"events\"",
+            "\"entropy\"",
+        ] {
+            assert!(
+                !encoded.contains(private),
+                "checkpoint {checkpoint}: {private}"
+            );
+        }
+        let decoded = PlayerTrace::from_json(&encoded).unwrap();
+        let mut resumed = resume_player_trace(&decoded, &content).unwrap();
+        assert_eq!(resumed.trace(), prefix.trace(), "checkpoint {checkpoint}");
+        record_all(
+            &mut resumed,
+            &content,
+            &ASH_ORDINARY_EXTENSION[checkpoint..],
+        );
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint}"
+        );
+    }
+    assert_replay(&uninterrupted, &content);
 }
