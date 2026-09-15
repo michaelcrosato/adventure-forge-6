@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, and the uninformed Oren witness are accepted through cycle 48. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, and the matched custom-calling witness are accepted through cycle 49. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -400,6 +400,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 Before escort, Oren has no Ash freight condition or filed-manifest fact, and his inventory remains empty. The escort records the cargo condition at its pre-time and gives Oren only `Told { by: Pera }` provenance. Oren still has no manifest fact or inventory after the transfer.
 
 This closes one uninformed-cast comparison, not complete cast routines, character methods, freight containment, or district admission. The focused Ash suite has fourteen tests; the full gate passes 511 Rust tests, including 107 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 49 amendment: separate custom callings for manifest release
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one focused witness using matched canonical custom starts: Fenborn/Lowsail/Ledger Clerk/Order versus Kilnborn/Red Sluice/Lock Runner/Freedom.
+
+The custom ledger clerk can audit and file the prepared freight, releasing Pera before dirty unloading. The custom lock runner cannot expose either Records action and completes the ordinary dirty route with Pera's physical return. Both paths pay three coins and spend two stamina at dirty unloading.
+
+This closes one custom-calling comparison, not complete cast routines, remaining character methods, freight containment, or district admission. The focused Ash suite has fifteen tests; the full gate passes 512 Rust tests, including 108 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 

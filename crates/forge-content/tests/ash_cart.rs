@@ -861,6 +861,42 @@ fn oren_learns_only_peras_ash_condition_after_physical_escort() {
 }
 
 #[test]
+fn matched_custom_callings_separate_manifest_release_from_ordinary_delivery() {
+    let content = content();
+    let mut clerk = custom_banked_with_filter(&content, 8, 71);
+    clerk = act(clerk, &content, "fume_yards.bring_pera_to_ash");
+    clerk = act(clerk, &content, "fume_yards.load_spoiled_ash");
+    clerk = act(clerk, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(definitions(&clerk, &content).contains("fume_yards.audit_ash_manifest"));
+    clerk = act(clerk, &content, "fume_yards.audit_ash_manifest");
+    clerk = act(clerk, &content, "fume_yards.escort_ash_freight");
+    assert!(definitions(&clerk, &content).contains("return.file_ash_manifest"));
+    clerk = act(clerk, &content, "return.file_ash_manifest");
+    assert_eq!(clerk.world.npcs[PERA].location, BAY);
+    assert!(!definitions(&clerk, &content).contains("return.send_pera_home"));
+    let clerk_coin = clerk.character.resources["coin"];
+    let clerk_stamina = clerk.character.resources["stamina"];
+    clerk = act(clerk, &content, "return.unload_dirty_ash_freight");
+    assert_eq!(clerk.character.resources["coin"], clerk_coin + 3);
+    assert_eq!(clerk.character.resources["stamina"], clerk_stamina - 2);
+
+    let mut runner = custom_banked_with_filter(&content, 63, 71);
+    runner = act(runner, &content, "fume_yards.bring_pera_to_ash");
+    runner = act(runner, &content, "fume_yards.load_spoiled_ash");
+    runner = act(runner, &content, "fume_yards.prepare_dry_ash_freight");
+    assert!(!definitions(&runner, &content).contains("fume_yards.audit_ash_manifest"));
+    runner = act(runner, &content, "fume_yards.escort_ash_freight");
+    assert!(!definitions(&runner, &content).contains("return.file_ash_manifest"));
+    let runner_coin = runner.character.resources["coin"];
+    let runner_stamina = runner.character.resources["stamina"];
+    runner = act(runner, &content, "return.unload_dirty_ash_freight");
+    assert_eq!(runner.character.resources["coin"], runner_coin + 3);
+    assert_eq!(runner.character.resources["stamina"], runner_stamina - 2);
+    runner = act(runner, &content, "return.send_pera_home");
+    assert_eq!(runner.world.npcs[PERA].location, BAY);
+}
+
+#[test]
 fn every_custom_combination_can_complete_ordinary_dirty_delivery() {
     let content = content();
     for mask in 0..64 {
