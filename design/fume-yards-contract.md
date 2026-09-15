@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, and the Wanted-history staffing witness are accepted through cycle 51. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, the Wanted-history staffing witness, and the broken-ash Pera-return witness are accepted through cycle 52. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -424,6 +424,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 After the same Hold Market prefix and real dust-filter installation, only the saved-worker character can share the rescue account and ask Brann's help. The staffed route records Witnessed account and rack-clearing provenance, returns Brann to Kiln Bay, clears the active assignment, preserves the Wanted burden, and ends at exact coin 10, stamina 3, rope 1, and filter 1. The counterfactual remains at the prefix without either staffing action. Both public traces round-trip without hidden inventory, knowledge, events, or entropy.
 
 This closes one history-and-reaction replay comparison, not complete cast routines, remaining character methods, freight containment, or district admission. The staffing replay suite has four tests; the full gate passes 514 Rust tests, including 108 content tests and 34 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 52 amendment: preserve broken-ash Pera return across public-trace checkpoints
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one replay integration using Ilyan's seed-123 Hold Market route, the risky rack pull, broken-ash loading, and Pera's physical return.
+
+Every public checkpoint resumes the uninterrupted state, trace, player trace, receipt, and legal catalog. The final state has exactly one entropy draw, the rack shard consumed into one ash feed, Daro's rack inventory empty, Pera's cask retained at Kiln Bay, Pera returned to Kiln Bay while the player remains in Ash Beds, and no remote Oren ash-feed knowledge.
+
+This closes one broken-freight return boundary, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The Fume replay suite has seven tests; the full gate passes 515 Rust tests, including 108 content tests and 35 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 

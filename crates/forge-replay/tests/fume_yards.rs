@@ -13,8 +13,11 @@ const PLUGS: &str = "fume_yards.repair_lot";
 const SCREEN: &str = "fume_yards.catch_screen";
 const PERA: &str = "fume_yards.pera_senn";
 const OREN: &str = "oren_pell";
+const DARO: &str = "fume_yards.daro_venn";
 const CASK: &str = "fume_yards.water_cask";
 const FREIGHT: &str = "fume_yards.ash_freight";
+const SHARD: &str = "fume_yards.shard";
+const FEED: &str = "fume_yards.ash_feed";
 const RETURN: &str = "lowsail.return";
 
 #[derive(Clone, Copy)]
@@ -144,6 +147,16 @@ const ASH_ORDINARY_EXTENSION: &[ActionSpec] = &[
     act("fume_yards.escort_ash_freight"),
     act("return.unload_dirty_ash_freight"),
     act("return.send_pera_home"),
+];
+const BROKEN_ASH_RETURN_EXTENSION: &[ActionSpec] = &[
+    act("return.visit_workshop"),
+    travel(BAY),
+    act("fume_yards.enter_ash_hatch"),
+    act("fume_yards.pull_rack_filter"),
+    act("fume_yards.leave_ash_hatch"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_broken_ash"),
+    act("fume_yards.return_pera_from_ash"),
 ];
 
 fn content() -> CompiledContent {
@@ -551,6 +564,94 @@ fn ash_dirty_delivery_save_resume_preserves_custody_and_provenance() {
             &mut resumed,
             &content,
             &ASH_ORDINARY_EXTENSION[checkpoint..],
+        );
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint}"
+        );
+    }
+    assert_replay(&uninterrupted, &content);
+}
+
+#[test]
+fn broken_ash_return_save_resume_preserves_shard_custody_and_pera_location() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("ilyan", 123, &content).unwrap();
+    record_all(&mut uninterrupted, &content, HOLD);
+    record_all(&mut uninterrupted, &content, BROKEN_ASH_RETURN_EXTENSION);
+    assert_eq!(uninterrupted.state().world.time, 15);
+    assert_eq!(uninterrupted.state().world.current_location, ASH);
+    assert_eq!(uninterrupted.state().world.npcs[PERA].location, BAY);
+    assert_eq!(
+        uninterrupted.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1), (FEED.into(), 1)])
+    );
+    assert!(
+        !uninterrupted
+            .state()
+            .character
+            .inventory
+            .contains_key(SHARD)
+    );
+    assert!(
+        uninterrupted.state().world.npcs[PERA]
+            .inventory
+            .contains_key(CASK)
+    );
+    assert!(uninterrupted.state().world.npcs[DARO].inventory.is_empty());
+    assert!(
+        !uninterrupted.state().world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_feed_loaded")
+    );
+    assert_eq!(uninterrupted.state().entropy.cursor, 1);
+
+    for checkpoint in 0..=BROKEN_ASH_RETURN_EXTENSION.len() {
+        let mut prefix = Session::new_game("ilyan", 123, &content).unwrap();
+        record_all(&mut prefix, &content, HOLD);
+        record_all(
+            &mut prefix,
+            &content,
+            &BROKEN_ASH_RETURN_EXTENSION[..checkpoint],
+        );
+        let encoded = prefix.player_trace().unwrap().to_json().unwrap();
+        for private in [
+            "\"inventory\"",
+            "\"storages\"",
+            "\"knowledge\"",
+            "\"events\"",
+            "\"entropy\"",
+        ] {
+            assert!(
+                !encoded.contains(private),
+                "checkpoint {checkpoint}: {private}"
+            );
+        }
+        let decoded = PlayerTrace::from_json(&encoded).unwrap();
+        let mut resumed = resume_player_trace(&decoded, &content).unwrap();
+        assert_eq!(resumed.trace(), prefix.trace(), "checkpoint {checkpoint}");
+        record_all(
+            &mut resumed,
+            &content,
+            &BROKEN_ASH_RETURN_EXTENSION[checkpoint..],
         );
         assert_eq!(
             resumed.state(),
