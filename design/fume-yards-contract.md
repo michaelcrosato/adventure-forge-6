@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, and the ledger-clerk manifest release are accepted through cycle 42. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, and its clean/filtered cargo witnesses are accepted through cycle 43. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -352,6 +352,14 @@ This slice adds two canonical Records actions and no new recipe, stock, location
 After Pera physically escorts the lot to Oren, the same clerk can file the audited manifest. Oren receives a Witnessed filing fact and memory, Pera moves to Kiln Bay, and the player retains the freight at Lowsail. The three existing unload actions accept either Pera's physical Lowsail presence or the filed-manifest flag. Oren's presence, Pera-told cargo condition, cask/filter guards, stamina cost, three-coin payment, freight ownership, and one-shot retirement remain unchanged. Filing retires itself, suppresses the already-completed Send Pera Home action, and does not appear for Rook.
 
 The focused Ash suite passes seven tests, including audit provenance, pre-filing Oren ignorance, physical Pera release before payment, dirty unloading after filing, exact payment/stamina/cargo history, stale rejection, and Rook's absence. The Ash crawl covers sixteen targets at 12 expanded states, 71 frontiers, and 81 successful actions under the existing depth-35/state-96/frontier-768/execution-2,048/page-7 ceiling. It discloses ten real-state Ash trace seeds, including a manifest-ready frontier at depth 25, and the regenerated exact-build evidence plus complete repository gate pass. This remains bounded freight/cast coverage, not complete character methods, the full area matrix, or a counted complete area.
+
+## Cycle 43 amendment: complete manifest cargo-condition witnesses
+
+This slice changes no production content, action definition, recipe, build identity, or crawl artifact. Two focused witnesses execute the manifest-release branches omitted by cycle 42: contained freight reaches clean unloading, and dry freight reaches market-filtered unloading. The filtered path then returns the player to Kiln Bay, brings Pera back to Ash Beds, spends her retained cask to settle the local lane, and returns her home.
+
+Acceptance binds physical Pera release before payment, player-owned freight until unloading, exact three-coin payment, unchanged stamina, wet cask consumption, dry cask custody, market-filter relief, retained dirty cargo history, local cleanup, stale manifest rejection, and retirement of `Send Pera Home`. The Ash suite now has nine focused tests. The full gate passes 506 Rust tests, including 102 content tests, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+This closes the three manifest-release unload conditions and the filtered cleanup continuation as evidence. It does not admit complete freight containment, all character methods, the full cast matrix, or a counted complete area.
 
 ## Witness acceptance matrix
 
