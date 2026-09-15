@@ -165,6 +165,29 @@ const ASH_SETTLEMENT_EXTENSION: &[ActionSpec] = &[
     act("fume_yards.settle_ash_lane"),
     act("fume_yards.return_pera_after_ash_cleanup"),
 ];
+const ASH_MANIFEST_CLEAN_EXTENSION: &[ActionSpec] = &[
+    act("return.visit_workshop"),
+    act("fume_yards.take_stock"),
+    travel(BAY),
+    act("fume_yards.take_cask"),
+    travel(WORKSHOP),
+    travel(ASH),
+    act("fume_yards.buy_collateral_filter"),
+    travel(WORKSHOP),
+    travel(BAY),
+    act("fume_yards.prepare_charge"),
+    act("fume_yards.fit_dust_filter"),
+    act("fume_yards.take_fuel"),
+    act("fume_yards.ignite_batch"),
+    act("fume_yards.bank_kiln"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_spoiled_ash"),
+    act("fume_yards.prepare_wet_ash_freight"),
+    act("fume_yards.audit_ash_manifest"),
+    act("fume_yards.escort_ash_freight"),
+    act("return.file_ash_manifest"),
+    act("return.unload_clean_ash_freight"),
+];
 
 fn content() -> CompiledContent {
     parse_and_compile_production(SOURCE).expect("cold workshop production pack compiles")
@@ -790,6 +813,138 @@ fn settled_dirty_ash_lane_save_resume_preserves_paid_freight_and_pera_return() {
             &mut resumed,
             &content,
             &ASH_SETTLEMENT_EXTENSION[checkpoint..],
+        );
+        assert_eq!(
+            resumed.state(),
+            uninterrupted.state(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.trace(),
+            uninterrupted.trace(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            resumed.player_trace().unwrap(),
+            uninterrupted.player_trace().unwrap(),
+            "checkpoint {checkpoint}"
+        );
+        assert_eq!(
+            content.action_page(resumed.state(), 0, usize::MAX).unwrap(),
+            content
+                .action_page(uninterrupted.state(), 0, usize::MAX)
+                .unwrap(),
+            "checkpoint {checkpoint}"
+        );
+    }
+    assert_replay(&uninterrupted, &content);
+}
+
+#[test]
+fn filed_wet_manifest_save_resume_preserves_custody_and_pera_release_before_payment() {
+    let content = content();
+    let mut uninterrupted = Session::new_game("ilyan", 71, &content).unwrap();
+    record_all(&mut uninterrupted, &content, HOLD);
+    record_all(&mut uninterrupted, &content, ASH_MANIFEST_CLEAN_EXTENSION);
+    assert_eq!(uninterrupted.state().world.time, 28);
+    assert_eq!(uninterrupted.state().world.current_location, RETURN);
+    assert_eq!(uninterrupted.state().world.npcs[PERA].location, BAY);
+    assert_eq!(
+        uninterrupted.state().character.inventory,
+        std::collections::BTreeMap::from([("rope".into(), 1)])
+    );
+    assert_eq!(uninterrupted.state().character.resources["coin"], 9);
+    assert_eq!(uninterrupted.state().character.resources["stamina"], 3);
+    assert_eq!(uninterrupted.state().entropy.cursor, 0);
+    assert!(uninterrupted.state().world.npcs[PERA].inventory.is_empty());
+    assert!(
+        !uninterrupted
+            .state()
+            .character
+            .inventory
+            .contains_key(FREIGHT)
+    );
+    assert!(
+        uninterrupted.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_contained")
+    );
+    assert!(
+        !uninterrupted.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_dirty")
+    );
+    assert!(
+        !uninterrupted.state().world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_freight_dirty")
+    );
+    assert!(
+        uninterrupted.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        uninterrupted.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert!(
+        uninterrupted.state().world.npcs[OREN]
+            .memories
+            .contains_key("fume_yards.ash_freight_paid")
+    );
+    assert_eq!(
+        uninterrupted.state().world.npcs[OREN].knowledge["fume_yards.ash_freight_condition"]
+            .provenance,
+        KnowledgeProvenance::Told { by: PERA.into() }
+    );
+    assert_eq!(
+        uninterrupted.state().world.npcs[OREN].knowledge["fume_yards.ash_manifest_filed"]
+            .provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(
+        uninterrupted.state().world.npcs[PERA]
+            .memories
+            .contains_key("fume_yards.ash_manifest_filed")
+    );
+    assert!(
+        !uninterrupted.state().world.npcs[OREN]
+            .knowledge
+            .contains_key("fume_yards.ash_lane_settled")
+    );
+    assert_absent(&uninterrupted, &content, "return.file_ash_manifest");
+    assert_absent(&uninterrupted, &content, "return.send_pera_home");
+
+    for checkpoint in 0..=ASH_MANIFEST_CLEAN_EXTENSION.len() {
+        let mut prefix = Session::new_game("ilyan", 71, &content).unwrap();
+        record_all(&mut prefix, &content, HOLD);
+        record_all(
+            &mut prefix,
+            &content,
+            &ASH_MANIFEST_CLEAN_EXTENSION[..checkpoint],
+        );
+        let encoded = prefix.player_trace().unwrap().to_json().unwrap();
+        for private in [
+            "\"inventory\"",
+            "\"storages\"",
+            "\"knowledge\"",
+            "\"events\"",
+            "\"entropy\"",
+        ] {
+            assert!(
+                !encoded.contains(private),
+                "checkpoint {checkpoint}: {private}"
+            );
+        }
+        let decoded = PlayerTrace::from_json(&encoded).unwrap();
+        let mut resumed = resume_player_trace(&decoded, &content).unwrap();
+        assert_eq!(resumed.trace(), prefix.trace(), "checkpoint {checkpoint}");
+        record_all(
+            &mut resumed,
+            &content,
+            &ASH_MANIFEST_CLEAN_EXTENSION[checkpoint..],
         );
         assert_eq!(
             resumed.state(),

@@ -1,6 +1,6 @@
 # Fume Yards: Cinder Batchworks
 
-Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, the Wanted-history staffing witness, the broken-ash Pera-return witness, and the paid dirty-settlement checkpoint witness are accepted through cycle 53. The complete district remains unshipped.
+Status: cold crafting, controlled manufacture, physical salvage, collateral trade, supplied market water, Brann's staffed rack lift, Nessa's narrow dust-test relay with delegated cold work, the finite ash-cart slice, Ash Beds lane settlement, post-delivery dirty-lane cleanup, Pera's post-cleanup return, the ledger-clerk manifest release, its clean/filtered cargo witnesses, Rook's ordinary dirty-delivery witness, the all-64 ordinary delivery witness, the cross-outcome ordinary delivery witness, the late-entry ordinary delivery witness, the uninformed Oren witness, the matched custom-calling witness, the Ash replay-boundary witness, the Wanted-history staffing witness, the broken-ash Pera-return witness, the paid dirty-settlement checkpoint witness, and the filed wet-manifest checkpoint witness are accepted through cycle 54. The complete district remains unshipped.
 
 The first optional expansion is one small industrial district: Cinder Batchworks. Its three locations share finite stock, a kiln batch, working crews, and freight. It grows the world through material conversion, process timing, salvage, and competing uses for useful goods. It must not become another permit hunt followed by five exclusive ending buttons.
 
@@ -440,6 +440,14 @@ This test-only slice adds no production content, action definition, recipe, stoc
 Every public checkpoint resumes the uninterrupted state, trace, player trace, receipt, and legal catalog. The final state preserves exactly rope 1, coin 9, stamina 1, no cask or freight in player/Pera custody, a consumed settlement cask, the dirty freight snapshot after lane settlement, Oren's Told-by-Pera condition and payment memory, and Pera returned to Kiln Bay while the player remains in Ash Beds.
 
 This closes one paid dirty-lane persistence boundary, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The Fume replay suite has eight tests; the full gate passes 516 Rust tests, including 108 content tests and 36 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
+
+## Cycle 54 amendment: preserve filed wet-manifest release across public-trace checkpoints
+
+This test-only slice adds no production content, action definition, recipe, stock, build identity, or crawl artifact. It adds one replay integration using Ilyan's seed-71 Hold Market route, real cask-preserving wet Ash freight, ledger-clerk manifest audit and filing, and clean payment.
+
+Every public checkpoint resumes the uninterrupted state, trace, player trace, receipt, and legal catalog. The final state preserves exactly rope 1, coin 9, stamina 3, no cask or freight in player/Pera custody, contained rather than dirty freight history, Oren's Told-by-Pera condition and Witnessed manifest provenance, clean payment, and Pera released to Kiln Bay before unloading.
+
+This closes one filed-manifest persistence boundary, not complete save corruption coverage, freight containment, remaining character methods, or district admission. The Fume replay suite has nine tests; the full gate passes 517 Rust tests, including 108 content tests and 37 replay integrations, while prior witnesses, crawls, scale evidence, and defect controls remain unchanged.
 
 ## Witness acceptance matrix
 
