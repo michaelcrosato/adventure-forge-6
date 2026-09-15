@@ -348,3 +348,70 @@ fn settling_the_lane_spends_peras_real_cask_without_retroactively_cleaning_freig
             .contains("fume_yards.ash_lane_settled")
     );
 }
+
+#[test]
+fn dirty_lane_can_be_settled_after_paid_delivery_with_a_physical_pera_return() {
+    let content = content();
+    let mut state = banked_with_filter(&content, 71, false);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+    state = act(state, &content, "return.unload_dirty_ash_freight");
+    state = act(state, &content, "return.send_pera_home");
+    assert_eq!(state.character.resources["coin"], 9);
+    assert_eq!(state.world.npcs[PERA].location, BAY);
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_dirty")
+    );
+    assert!(
+        state.world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+
+    state = act(state, &content, "return.visit_workshop");
+    state = travel(state, &content, BAY);
+    assert!(definitions(&state, &content).contains("fume_yards.bring_pera_back_to_ash"));
+    assert!(!definitions(&state, &content).contains("fume_yards.settle_ash_lane"));
+    state = act(state, &content, "fume_yards.bring_pera_back_to_ash");
+    assert_eq!(state.world.current_location, ASH);
+    assert_eq!(state.world.npcs[PERA].location, ASH);
+    assert!(
+        state.world.npcs[PERA]
+            .memories
+            .contains_key("fume_yards.ash_lane_returned")
+    );
+    let stale = select(&state, &content, "fume_yards.settle_ash_lane");
+    state = act(state, &content, "fume_yards.settle_ash_lane");
+    assert_eq!(state.character.inventory.get(CASK), None);
+    assert!(
+        !state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_dirty")
+    );
+    assert!(
+        state.world.locations[ASH]
+            .flags
+            .contains("fume_yards.ash_lane_settled")
+    );
+    assert!(
+        state.world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert!(step(&state, &stale, &content, &state.entropy).is_err());
+
+    let mut no_cask = banked_with_filter(&content, 71, true);
+    no_cask = act(no_cask, &content, "fume_yards.bring_pera_to_ash");
+    no_cask = act(no_cask, &content, "fume_yards.load_spoiled_ash");
+    no_cask = act(no_cask, &content, "fume_yards.prepare_dry_ash_freight");
+    no_cask = act(no_cask, &content, "fume_yards.escort_ash_freight");
+    no_cask = act(no_cask, &content, "return.unload_dirty_ash_freight");
+    no_cask = act(no_cask, &content, "return.send_pera_home");
+    no_cask = act(no_cask, &content, "return.visit_workshop");
+    no_cask = travel(no_cask, &content, BAY);
+    assert!(!definitions(&no_cask, &content).contains("fume_yards.bring_pera_back_to_ash"));
+}

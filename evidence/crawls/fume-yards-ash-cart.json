@@ -1,6 +1,6 @@
 {
-  "verifier_id": "af33bdba2931aa3aa3d9c68284cab8476e323a7093444381c78998669f701338",
-  "build_id": "0f81929b4102935990707172a7dc843318532c715582f9b5d88c4faca0106aa6",
+  "verifier_id": "200df6d10786878bc701f415c83562ed07a6c36d1c6f665898ee12ad92d7ba24",
+  "build_id": "dc41187a3ca3ac0855378e63530fea63efdb7f46e362e550ff1580b3537812dc",
   "budget": {
     "max_depth": 35,
     "max_expanded_states": 96,
@@ -8,9 +8,9 @@
     "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 9,
+  "expanded_states": 10,
   "discovered_frontiers": 61,
-  "successful_actions": 64,
+  "successful_actions": 69,
   "max_legal_actions": 8,
   "reached_locations": [
     "fume_yards.ash_beds",
@@ -19,12 +19,14 @@
   ],
   "covered_definitions": [
     "fume_yards.brace_rack",
+    "fume_yards.bring_pera_back_to_ash",
     "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.enter_ash_hatch",
     "fume_yards.escort_ash_freight",
-    "fume_yards.fit_wet_screen",
     "fume_yards.load_broken_ash",
+    "fume_yards.load_filtered_kiln_freight",
+    "fume_yards.load_kiln_freight",
     "fume_yards.load_spoiled_ash",
     "fume_yards.prepare_dry_ash_freight",
     "fume_yards.prepare_wet_ash_freight",
@@ -32,7 +34,8 @@
     "fume_yards.read_collateral_docket",
     "fume_yards.return_pera_from_ash",
     "fume_yards.settle_ash_lane",
-    "fume_yards.take_fuel",
+    "fume_yards.share_rescue_account",
+    "fume_yards.take_market_cask",
     "return.ask_oren",
     "return.read_tide",
     "return.send_pera_home",
@@ -74,6 +77,7 @@
     "fume_yards.assign_brann_salvage",
     "fume_yards.bank_kiln",
     "fume_yards.brace_rack",
+    "fume_yards.bring_pera_back_to_ash",
     "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.delegate_cold_shift",
@@ -160,6 +164,7 @@
     "world.enter_aftermath"
   ],
   "required_definitions": [
+    "fume_yards.bring_pera_back_to_ash",
     "fume_yards.bring_pera_to_ash",
     "fume_yards.escort_ash_freight",
     "fume_yards.load_broken_ash",
@@ -182,8 +187,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "73efff167499c2b3307a402fcdb555f02f33004a8ba67b3b5d99e1c474dbaedc",
-      "state_id": "3d4836aeb3ee0567916c1cdb4e0384696dcc64b0290d82e5d55c1bfc3510086b"
+      "final_receipt": "5e1dd254bde45c051e3a9b79e7b4ba6d1091fbdc62a1362e5a915dafbe6f5c56",
+      "state_id": "540da88285682a1b8dd77faf48039cb8647b6ef502bd62eb153252e6f0535a9f"
     },
     {
       "label": "preset:rook",
@@ -193,8 +198,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "e8cac6756b4ba4aff2c8739f94e0dbcf30462fdb9ed25e76801b96d900df48f6",
-      "state_id": "d435a01d1dbcea86ac7e1731365ee71eba70f5d09580a8c1101d8441f68d87df"
+      "final_receipt": "f1e649d2092a24d9f5e8f5ce3637a5c0599b852d4573aeb3150de930483c72bd",
+      "state_id": "ae7a595f2922d70905925651bddf8bf3a5f7a7588832d94e11deac516fc0f2ff"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -204,8 +209,8 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "df7e2410c910da40ef7fc73a9fa05187ebcd422a9a88d78c463dc639f13b5586",
-      "state_id": "6603689c49d31088eb639a45c731c8bd6bdae249eb7c2d84f4dcca43622c0a93"
+      "final_receipt": "36c90780e77812c6d1820a02eb9f2ef9c6308ecb0f3d1108b8636cc9c35e6e3f",
+      "state_id": "4500c01864f60d649ae4b02475b446752176ae84ca9a3d905ea96325ea0d1eae"
     },
     {
       "label": "trace:m2-fume-ash-cart-spoiled-bay",
@@ -215,8 +220,8 @@
         "seed": 71
       },
       "depth": 20,
-      "final_receipt": "1465745f373a7730d2908e38ae14614452095a208ba24077c20f88eec29bd85c",
-      "state_id": "a2e0383fad8ebfe2cdbf414297d849fe9ce8376bfa93101001fc5e7e0399388c"
+      "final_receipt": "65922113e51488224daed9c7a44a1a5b85867c4f9a7906b4f53556ed7fd29190",
+      "state_id": "5c4306010ba55baf1810d4a75fd7cbd7a3e1190e962d780f50931a9bc4a8c2db"
     },
     {
       "label": "trace:m2-fume-ash-cart-spoiled-ash",
@@ -226,8 +231,8 @@
         "seed": 71
       },
       "depth": 21,
-      "final_receipt": "ea8a048e9c9d0de279944a5c6518c9ebf4ce8851bd2266f5b515d79c7d71bdc5",
-      "state_id": "a8caaa49db05d60af44e0478ecbb6fb9c88f0017bbe1865cb44d5b9222e700bc"
+      "final_receipt": "0755aaf4665bbf607356f19310959194a6288c3c3e1d22983a3dee5bcb511030",
+      "state_id": "467d3983176f2fc916a986e93b78718d3e6b005a07761119dd162e2430277642"
     },
     {
       "label": "trace:m2-fume-ash-cart-settle-ready",
@@ -237,8 +242,8 @@
         "seed": 71
       },
       "depth": 23,
-      "final_receipt": "83d2da0b14f290689eb08e97e2d8c1e940e96ee2d523414696fec3562276b1a5",
-      "state_id": "213d6897f232176f8d2d06d890f456a6205b4fde0d4afe33f450712f4741f8bd"
+      "final_receipt": "0ba9fd94cfeed1c0e6f004d17c27694a77408c2f3aa26117b3bb1db1791d63a0",
+      "state_id": "95fe18d048fec2f17115517c16d0fa616aab5a456e9ab0cde36eba1e0e2eb116"
     },
     {
       "label": "trace:m2-fume-ash-cart-wet-bay",
@@ -248,8 +253,8 @@
         "seed": 123
       },
       "depth": 13,
-      "final_receipt": "f3203197edb9621423eae42d1df2431894a0d4565a7a66cb0c3c2b5f7928f0cc",
-      "state_id": "81db357e07cd000d62b2e47055ae16b6328edc796bccac2023b9a24d6446e5f7"
+      "final_receipt": "19f25db9daa7f79123292700c0d47f20a48a05d31102990a719180cfc1903c8e",
+      "state_id": "1c8babf7a12b1bdcedbf075c95285cc3a3544661c7ec4b3b52462545cb2ea619"
     },
     {
       "label": "trace:m2-fume-ash-cart-filter-bay",
@@ -259,8 +264,8 @@
         "seed": 123
       },
       "depth": 24,
-      "final_receipt": "0f51de39ca7b0e2da0709bfd8b1d6d487549a9a72f3d0a65fda360e35563adad",
-      "state_id": "492990869a1e174274fd9ea94d937ba96876aadf90260a37a4300fd289624721"
+      "final_receipt": "3d8025913ab8c3356d27a07ac7a9c35ded61b9276f313925e7b1d052076150c7",
+      "state_id": "8e0e472a13431b4173441c3e420cf464f455945692a1f99e22dddada1a295be2"
     },
     {
       "label": "trace:m2-fume-ash-cart-cancel-ready",
@@ -270,8 +275,8 @@
         "seed": 123
       },
       "depth": 15,
-      "final_receipt": "21791c0ec87b85c0321f3373c236527cd8a01f438b91e4cc61092dbb6c7cf902",
-      "state_id": "0463944c9255328d2675aa58e2de1ade30a5070a09c82077a2fada3fef56c908"
+      "final_receipt": "5949035f73eb806b83d6a48ad67dd61034b232808b0225da9cfc7b0e705d45a2",
+      "state_id": "f52cd68a1c403efe6ad4736e95295188edb79ceafd8414d55d597f6b92c5e654"
     },
     {
       "label": "trace:m2-fume-ash-cart-dirty-unload",
@@ -280,9 +285,9 @@
         "character_preset_id": "ilyan",
         "seed": 71
       },
-      "depth": 24,
-      "final_receipt": "d5d5db386bcb794cfb862c0b2c3b9ed0a652fe783fbd58b8d260ffa36cff1a32",
-      "state_id": "b380ad0be317b574a2d0c868113d4addd0e8e8f15f5971ad53f67b09a7a8b0dd"
+      "depth": 28,
+      "final_receipt": "dcd2181f5fc49ea61f20cf18eee07da0f15abfa414ad53be098bc5691691f3b1",
+      "state_id": "00c39e3ebd11a5040fbc370b6b1f1d17ced3f18b15b81953804e5500f6e1961a"
     },
     {
       "label": "trace:m2-fume-ash-cart-clean-unload",
@@ -292,8 +297,8 @@
         "seed": 123
       },
       "depth": 17,
-      "final_receipt": "d945664717bae40686d8bb9d496666a556d91050cd5ec5a7bef7ca4d58cfc343",
-      "state_id": "60aa2a62773e5e65dd77ca742e57622f22de0fd143964705cac9d9f76a2265a3"
+      "final_receipt": "87a1ea78515b52f7b7aebc803119c59299e0c9bd7aa5f07a9c00a0135d0fcbdd",
+      "state_id": "4256ffe703ce9d0a2dbdad834d3f277472f151a551630f2c1fb3259890e3923b"
     },
     {
       "label": "trace:m2-fume-ash-cart-filtered-unload",
@@ -303,9 +308,9 @@
         "seed": 123
       },
       "depth": 28,
-      "final_receipt": "cfaf7db67a51b3476ed1f631a414e44c37cba576098f438d39d577995864fa97",
-      "state_id": "e03367e7104977d9cbdc91c4bef4e76ef3b89232e3ec156426e20ec546005d43"
+      "final_receipt": "884c9bd4550300ed0bd4e33a3591171c6969d1b96f012af9fe1e44b398efbbb4",
+      "state_id": "89d9189eedaabbe969a460e5da39ebd51f7f91c21905effe8dbb28c4da80224d"
     }
   ],
-  "execution_receipt": "ce1c7ea6e69718e1ae9c89d7026d1fbf385db81fac1bd062ab1894766292e62b"
+  "execution_receipt": "6b8298852b205f94678974fef8291cb90879840cc31000f6837366c40484d8e1"
 }
