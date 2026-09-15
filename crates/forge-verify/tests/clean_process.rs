@@ -74,6 +74,7 @@ fn ash_cart_definitions() -> std::collections::BTreeSet<&'static str> {
         "return.unload_clean_ash_freight",
         "return.unload_dirty_ash_freight",
         "return.unload_filtered_ash_freight",
+        "return.unload_worker_ash_freight",
         "fume_yards.return_pera_from_ash",
         "return.send_pera_home",
     ]
@@ -188,7 +189,7 @@ fn clean_process_crawls_match_each_other_and_checked_report() {
     );
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["reached_locations"].as_array().unwrap().len(), 9);
     let regression = &report["regression"];
@@ -364,7 +365,7 @@ fn clean_process_optional_crawls_match_checked_pilot_report() {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 13);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -403,7 +404,7 @@ fn assert_batchworks_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -452,7 +453,7 @@ fn assert_salvage_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     let locations = report["reached_locations"].as_array().unwrap();
     for location in [
@@ -502,7 +503,7 @@ fn clean_process_salvage_crawls_match_checked_report() {
 fn assert_ash_cart_scope(report: &serde_json::Value) {
     let required = report["required_definitions"].as_array().unwrap();
     let covered = report["covered_definitions"].as_array().unwrap();
-    assert_eq!(required.len(), 16);
+    assert_eq!(required.len(), 17);
     assert_eq!(
         required
             .iter()
@@ -513,7 +514,7 @@ fn assert_ash_cart_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -537,7 +538,7 @@ fn assert_ash_cart_scope(report: &serde_json::Value) {
         );
     }
     let starts = report["starting_sessions"].as_array().unwrap();
-    assert_eq!(starts.len(), 13);
+    assert_eq!(starts.len(), 14);
     let expected = [
         ("preset:ilyan", 0),
         ("preset:rook", 0),
@@ -550,6 +551,7 @@ fn assert_ash_cart_scope(report: &serde_json::Value) {
         ("trace:m2-fume-ash-cart-filter-bay", 24),
         ("trace:m2-fume-ash-cart-cancel-ready", 15),
         ("trace:m2-fume-ash-cart-dirty-unload", 28),
+        ("trace:m2-fume-ash-cart-worker-unload", 27),
         ("trace:m2-fume-ash-cart-clean-unload", 17),
         ("trace:m2-fume-ash-cart-filtered-unload", 28),
     ];
@@ -605,7 +607,7 @@ fn assert_market_water_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 35);
     assert_eq!(report["budget"]["max_expanded_states"], 128);
@@ -684,7 +686,7 @@ fn assert_staffing_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 96);
@@ -762,7 +764,7 @@ fn assert_cold_shift_scope(report: &serde_json::Value) {
     assert!(required.iter().all(|id| covered.contains(id)));
     assert_eq!(
         report["advertised_definitions"].as_array().unwrap().len(),
-        116
+        117
     );
     assert_eq!(report["budget"]["max_depth"], 20);
     assert_eq!(report["budget"]["max_expanded_states"], 96);

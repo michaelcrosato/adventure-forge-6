@@ -1,6 +1,6 @@
 {
-  "verifier_id": "d2f046dc9c633f5f9dfaea05c62207c5340f851cb899c8cde25fde761e78cbf2",
-  "build_id": "0829d0cd64ba5aad1aa220bfa971f0dea55f83e86ee04cf6b04e1be7c839c4d3",
+  "verifier_id": "8865102dca68398134a709c49427af0e91f28d146950c5a80782a6fbb4877e72",
+  "build_id": "d0062c57f4845b4f77dbdba906de99c707ff22fbcc15f446f7668dfa393ad758",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 96,
@@ -138,6 +138,7 @@
     "return.unload_clean_ash_freight",
     "return.unload_dirty_ash_freight",
     "return.unload_filtered_ash_freight",
+    "return.unload_worker_ash_freight",
     "return.visit_workshop",
     "top.break_toll",
     "top.check_wheels",
@@ -171,8 +172,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "a14769777dbc232915d3616042e72b36b0ec0335d70b291b65081819dfbeb33e",
-      "state_id": "bdf7e00ca3953b9baf8b39624d156d14922f4a396c0e56e976add324deb67df3"
+      "final_receipt": "15169169de2b2beb68fdca56f8177fdef4327201abb7c7092fb108e326a5e3d5",
+      "state_id": "15b6d8db0a8663f9ca6463ab668293452d934506d4c1e61568cc4b90cee56099"
     },
     {
       "label": "preset:rook",
@@ -182,8 +183,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "e255fa3a5a66ec74318861b9e82ea2021473a9a07656a2ee5da1d3d710f4bf42",
-      "state_id": "b009ff88edf0abf544a5004f7b716734abc7b631b8bbe82b4bcacea1ec398d9e"
+      "final_receipt": "957b1397621ac8b9efeac44613d142e183d2879cc47c74051a3de95abe31d4f3",
+      "state_id": "c5e7bb1308714459eb4007cecbc61c2055569b819a8e9a540e87b8ec80dc4e96"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -193,9 +194,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "4feea8f3a8bc8cbf9cca46fd1ca44a792b71621fdfc3ec93556fb7018c0425b2",
-      "state_id": "b5eb17cfff84ec1e6a2fc39af4f17a352ccc4b2a25c2e849329e4d9fdcae3be1"
+      "final_receipt": "a3be9f505044f8c12d0cdacda7fb29b64fbd962fd3c538babd896e94628a7f2a",
+      "state_id": "889629a11ac11067d6de9bac1d6ef415b83a3d78326702c4b846c9788500fafd"
     }
   ],
-  "execution_receipt": "01c4ca581b7196215fd1d0d1cf63438d2491d4dbdc099378553aee5b9c261c9a"
+  "execution_receipt": "fe4abde12c972eded4c873d11bfb6446a1b61b7a874c16fb80b1a483de2fc8e8"
 }

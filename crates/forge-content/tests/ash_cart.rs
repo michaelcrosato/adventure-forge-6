@@ -11,6 +11,7 @@ const ASH: &str = "fume_yards.ash_beds";
 const BAY: &str = "fume_yards.kiln_bay";
 const WORKSHOP: &str = "fume_yards.workshop";
 const RETURN: &str = "lowsail.return";
+const MIRA: &str = "mira_kett";
 const PERA: &str = "fume_yards.pera_senn";
 const OREN: &str = "oren_pell";
 const CASK: &str = "fume_yards.water_cask";
@@ -107,6 +108,38 @@ fn hold_market_for(content: &CompiledContent, character: &str, seed: u64) -> Gam
     }
     assert_eq!(state.world.current_location, RETURN);
     state
+}
+
+fn rescued_return(content: &CompiledContent, seed: u64) -> GameState {
+    let mut state = content.new_game("rook", seed).unwrap();
+    for (id, destination) in [
+        ("checkpoint.read_flag", None),
+        ("checkpoint.ask_sava", None),
+        ("travel_adjacent", Some("lowsail.docks")),
+        ("docks.ask_oren", None),
+        ("travel_adjacent", Some("lowsail.levee")),
+        ("levee.culvert_path", None),
+        ("travel_adjacent", Some("red_sluice.top")),
+        ("top.rescue_worker", None),
+        ("top.break_toll", None),
+        ("world.enter_aftermath", None),
+    ] {
+        state = match destination {
+            Some(destination) => travel(state, content, destination),
+            None => act(state, content, id),
+        };
+    }
+    assert_eq!(state.world.current_location, RETURN);
+    assert_eq!(state.world.npcs[MIRA].location, RETURN);
+    assert_eq!(
+        state.world.npcs[MIRA].memories["mira_player_rescued"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    state
+}
+
+fn rescued_banked_with_filter(content: &CompiledContent, seed: u64) -> GameState {
+    banked_with_filter_from_return(content, rescued_return(content, seed), false)
 }
 
 fn hold_market(content: &CompiledContent, seed: u64) -> GameState {
@@ -822,6 +855,44 @@ fn rook_can_complete_ordinary_dirty_delivery_without_audited_release() {
     assert!(definitions(&state, &content).contains("return.send_pera_home"));
     state = act(state, &content, "return.send_pera_home");
     assert_eq!(state.world.npcs[PERA].location, BAY);
+}
+
+#[test]
+fn rescued_rook_can_unload_dirty_freight_with_mira_for_one_stamina() {
+    let content = content();
+    let mut state = rescued_banked_with_filter(&content, 71);
+    state = act(state, &content, "fume_yards.bring_pera_to_ash");
+    state = act(state, &content, "fume_yards.load_spoiled_ash");
+    state = act(state, &content, "fume_yards.prepare_dry_ash_freight");
+    state = act(state, &content, "fume_yards.escort_ash_freight");
+
+    assert!(definitions(&state, &content).contains("return.unload_worker_ash_freight"));
+    assert!(definitions(&state, &content).contains("return.unload_dirty_ash_freight"));
+    let ordinary = select(&state, &content, "return.unload_dirty_ash_freight");
+    let stamina = state.character.resources["stamina"];
+    let coin = state.character.resources["coin"];
+
+    state = act(state, &content, "return.unload_worker_ash_freight");
+    assert_eq!(state.character.resources["stamina"], stamina - 1);
+    assert_eq!(state.character.resources["coin"], coin + 3);
+    assert_eq!(state.character.inventory.get(FREIGHT), None);
+    assert_eq!(state.world.npcs[PERA].inventory[CASK], 1);
+    assert!(
+        state.world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+    assert_eq!(
+        state.world.npcs[MIRA].memories["fume_yards.ash_freight_worker_helped"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        state.world.npcs[OREN].memories["fume_yards.ash_freight_paid_worker"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_recipe(&state, "fume_yards.unload_ash_freight", (FREIGHT, 1), None);
+    assert!(step(&state, &ordinary, &content, &state.entropy).is_err());
+    assert!(!definitions(&state, &content).contains("return.unload_worker_ash_freight"));
 }
 
 #[test]

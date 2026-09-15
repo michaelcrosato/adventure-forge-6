@@ -23119,6 +23119,160 @@
       "movement": false
     },
     {
+      "id": "return.unload_worker_ash_freight",
+      "label": "Unload With Mira (-1 stamina)",
+      "category": "Work",
+      "result": "Mira's crew clears the dirty cart; Oren pays three coins, and you spend one stamina.",
+      "locations": [
+        "lowsail.return"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "facet_equals",
+            "axis": "origin",
+            "value": {
+              "kind": "text",
+              "value": "red-sluice"
+            }
+          },
+          {
+            "kind": "has_tag",
+            "tag": "freedom"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "mira_kett",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "npc_remembers",
+            "npc": "mira_kett",
+            "memory_id": "mira_player_rescued"
+          },
+          {
+            "kind": "npc_at_location",
+            "npc": "oren_pell",
+            "location": "lowsail.return"
+          },
+          {
+            "kind": "any",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.pera_senn",
+                "location": "lowsail.return"
+              },
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "fume_yards.ash_manifest_filed"
+              }
+            ]
+          },
+          {
+            "kind": "location_flag",
+            "location": "lowsail.return",
+            "flag": "fume_yards.ash_freight_delivered"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.ash_beds",
+            "flag": "fume_yards.ash_freight_dirty"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.ash_freight",
+            "count": 1
+          },
+          {
+            "kind": "npc_knows_with_provenance",
+            "npc": "oren_pell",
+            "knowledge_id": "fume_yards.ash_freight_condition",
+            "provenance": "told"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.market_filter_fitted"
+            }
+          },
+          {
+            "kind": "resource_at_least",
+            "resource": "stamina",
+            "amount": 1
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.ash_freight_unloaded"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.unload_ash_freight"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "stamina",
+          "amount": -1
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 3
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.ash_freight_unloaded",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "mira_kett"
+          },
+          "memory_id": "fume_yards.ash_freight_worker_helped",
+          "subject": "Mira's rescued crew cleared the dirty ash freight beside the player.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "oren_pell"
+          },
+          "memory_id": "fume_yards.ash_freight_paid_worker",
+          "subject": "Oren paid three coins after Mira's rescued crew cleared the dirty ash freight.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
       "id": "return.unload_filtered_ash_freight",
       "label": "Unload Filtered Ash (+3 coin)",
       "category": "Work",

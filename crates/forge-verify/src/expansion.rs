@@ -117,6 +117,7 @@ pub(super) const ASH_CART_ACTIONS: &[&str] = &[
     "fume_yards.return_pera_after_ash_cleanup",
     "return.unload_clean_ash_freight",
     "return.unload_dirty_ash_freight",
+    "return.unload_worker_ash_freight",
     "return.unload_filtered_ash_freight",
     "fume_yards.return_pera_from_ash",
     "return.send_pera_home",
@@ -851,6 +852,42 @@ fn ash_cart_trace_seeds<'content>(
         ],
     )?;
 
+    let mut worker_unload =
+        forge_replay::Session::new_game("rook", 71, content).map_err(crate::replay_error)?;
+    record_crawl_actions(
+        &mut worker_unload,
+        content,
+        &[
+            ("checkpoint.read_flag", None),
+            ("checkpoint.ask_sava", None),
+            ("travel_adjacent", Some("lowsail.docks")),
+            ("docks.ask_oren", None),
+            ("travel_adjacent", Some("lowsail.levee")),
+            ("levee.culvert_path", None),
+            ("travel_adjacent", Some("red_sluice.top")),
+            ("top.rescue_worker", None),
+            ("top.break_toll", None),
+            ("world.enter_aftermath", None),
+            ("return.visit_workshop", None),
+            ("fume_yards.take_stock", None),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.ash_beds")),
+            ("fume_yards.buy_collateral_filter", None),
+            ("travel_adjacent", Some("fume_yards.workshop")),
+            ("travel_adjacent", Some("fume_yards.kiln_bay")),
+            ("fume_yards.prepare_charge", None),
+            ("fume_yards.fit_dust_filter", None),
+            ("fume_yards.take_fuel", None),
+            ("fume_yards.ignite_batch", None),
+            ("fume_yards.bank_kiln", None),
+            ("fume_yards.bring_pera_to_ash", None),
+            ("fume_yards.load_spoiled_ash", None),
+            ("fume_yards.prepare_dry_ash_freight", None),
+            ("fume_yards.escort_ash_freight", None),
+        ],
+    )?;
+
     let mut clean_unload = crate::scenarios::run(broken_spec, content)?;
     record_crawl_actions(
         &mut clean_unload,
@@ -912,6 +949,10 @@ fn ash_cart_trace_seeds<'content>(
         (
             "trace:m2-fume-ash-cart-dirty-unload".to_owned(),
             dirty_unload,
+        ),
+        (
+            "trace:m2-fume-ash-cart-worker-unload".to_owned(),
+            worker_unload,
         ),
         (
             "trace:m2-fume-ash-cart-clean-unload".to_owned(),
@@ -1076,7 +1117,7 @@ mod tests {
         assert_eq!(report.budget, BATCHWORKS_BUDGET);
         assert_eq!(report.required_definitions, ids(BATCHWORKS_ACTIONS));
         assert_eq!(report.required_definitions.len(), 13);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1103,7 +1144,7 @@ mod tests {
         assert_eq!(report.budget, SALVAGE_BUDGET);
         assert_eq!(report.required_definitions, ids(SALVAGE_ACTIONS));
         assert_eq!(report.required_definitions.len(), 8);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert!(report.is_complete());
         assert_eq!(report.starting_sessions.len(), 3);
         assert_eq!(
@@ -1124,22 +1165,22 @@ mod tests {
     }
 
     #[test]
-    fn ash_cart_crawl_covers_sixteen_targets_under_its_separate_fixed_budget() {
+    fn ash_cart_crawl_covers_seventeen_targets_under_its_separate_fixed_budget() {
         let content = forge_content::parse_and_compile_production(SOURCE).unwrap();
         let report = crawl_ash_cart(&content).unwrap();
         assert_eq!(report.budget, ASH_CART_BUDGET);
         assert_eq!(report.required_definitions, ids(ASH_CART_ACTIONS));
-        assert_eq!(report.required_definitions.len(), 16);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.required_definitions.len(), 17);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert!(report.is_complete());
-        assert_eq!(report.starting_sessions.len(), 13);
+        assert_eq!(report.starting_sessions.len(), 14);
         assert_eq!(
             report
                 .starting_sessions
                 .iter()
                 .map(|start| start.depth)
                 .collect::<Vec<_>>(),
-            vec![0, 0, 7, 20, 21, 23, 25, 13, 24, 15, 28, 17, 28]
+            vec![0, 0, 7, 20, 21, 23, 25, 13, 24, 15, 28, 27, 17, 28]
         );
         assert!(report.expanded_states <= ASH_CART_BUDGET.max_expanded_states);
         assert!(report.discovered_frontiers <= ASH_CART_BUDGET.max_discovered_frontiers);
@@ -1156,7 +1197,7 @@ mod tests {
         let report = crawl_market_water_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(MARKET_WATER_ACTIONS));
         assert_eq!(report.required_definitions.len(), 10);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert_eq!(report.budget, MARKET_WATER_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1186,7 +1227,7 @@ mod tests {
         let report = crawl_staffing_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(STAFFING_ACTIONS));
         assert_eq!(report.required_definitions.len(), 4);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert_eq!(report.budget, STAFFING_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1216,7 +1257,7 @@ mod tests {
         let report = crawl_cold_shift_production(&content).unwrap();
         assert_eq!(report.required_definitions, ids(COLD_SHIFT_ACTIONS));
         assert_eq!(report.required_definitions.len(), 5);
-        assert_eq!(report.advertised_definitions.len(), 116);
+        assert_eq!(report.advertised_definitions.len(), 117);
         assert_eq!(report.budget, COLD_SHIFT_BUDGET);
         assert!(report.is_complete());
         assert_eq!(
@@ -1313,7 +1354,7 @@ mod tests {
             ),
         )
         .unwrap();
-        assert_eq!(combined.advertised_definitions.len(), 116);
+        assert_eq!(combined.advertised_definitions.len(), 117);
         assert_eq!(
             combined.covered_definitions,
             combined.advertised_definitions

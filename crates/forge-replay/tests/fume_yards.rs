@@ -15,6 +15,7 @@ const MESH: &str = "fume_yards.mesh";
 const PLUGS: &str = "fume_yards.repair_lot";
 const SCREEN: &str = "fume_yards.catch_screen";
 const PERA: &str = "fume_yards.pera_senn";
+const MIRA: &str = "mira_kett";
 const OREN: &str = "oren_pell";
 const DARO: &str = "fume_yards.daro_venn";
 const CASK: &str = "fume_yards.water_cask";
@@ -239,6 +240,39 @@ const ROOK_OUTCOME_PREFIX: &[ActionSpec] = &[
     travel("red_sluice.top"),
     act("top.break_toll"),
     act("world.enter_aftermath"),
+];
+const ROOK_RESCUE_PREFIX: &[ActionSpec] = &[
+    act("checkpoint.read_flag"),
+    act("checkpoint.ask_sava"),
+    travel("lowsail.docks"),
+    act("docks.ask_oren"),
+    travel("lowsail.levee"),
+    act("levee.culvert_path"),
+    travel("red_sluice.top"),
+    act("top.rescue_worker"),
+    act("top.break_toll"),
+    act("world.enter_aftermath"),
+];
+const ASH_MIRA_EXTENSION: &[ActionSpec] = &[
+    act("return.visit_workshop"),
+    act("fume_yards.take_stock"),
+    travel(BAY),
+    travel(WORKSHOP),
+    travel(ASH),
+    act("fume_yards.buy_collateral_filter"),
+    travel(WORKSHOP),
+    travel(BAY),
+    act("fume_yards.prepare_charge"),
+    act("fume_yards.fit_dust_filter"),
+    act("fume_yards.take_fuel"),
+    act("fume_yards.ignite_batch"),
+    act("fume_yards.bank_kiln"),
+    act("fume_yards.bring_pera_to_ash"),
+    act("fume_yards.load_spoiled_ash"),
+    act("fume_yards.prepare_dry_ash_freight"),
+    act("fume_yards.escort_ash_freight"),
+    act("return.unload_worker_ash_freight"),
+    act("return.send_pera_home"),
 ];
 const PRESET_MANIFEST_DIRTY_EXTENSION: &[ActionSpec] = &[
     act("return.visit_workshop"),
@@ -1370,4 +1404,47 @@ fn preset_rook_ordinary_route_replays_against_ilyan_manifest_release() {
     );
     assert_replay(&ilyan, &content);
     assert_replay(&rook, &content);
+}
+
+#[test]
+fn rescued_rook_mira_unload_save_resume_preserves_witnessed_crew_memory() {
+    let content = content();
+    let mut session = Session::new_game("rook", 71, &content).unwrap();
+    record_all(&mut session, &content, ROOK_RESCUE_PREFIX);
+    record_all(&mut session, &content, ASH_MIRA_EXTENSION);
+
+    assert_eq!(session.state().world.time, 29);
+    assert_eq!(session.state().world.current_location, RETURN);
+    assert_eq!(session.state().character.resources["coin"], 4);
+    assert_eq!(session.state().character.resources["stamina"], 3);
+    assert_eq!(session.state().world.npcs[PERA].location, BAY);
+    assert_eq!(session.state().world.npcs[MIRA].location, RETURN);
+    assert_eq!(
+        session.state().world.npcs[MIRA].memories["mira_player_rescued"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        session.state().world.npcs[MIRA].memories["fume_yards.ash_freight_worker_helped"]
+            .provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(
+        session.state().world.npcs[OREN].memories["fume_yards.ash_freight_paid_worker"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(!session.state().character.inventory.contains_key(FREIGHT));
+    assert!(
+        session.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.ash_freight_unloaded")
+    );
+
+    checkpoint_preset_route(
+        &content,
+        "rook",
+        ROOK_RESCUE_PREFIX,
+        ASH_MIRA_EXTENSION,
+        &session,
+    );
+    assert_replay(&session, &content);
 }
