@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
 const ASH: &str = "fume_yards.ash_beds";
+const RETURN: &str = "lowsail.return";
 const WORKSHOP: &str = "fume_yards.workshop";
 const KILN: &str = "fume_yards.kiln_bay";
 const DARO: &str = "fume_yards.daro_venn";
@@ -16,6 +17,7 @@ const PERA: &str = "fume_yards.pera_senn";
 const NESSA: &str = "fume_yards.nessa_tern";
 const FILTER: &str = "fume_yards.filter";
 const SHARD: &str = "fume_yards.shard";
+const PLUGS: &str = "fume_yards.repair_lot";
 const FUEL: &str = "fume_yards.fuel";
 const CASK: &str = "fume_yards.water_cask";
 const PULL: &str = "fume_yards.pull_rack_filter";
@@ -786,6 +788,136 @@ fn composed_salvage_manufacture_and_export_replays_across_public_checkpoints() {
 
     checkpoint_hold_route(&content, &specs, &session);
     checkpoint(&session, &content);
+}
+
+#[test]
+fn recovered_filter_destinations_replay_across_public_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let recovered = vec![
+        ("return.visit_workshop", None),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.enter_ash_hatch", None),
+        ("fume_yards.brace_rack", None),
+        ("fume_yards.recover_braced_filter", None),
+    ];
+    let mut local_route = recovered.clone();
+    local_route.extend([
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("travel_adjacent", Some(KILN)),
+        ("fume_yards.fit_dust_filter", None),
+    ]);
+    let mut sale_route = recovered.clone();
+    sale_route.extend([
+        ("world.enter_aftermath", None),
+        ("return.sell_filter", None),
+    ]);
+    let mut market_route = recovered;
+    market_route.extend([
+        ("travel_adjacent", Some(WORKSHOP)),
+        ("fume_yards.take_stock", None),
+        ("fume_yards.press_repair_plugs", None),
+        ("world.enter_aftermath", None),
+        ("return.patch_stand", None),
+        ("return.order_water_stand", None),
+        ("return.fit_market_filter", None),
+    ]);
+
+    let run = |specs: &[(&str, Option<&str>)]| {
+        let mut session = hold_return(&content, 71);
+        for &(id, destination) in specs {
+            record(&mut session, &content, id, destination);
+        }
+        checkpoint_hold_route(&content, specs, &session);
+        session
+    };
+    let local = run(&local_route);
+    let sale = run(&sale_route);
+    let market = run(&market_route);
+
+    for session in [&local, &sale, &market] {
+        assert_eq!(session.state().character.inventory.get("rope"), Some(&1));
+        assert_eq!(owned(session.state(), FILTER), 0);
+        assert_eq!(session.state().world.npcs[DARO].inventory.get(FILTER), None);
+        assert_eq!(session.state().world.npcs[PERA].inventory[CASK], 1);
+        assert_eq!(session.state().entropy, EntropyState::new(71));
+        assert_absent(session, &content, "return.sell_filter");
+    }
+    assert_eq!(local.state().world.current_location, KILN);
+    assert_eq!(local.state().world.time, 15);
+    assert!(
+        local.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.dust_filter_fitted")
+    );
+    assert!(
+        !local.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.filter_sold")
+    );
+    assert!(
+        !local.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.market_filter_fitted")
+    );
+    assert_eq!(local.state().character.resources["coin"], 10);
+    assert_eq!(local.state().character.resources["stamina"], 1);
+
+    assert_eq!(sale.state().world.current_location, "lowsail.return");
+    assert_eq!(sale.state().world.time, 14);
+    assert!(
+        sale.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.filter_sold")
+    );
+    assert!(
+        !sale.state().world.locations[KILN]
+            .flags
+            .contains("fume_yards.dust_filter_fitted")
+    );
+    assert!(
+        !sale.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.market_filter_fitted")
+    );
+    assert_eq!(sale.state().character.resources["coin"], 14);
+    assert_eq!(sale.state().character.resources["stamina"], 1);
+    assert_eq!(
+        sale.state().world.npcs["oren_pell"].memories["fume_yards.filter_bought"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+
+    assert_eq!(market.state().world.current_location, "lowsail.return");
+    assert_eq!(market.state().world.time, 19);
+    assert!(
+        market.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.stand_patched")
+    );
+    assert!(
+        market.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.market_water_ordered")
+    );
+    assert!(
+        market.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.market_filter_fitted")
+    );
+    assert!(
+        !market.state().world.locations[RETURN]
+            .flags
+            .contains("fume_yards.filter_sold")
+    );
+    assert_eq!(market.state().character.resources["coin"], 10);
+    assert_eq!(market.state().character.resources["stamina"], 1);
+    assert!(!market.state().character.inventory.contains_key(PLUGS));
+    assert_eq!(
+        market.state().world.npcs["oren_pell"].memories["fume_yards.market_water_ordered"]
+            .provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_absent(&market, &content, "return.patch_stand");
+    assert_absent(&market, &content, "return.order_water_stand");
 }
 
 #[test]
