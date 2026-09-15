@@ -288,6 +288,17 @@ const STAFF_STAFFED_STEPS: [ScenarioStep; 18] = append_steps(
         action!("fume_yards.load_cold_freight"),
     ],
 );
+const STAFF_COURT: &str = "fume_yards.freight_court";
+const STAFF_COURT_SALE_STEPS: [ScenarioStep; 23] = append_steps(
+    &STAFF_STAFFED_STEPS,
+    &[
+        action!("travel_adjacent", "destination" => "fume_yards.workshop"),
+        action!("travel_adjacent", "destination" => "fume_yards.freight_court"),
+        action!("fume_yards.inspect_freight_cradle"),
+        action!("fume_yards.call_daro_to_court"),
+        action!("fume_yards.sell_filter_to_daro"),
+    ],
+);
 const STAFF_ORDINARY_STEPS: [ScenarioStep; 20] = append_steps(
     &STAFF_PREFIX13,
     &[
@@ -567,6 +578,64 @@ const STAFF_WORK_HISTORY: StaffingHistoryExpectation = StaffingHistoryExpectatio
     surge_resolution: Some(18),
     pending_surge: false,
     forbidden_memories: &[(SALVAGE_DARO, "fume_yards.rack_braced")],
+};
+const STAFF_COURT_SALE_HISTORY: StaffingHistoryExpectation = StaffingHistoryExpectation {
+    steps: &market_append::<_, 12>(
+        STAFF_WORK_CHECKS,
+        &[
+            staff_step(
+                19,
+                "travel_adjacent",
+                20,
+                21,
+                &[
+                    staff_player(20, SALVAGE_BAY, MARKET_WORKSHOP),
+                    staff_time(20, 1),
+                ],
+            ),
+            staff_step(
+                20,
+                "travel_adjacent",
+                21,
+                22,
+                &[
+                    staff_player(21, MARKET_WORKSHOP, STAFF_COURT),
+                    staff_time(21, 1),
+                ],
+            ),
+            staff_step(
+                21,
+                "fume_yards.inspect_freight_cradle",
+                22,
+                23,
+                &[staff_time(22, 1)],
+            ),
+            staff_step(
+                22,
+                "fume_yards.call_daro_to_court",
+                23,
+                24,
+                &[
+                    staff_npc(23, SALVAGE_DARO, SALVAGE_ASH, STAFF_COURT),
+                    staff_time(23, 1),
+                ],
+            ),
+            staff_step(
+                23,
+                "fume_yards.sell_filter_to_daro",
+                24,
+                25,
+                &[
+                    staff_coin(24, 4),
+                    staff_npc(24, SALVAGE_DARO, STAFF_COURT, SALVAGE_ASH),
+                    staff_time(24, 1),
+                ],
+            ),
+        ],
+    ),
+    surge_resolution: Some(18),
+    pending_surge: false,
+    forbidden_memories: STAFF_WORK_HISTORY.forbidden_memories,
 };
 const STAFF_ORDINARY_HISTORY: StaffingHistoryExpectation = StaffingHistoryExpectation {
     steps: &[
@@ -860,6 +929,71 @@ const STAFF_WORK_EXPECTED: ScenarioExpectations = ScenarioExpectations {
         "fume_yards.prepare_charge",
     ],
     ..STAFF_BASE
+};
+const STAFF_COURT_SALE_FLAGS: &[(&str, &str)] = &market_append::<_, 15>(
+    STAFF_WORK_FLAGS,
+    &[
+        (STAFF_COURT, "fume_yards.freight_cradle_checked"),
+        (STAFF_COURT, "fume_yards.court_daro_called"),
+        (STAFF_COURT, "fume_yards.court_filter_sold"),
+        (STAFF_COURT, "fume_yards.court_daro_returned"),
+        (MARKET_RETURN, "fume_yards.filter_sold"),
+    ],
+);
+const STAFF_COURT_SALE_MEMORIES: &[ScenarioNpcMemoryExpectation] =
+    &market_append::<_, 14>(
+        STAFF_WORK_MEMORIES,
+        &[
+            batch_memory(SALVAGE_DARO, "fume_yards.court_filter_claim", 23),
+            batch_memory(SALVAGE_DARO, "fume_yards.court_filter_bought", 24),
+            batch_memory(SALVAGE_DARO, "fume_yards.court_filter_returned", 24),
+        ],
+    );
+const STAFF_COURT_SALE_SPEC: ScenarioSpec = ScenarioSpec {
+    id: "m2-fume-court-filter-sale",
+    claim_id: "milestone-2.staffing.court-filter-sale",
+    start: STAFF_START,
+    seed: 71,
+    steps: &STAFF_COURT_SALE_STEPS,
+    expectations: ScenarioExpectations {
+        staffing_history: Some(&STAFF_COURT_SALE_HISTORY),
+        final_location: STAFF_COURT,
+        final_action_definition: "fume_yards.sell_filter_to_daro",
+        final_observation_contains: "Daro accepts the filter for four coins and returns to his cage.",
+        final_world_time: Some(25),
+        required_visited_locations: &market_append::<_, 3>(
+            STAFF_BASE.required_visited_locations,
+            &[STAFF_COURT],
+        ),
+        required_location_flags: STAFF_COURT_SALE_FLAGS,
+        required_character_inventory: &[market_item("rope", 1)],
+        required_character_resources: &[market_resource("coin", 14), market_resource("stamina", 3)],
+        forbidden_character_inventory: &market_append::<_, 11>(
+            MARKET_NO_INTERMEDIATES,
+            &["fume_yards.water_cask", "fume_yards.filter"],
+        ),
+        required_npc_memories: STAFF_COURT_SALE_MEMORIES,
+        recipe_events: &[
+            STAFF_DUST_RECIPE,
+            batch_recipe(
+                24,
+                "fume_yards.sell_filter",
+                &[("fume_yards.filter", 1)],
+                &[],
+            ),
+        ],
+        required_legal_definitions: &["travel_adjacent", "world.enter_aftermath"],
+        forbidden_legal_definitions: &market_append::<_, 11>(
+            STAFF_WORK_EXPECTED.forbidden_legal_definitions,
+            &[
+                "fume_yards.call_daro_to_court",
+                "fume_yards.sell_filter_to_daro",
+                "fume_yards.return_daro_to_cage",
+                "return.sell_filter",
+            ],
+        ),
+        ..STAFF_WORK_EXPECTED
+    },
 };
 const STAFF_STAFFED_SPEC: ScenarioSpec = ScenarioSpec {
     id: "m2-fume-crew-staffed",
@@ -1259,6 +1393,7 @@ mod staffing_tests {
         STAFF_WALKED_AWAY_SPEC,
         STAFF_CANCELLED_SPEC,
         STAFF_WATER_COMPOSED_SPEC,
+        STAFF_COURT_SALE_SPEC,
     ];
 
     fn content() -> CompiledContent {

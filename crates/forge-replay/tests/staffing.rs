@@ -7,8 +7,10 @@ use forge_replay::{PlayerTrace, Session, Trace, resume_player_trace, verify};
 use std::collections::BTreeMap;
 
 const SOURCE: &str = include_str!("../../../content/split-tide.json");
+const WORK: &str = "fume_yards.workshop";
 const BAY: &str = "fume_yards.kiln_bay";
 const ASH: &str = "fume_yards.ash_beds";
+const COURT: &str = "fume_yards.freight_court";
 const BRANN: &str = "fume_yards.brann_coil";
 const DARO: &str = "fume_yards.daro_venn";
 const PERA: &str = "fume_yards.pera_senn";
@@ -54,6 +56,13 @@ const STAFFED: &[Action] = &[
     ("fume_yards.recover_staffed_filter", None),
     ("fume_yards.return_with_brann", None),
     ("fume_yards.load_cold_freight", None),
+];
+const COURT_TRADE: &[Action] = &[
+    ("travel_adjacent", Some(WORK)),
+    ("travel_adjacent", Some(COURT)),
+    ("fume_yards.inspect_freight_cradle", None),
+    ("fume_yards.call_daro_to_court", None),
+    ("fume_yards.sell_filter_to_daro", None),
 ];
 const ORDINARY: &[Action] = &[
     ("fume_yards.enter_ash_hatch", None),
@@ -825,6 +834,42 @@ fn staffing_history_pairs_and_cancelled_absence_survive_native_saves_without_rem
         session.state().world.npcs[BRANN].knowledge["fume_yards.rack_cleared"].turn,
         21
     );
+}
+
+#[test]
+fn court_daro_filter_sale_replays_through_public_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut session = start(&content, "saved-worker");
+    for &action in PREFIX.iter().chain(STAFFED).chain(&COURT_TRADE[..4]) {
+        record(&mut session, &content, action);
+        session = checkpoint(&session, &content);
+    }
+    let stale_sale = select(&session, &content, COURT_TRADE[4]);
+    record(&mut session, &content, COURT_TRADE[4]);
+    session = checkpoint(&session, &content);
+    reject_stale(&mut session, &stale_sale);
+
+    let state = session.state();
+    assert_eq!(state.world.time, 25);
+    assert_eq!(state.world.current_location, COURT);
+    assert_eq!(state.world.npcs[DARO].location, ASH);
+    assert_eq!(state.character.resources["coin"], 14);
+    assert!(!state.character.inventory.contains_key(FILTER));
+    assert!(
+        state.world.locations[COURT]
+            .flags
+            .contains("fume_yards.court_filter_sold")
+    );
+    assert!(
+        state.world.locations["lowsail.return"]
+            .flags
+            .contains("fume_yards.filter_sold")
+    );
+    assert_eq!(
+        state.world.npcs[DARO].memories["fume_yards.court_filter_bought"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert_eq!(verify(session.trace(), &content).unwrap(), *state);
 }
 
 #[test]

@@ -1,8 +1,8 @@
 {
   "format_version": "forge-evidence-witness-v3",
   "verifier_id": "1e066a0f311950aa4718f377cb88e87c6c7a70c1efdca579c1b4d27bd5edde49",
-  "scenario_id": "m2-fume-crew-walked-away",
-  "scenario_binding": "f45417419cccf9f48d59d66e146cadd74e1b4a2291a882a503dcaaa80905d835",
+  "scenario_id": "m2-fume-court-filter-sale",
+  "scenario_binding": "24f919cf45543c26fc659cdc2cea7876589f99996bbbacd350302cb523c0e3b7",
   "player_trace": {
     "format_version": "forge-player-trace-v2",
     "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
@@ -55,10 +55,17 @@
       "fb2a0388559255aefdd043202725706d57a34ea24033437af8d82dd58a995967",
       "4fb043e9225d727bcba14e316325c6018f7019fb143404b396a0331089b1574e",
       "41fa2cc469d58c57e2f896ddea0aacd9acf98a635d18e97bd5774ff1cab59835",
-      "3ab20bb0f3d85de026bcda22bb0ccd3cc3f757da44b2ede0d977c51d1a592400"
+      "dfb3c4c8e51981ca03ba26c2f3adea0e576c941f01244105b9afde805a7fd628",
+      "5d644184da6818fb8b2beff9231f042f8a1c96005ba4ac14a1a83a8790aa54ae",
+      "783a09108ad551747ace6135519d900fcc5bb851223b923f90b67e9e5a570a3e",
+      "5472f2526d01946ed1f882dfc3d7bf84b5f896cc754adbfe079d0d5eb1fcf8fc",
+      "fceffb8ee2357c4bca3d835393d3d7aa75f475c20ab86facf8e424468c89edf9",
+      "49e2e811ae1fc5f95347bb82267fafb43273362bd039a5769f25c6657baab5c7",
+      "54f84155c531ac0604e6d491bd5088d7b01bb1b8768911a3ad7be7be1c99fcd5",
+      "185a4c7cb356b7b4b1480aef68739877380e1f73339cde649a4b902a6654f1e5"
     ],
-    "final_state_id": "dcce8e82c0d28e9e902050c01fef841eb04501f31af43d915b1ac872335e00db",
-    "final_receipt": "5383def10054b202762bfbaab6033c4ebe26b729bcfc547f8b04ca83268bd0b6"
+    "final_state_id": "e7fb8fee874b96026ecef226cc711aee6ecc3caf1a666108dc9eeec86b3c9aab",
+    "final_receipt": "cc1137b1110bf71a8ec0758a0482711d65cbb96058d3fb315a7bf57f9a84c981"
   },
   "initial_state_id": "b3df6695623ade4ef344e22a3b5b434a8ae44604ae02986dbe0b6a4c1791139e",
   "initial_observation": {
@@ -869,28 +876,403 @@
     },
     {
       "step_index": 15,
-      "action_id": "3ab20bb0f3d85de026bcda22bb0ccd3cc3f757da44b2ede0d977c51d1a592400",
-      "action_definition_id": "fume_yards.leave_ash_hatch",
+      "action_id": "dfb3c4c8e51981ca03ba26c2f3adea0e576c941f01244105b9afde805a7fd628",
+      "action_definition_id": "fume_yards.recover_staffed_filter",
       "action_parameters": {},
       "legal_action_set_digest": "e7b33fad9bf5942e6766e60752a2794922fe16b7f97186d35b3ce247fecebe6a",
       "pre_state_id": "e187c9f25f7421f7cca3388dfa0622ed038bab8ad58562ed8b864ccbee01a524",
-      "events_hash": "c6d5e2a1978b251ff50a88d3597165220e0094d9c157da788033fa4d8c051fe9",
+      "events_hash": "63826d04f6b3cd90dcb0abd28af53228ce1b9633850f5ffaf4a8ff412c9c79cd",
       "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
       "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
       "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
-      "post_state_id": "dcce8e82c0d28e9e902050c01fef841eb04501f31af43d915b1ac872335e00db",
+      "post_state_id": "c7232aac2a3924cf93525b5debf5629f531b413a089652884ce58f9c8aaaeb9c",
       "observation": {
         "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
-        "state_id": "dcce8e82c0d28e9e902050c01fef841eb04501f31af43d915b1ac872335e00db",
-        "location_id": "fume_yards.kiln_bay",
-        "title": "Fume Yards Kiln Bay",
-        "text": "You return through the open hatch to Kiln Bay. Brann is staffing Ash Beds; bring him back through the hatch.",
+        "state_id": "c7232aac2a3924cf93525b5debf5629f531b413a089652884ce58f9c8aaaeb9c",
+        "location_id": "fume_yards.ash_beds",
+        "title": "Fume Yards Ash Beds",
+        "text": "Brann helps lift the filter intact and pays one coin for access. Three steps pass without spending stamina. Brann paid one coin for cleared access; return him to Kiln Bay while Daro stays here.",
         "supplies": {
           "resources": [
             {
               "id": "coin",
               "name": "Coin",
-              "amount": 6
+              "amount": 7
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Brann helps lift the filter intact and pays one coin for access. Three steps pass without spending stamina.",
+        "world_time": 18,
+        "upcoming_events": [],
+        "action_set_digest": "4b66fa2f32186cdd47b94abe1c76973c408898c0bc916b435508a2d17c33a4b6",
+        "action_count": 6
+      },
+      "observation_hash": "fba3e21cb9c98091acaa52a44fb38b0d369e3a935c61351ec5ec53d7f8ad3ff9",
+      "receipt": "bb1a0d42e68ae8b7b70f699008b90ee90b9a9b3897ae084a5e3dbc907c01dbca"
+    },
+    {
+      "step_index": 16,
+      "action_id": "5d644184da6818fb8b2beff9231f042f8a1c96005ba4ac14a1a83a8790aa54ae",
+      "action_definition_id": "fume_yards.return_with_brann",
+      "action_parameters": {},
+      "legal_action_set_digest": "4b66fa2f32186cdd47b94abe1c76973c408898c0bc916b435508a2d17c33a4b6",
+      "pre_state_id": "c7232aac2a3924cf93525b5debf5629f531b413a089652884ce58f9c8aaaeb9c",
+      "events_hash": "b09b53b12ea1ea73ba1e95cb6ac169da184d6f9150729ea1f38416c09ed4bad4",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "df99a7e59f731756cfc637247dbcb88eb11358a7be97fe11f41de9a82e533415",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "df99a7e59f731756cfc637247dbcb88eb11358a7be97fe11f41de9a82e533415",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "Brann returns with you to Kiln Bay. His one rack assignment is spent. Your filter protects the kiln; load cold freight and close firing, or prepare a batch.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 7
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Brann returns with you to Kiln Bay. His one rack assignment is spent.",
+        "world_time": 19,
+        "upcoming_events": [],
+        "action_set_digest": "23365f7d0548d793dbd1aff84c1b5101d58f32eeeb4f4b60d31bb765f3f5abe2",
+        "action_count": 6
+      },
+      "observation_hash": "da5128fea673555355f56a0e95c791fc66a3b590ec3ec8860cc28158ffc6a709",
+      "receipt": "c408f6b21f178ad24a0ac2d2f6a1e1b01cd5f9566313b85dc492776dfc87d6f3"
+    },
+    {
+      "step_index": 17,
+      "action_id": "783a09108ad551747ace6135519d900fcc5bb851223b923f90b67e9e5a570a3e",
+      "action_definition_id": "fume_yards.load_cold_freight",
+      "action_parameters": {},
+      "legal_action_set_digest": "23365f7d0548d793dbd1aff84c1b5101d58f32eeeb4f4b60d31bb765f3f5abe2",
+      "pre_state_id": "df99a7e59f731756cfc637247dbcb88eb11358a7be97fe11f41de9a82e533415",
+      "events_hash": "19fe0c517d7d6aae961c3bc87531d8744e8220139c4950c14246c3f7b4c252f2",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "82d989f2f017f4ca5c38ad828192b81391c5bd44f987ccb23838ddeb1edcda9e",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "82d989f2f017f4ca5c38ad828192b81391c5bd44f987ccb23838ddeb1edcda9e",
+        "location_id": "fume_yards.kiln_bay",
+        "title": "Fume Yards Kiln Bay",
+        "text": "You unload the banked kiln without spending stamina. Brann pays three coins; cold work closes firing. Cold freight is finished; the unfired kiln stays closed.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You unload the banked kiln without spending stamina. Brann pays three coins; cold work closes firing.",
+        "world_time": 20,
+        "upcoming_events": [],
+        "action_set_digest": "66738384339b39061614f3ff94439fdd20db6bfd9f133c691ab417ad9f50d1f5",
+        "action_count": 4
+      },
+      "observation_hash": "f8a230c550d50f243e61091507b1cd3922c240e8b9926e32765cba4eb2137a1b",
+      "receipt": "3a6a51cdbbd425fd686259bc6e6e581b14a9163ecb205b50f775ef186b3816b1"
+    },
+    {
+      "step_index": 18,
+      "action_id": "5472f2526d01946ed1f882dfc3d7bf84b5f896cc754adbfe079d0d5eb1fcf8fc",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.workshop"
+      },
+      "legal_action_set_digest": "66738384339b39061614f3ff94439fdd20db6bfd9f133c691ab417ad9f50d1f5",
+      "pre_state_id": "82d989f2f017f4ca5c38ad828192b81391c5bd44f987ccb23838ddeb1edcda9e",
+      "events_hash": "65780aad56063bbfaacb909a881cdbb9156446396a2cb4bb074d4eac0665c37f",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "6b233952ce2448540024406d6d7265211893307d5bbe1acfac32501637b6dcf8",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "6b233952ce2448540024406d6d7265211893307d5bbe1acfac32501637b6dcf8",
+        "location_id": "fume_yards.workshop",
+        "title": "Fume Yards Workshop",
+        "text": "You move along the connected path. Nessa offers two clay and one mesh for plugs or screening; optional work uses tide steps. Plugs unlock Lowsail's three-coin sorting job after the tide; screening saves two stamina loading freight.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You move along the connected path.",
+        "world_time": 21,
+        "upcoming_events": [],
+        "action_set_digest": "07c5f3fc5502c0a5416e2d6418ba3cd037204a4560f7a55ad90d76b9ca3af56e",
+        "action_count": 8
+      },
+      "observation_hash": "15309fdf19f996d57718176b4cb066f2b2df2444e47cd39be6e65d2aefee8c93",
+      "receipt": "c62c19fb0cc4a1dc5d019280a261a82af8b5e42fc19d3244faaf5aa44bcbd27f"
+    },
+    {
+      "step_index": 19,
+      "action_id": "fceffb8ee2357c4bca3d835393d3d7aa75f475c20ab86facf8e424468c89edf9",
+      "action_definition_id": "travel_adjacent",
+      "action_parameters": {
+        "destination": "fume_yards.freight_court"
+      },
+      "legal_action_set_digest": "07c5f3fc5502c0a5416e2d6418ba3cd037204a4560f7a55ad90d76b9ca3af56e",
+      "pre_state_id": "6b233952ce2448540024406d6d7265211893307d5bbe1acfac32501637b6dcf8",
+      "events_hash": "3b513091e8213c3ecd5ed0ecff7cbcd99842919cf5c3367a298769e3f92eff27",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "142b3f1f99c5c420b936fa8f3558732d229e49d343f39f9facbbd9491cef9c04",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "142b3f1f99c5c420b936fa8f3558732d229e49d343f39f9facbbd9491cef9c04",
+        "location_id": "fume_yards.freight_court",
+        "title": "Fume Yards Freight Court",
+        "text": "You move along the connected path. A crew board hangs above an empty freight cradle. Safe work and paid filter claims start here.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "You move along the connected path.",
+        "world_time": 22,
+        "upcoming_events": [],
+        "action_set_digest": "8205d735dfd519208a7ebc577443354c8bfae98d9456b9db7eb5877e984b9a77",
+        "action_count": 7
+      },
+      "observation_hash": "e02d76f31424fbace623698ea13b0103876d3500b31edbab829c5b6085df34cb",
+      "receipt": "5b82a7b5430c3f2aa5eebc73dec3ba2127283522b8cfcfd313c1f08a40e4948b"
+    },
+    {
+      "step_index": 20,
+      "action_id": "49e2e811ae1fc5f95347bb82267fafb43273362bd039a5769f25c6657baab5c7",
+      "action_definition_id": "fume_yards.inspect_freight_cradle",
+      "action_parameters": {},
+      "legal_action_set_digest": "8205d735dfd519208a7ebc577443354c8bfae98d9456b9db7eb5877e984b9a77",
+      "pre_state_id": "142b3f1f99c5c420b936fa8f3558732d229e49d343f39f9facbbd9491cef9c04",
+      "events_hash": "ea42e1a6396adde0601e7d3ef550199004c7ac068cc7e77bd7ade2e258f8134c",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "7c61d1171d7c6b208e7f97bec7b3163411d0bece0e9bc15ba07731a8c5a4b05b",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "7c61d1171d7c6b208e7f97bec7b3163411d0bece0e9bc15ba07731a8c5a4b05b",
+        "location_id": "fume_yards.freight_court",
+        "title": "Fume Yards Freight Court",
+        "text": "The empty cradle holds one filter-sized load; Daro's claim still needs a witnessed handover. The cradle is sound; Daro's filter claim still needs a witnessed handover.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "The empty cradle holds one filter-sized load; Daro's claim still needs a witnessed handover.",
+        "world_time": 23,
+        "upcoming_events": [],
+        "action_set_digest": "c6f9e309bd21b0c81cf53f5b3f532e34faa39a3ff452b0009666b82fbe8d5ef3",
+        "action_count": 7
+      },
+      "observation_hash": "ab0a9acf84c24d4322d27d69526bad281c636854f7991d0b0690bbfcf1c15311",
+      "receipt": "53b657323017fd830f71789221c906edb24dbf64e7b73edf2b1f4dd856a0c81f"
+    },
+    {
+      "step_index": 21,
+      "action_id": "54f84155c531ac0604e6d491bd5088d7b01bb1b8768911a3ad7be7be1c99fcd5",
+      "action_definition_id": "fume_yards.call_daro_to_court",
+      "action_parameters": {},
+      "legal_action_set_digest": "c6f9e309bd21b0c81cf53f5b3f532e34faa39a3ff452b0009666b82fbe8d5ef3",
+      "pre_state_id": "7c61d1171d7c6b208e7f97bec7b3163411d0bece0e9bc15ba07731a8c5a4b05b",
+      "events_hash": "3132c1b9ed254727496fd9ceb0aa5445d261dfc6ea1822ce121cf3e5d886e26d",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "44a1891455a624c104044342c1e4417358f188aaf74ee68950c71f6082ca4f12",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "44a1891455a624c104044342c1e4417358f188aaf74ee68950c71f6082ca4f12",
+        "location_id": "fume_yards.freight_court",
+        "title": "Fume Yards Freight Court",
+        "text": "Daro leaves his cage to inspect your filter claim at the Court cradle. Daro waits at the cradle to inspect your filter claim.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 10
+            },
+            {
+              "id": "stamina",
+              "name": "Stamina",
+              "amount": 3
+            }
+          ],
+          "items": [
+            {
+              "id": "fume_yards.filter",
+              "name": "Filter",
+              "count": 1
+            },
+            {
+              "id": "rope",
+              "name": "Rope",
+              "count": 1
+            }
+          ]
+        },
+        "result": "Daro leaves his cage to inspect your filter claim at the Court cradle.",
+        "world_time": 24,
+        "upcoming_events": [],
+        "action_set_digest": "b028552607df09ca500d1ab98cbf6c1cc4be7db83be1cfce7bfd85417c60a04a",
+        "action_count": 8
+      },
+      "observation_hash": "80de7a1593d2c4d35bf17bcd0eca319462eb1f0112fdbf1d8840d66a3eedaa07",
+      "receipt": "61bf0b183875448bf7a75bea08a5cb4c5c937280403e93a089b09dc62888d0bb"
+    },
+    {
+      "step_index": 22,
+      "action_id": "185a4c7cb356b7b4b1480aef68739877380e1f73339cde649a4b902a6654f1e5",
+      "action_definition_id": "fume_yards.sell_filter_to_daro",
+      "action_parameters": {},
+      "legal_action_set_digest": "b028552607df09ca500d1ab98cbf6c1cc4be7db83be1cfce7bfd85417c60a04a",
+      "pre_state_id": "44a1891455a624c104044342c1e4417358f188aaf74ee68950c71f6082ca4f12",
+      "events_hash": "8fc87264826bcbb36597a538cefe76dec0c2a083c03556e4d41f4e0692e489d7",
+      "entropy_before_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "entropy_draws_hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "entropy_after_hash": "4a1f3bc0ec3d406b37ea9da4f3dceff9ccd5f59df40e630ac9ea0ffc9c48ac46",
+      "post_state_id": "e7fb8fee874b96026ecef226cc711aee6ecc3caf1a666108dc9eeec86b3c9aab",
+      "observation": {
+        "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
+        "state_id": "e7fb8fee874b96026ecef226cc711aee6ecc3caf1a666108dc9eeec86b3c9aab",
+        "location_id": "fume_yards.freight_court",
+        "title": "Fume Yards Freight Court",
+        "text": "Daro accepts the filter for four coins and returns to his cage. Daro's paid filter claim is settled; the cradle is clear and his cage is closed.",
+        "supplies": {
+          "resources": [
+            {
+              "id": "coin",
+              "name": "Coin",
+              "amount": 14
             },
             {
               "id": "stamina",
@@ -906,16 +1288,16 @@
             }
           ]
         },
-        "result": "You return through the open hatch to Kiln Bay.",
-        "world_time": 16,
+        "result": "Daro accepts the filter for four coins and returns to his cage.",
+        "world_time": 25,
         "upcoming_events": [],
-        "action_set_digest": "10222399d8a1416c32d039dec78625c22e74fcdfc300ccbb85be0ce1b284a541",
-        "action_count": 4
+        "action_set_digest": "48f29e7b65777eec64482da5f469080ea4ec1bc5d25c68610b740aeeb53f65be",
+        "action_count": 6
       },
-      "observation_hash": "19d01bc1f2d5d934c4659ae160d3aa841e5efa62141e535f840e44a23184ff97",
-      "receipt": "5383def10054b202762bfbaab6033c4ebe26b729bcfc547f8b04ca83268bd0b6"
+      "observation_hash": "6cd9db0b7ad5c087d3c6014de3082bce11c1fa4cd225fb171c8d9a1f23a5cfff",
+      "receipt": "cc1137b1110bf71a8ec0758a0482711d65cbb96058d3fb315a7bf57f9a84c981"
     }
   ],
-  "final_state_id": "dcce8e82c0d28e9e902050c01fef841eb04501f31af43d915b1ac872335e00db",
-  "final_receipt": "5383def10054b202762bfbaab6033c4ebe26b729bcfc547f8b04ca83268bd0b6"
+  "final_state_id": "e7fb8fee874b96026ecef226cc711aee6ecc3caf1a666108dc9eeec86b3c9aab",
+  "final_receipt": "cc1137b1110bf71a8ec0758a0482711d65cbb96058d3fb315a7bf57f9a84c981"
 }

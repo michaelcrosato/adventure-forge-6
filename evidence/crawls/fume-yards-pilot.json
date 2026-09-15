@@ -1,6 +1,6 @@
 {
-  "verifier_id": "fbd901deab854454f54d56e1093f2e80be4da6ff71d7fc03e302677d9a71fc19",
-  "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
+  "verifier_id": "1e066a0f311950aa4718f377cb88e87c6c7a70c1efdca579c1b4d27bd5edde49",
+  "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
   "budget": {
     "max_depth": 13,
     "max_expanded_states": 96,
@@ -70,6 +70,7 @@
     "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.call_brann_to_court",
+    "fume_yards.call_daro_to_court",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
@@ -104,11 +105,13 @@
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_from_court",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_daro_to_cage",
     "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
+    "fume_yards.sell_filter_to_daro",
     "fume_yards.settle_ash_lane",
     "fume_yards.settle_collateral_fuel",
     "fume_yards.share_rescue_account",
@@ -180,8 +183,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "a27ca5ff719f0135fbf917b8b19c281ef56026b59b377427b6041b440ed685f5",
-      "state_id": "84d40821a66276557215a737cf1f067ce8c9ec7f69f3d57ddaa06f9c88d5eb86"
+      "final_receipt": "acddb36282f8678d48211adbcf0c2130a63b0fd0ad5dc8b5ee734032fd84fb6b",
+      "state_id": "9a8b45ea97be20c18c57bb0d4cde9fd938b2810c1136d7400ea51c86360a2322"
     },
     {
       "label": "preset:rook",
@@ -191,8 +194,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "ea44ea36e5b2732a50cf844c7d280a75e9b1bd1c7552c907f28922e8cdcc43c1",
-      "state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b"
+      "final_receipt": "fa334650666877078dceac0e3087908c0da1523f7514d03dbc094a2a5a1ff01f",
+      "state_id": "8663a4bef1acda0974f162e3667d083afa7e6bc62b06f6b9b883dbc2de2c1bbc"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -202,9 +205,9 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "cc30c70b4432e36ecd7597bb83eb77011f214dd98ea12859c62b7a30881b5fde",
-      "state_id": "2c7b3cf96f05615d26c1c5e6d0e3d574b3949c13b11ad8fa0bc0ffe92c7ce7f5"
+      "final_receipt": "2e03fe30b3bbe42b46c2fdb6f02456643b59c39af37cb1ed164fdf6bba3f6d13",
+      "state_id": "4dcf7cc389932f6363ef4ee10f1d4259ba320323fbe597b0c5010ee438346824"
     }
   ],
-  "execution_receipt": "fa36ee118dc9f43270211a5da530b4ffb3d6d07368ef45e5e16ed08f26f17348"
+  "execution_receipt": "b36456fc987db7bcf622ba9eca7b47dc48bdd0f6591236424f2d611e839eb92e"
 }

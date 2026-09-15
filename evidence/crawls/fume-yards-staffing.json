@@ -1,6 +1,6 @@
 {
-  "verifier_id": "fbd901deab854454f54d56e1093f2e80be4da6ff71d7fc03e302677d9a71fc19",
-  "build_id": "a001e8f2c3558ecae38e8a96380ecbe561f0c4aad48668ff8186ed8fef5431f6",
+  "verifier_id": "1e066a0f311950aa4718f377cb88e87c6c7a70c1efdca579c1b4d27bd5edde49",
+  "build_id": "4442db2ad975dbb2b037b6e4ef7e59ae1148cec72146f407792498d3ea611bfd",
   "budget": {
     "max_depth": 27,
     "max_expanded_states": 96,
@@ -8,9 +8,9 @@
     "max_action_executions": 2048,
     "catalog_page_size": 7
   },
-  "expanded_states": 7,
-  "discovered_frontiers": 43,
-  "successful_actions": 51,
+  "expanded_states": 9,
+  "discovered_frontiers": 57,
+  "successful_actions": 66,
   "max_legal_actions": 9,
   "reached_locations": [
     "fume_yards.ash_beds",
@@ -25,6 +25,7 @@
     "fume_yards.assign_court_salvage",
     "fume_yards.brace_rack",
     "fume_yards.call_brann_to_court",
+    "fume_yards.call_daro_to_court",
     "fume_yards.enter_ash_hatch",
     "fume_yards.inspect_freight_cradle",
     "fume_yards.leave_ash_hatch",
@@ -33,8 +34,10 @@
     "fume_yards.reclaim_charge",
     "fume_yards.recover_staffed_filter",
     "fume_yards.return_brann_from_court",
+    "fume_yards.return_daro_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
+    "fume_yards.sell_filter_to_daro",
     "fume_yards.share_rescue_account",
     "fume_yards.take_cask",
     "fume_yards.take_fuel",
@@ -81,6 +84,7 @@
     "fume_yards.bring_pera_to_ash",
     "fume_yards.buy_collateral_filter",
     "fume_yards.call_brann_to_court",
+    "fume_yards.call_daro_to_court",
     "fume_yards.delegate_cold_shift",
     "fume_yards.draw_filter",
     "fume_yards.enter_ash_hatch",
@@ -115,11 +119,13 @@
     "fume_yards.report_with_daro",
     "fume_yards.return_brann_from_court",
     "fume_yards.return_brann_to_kiln",
+    "fume_yards.return_daro_to_cage",
     "fume_yards.return_pera_after_ash_cleanup",
     "fume_yards.return_pera_from_ash",
     "fume_yards.return_to_cage",
     "fume_yards.return_with_brann",
     "fume_yards.return_with_nessa",
+    "fume_yards.sell_filter_to_daro",
     "fume_yards.settle_ash_lane",
     "fume_yards.settle_collateral_fuel",
     "fume_yards.share_rescue_account",
@@ -175,11 +181,14 @@
     "fume_yards.assign_brann_salvage",
     "fume_yards.assign_court_salvage",
     "fume_yards.call_brann_to_court",
+    "fume_yards.call_daro_to_court",
     "fume_yards.inspect_freight_cradle",
     "fume_yards.read_crew_board",
     "fume_yards.recover_staffed_filter",
     "fume_yards.return_brann_from_court",
+    "fume_yards.return_daro_to_cage",
     "fume_yards.return_with_brann",
+    "fume_yards.sell_filter_to_daro",
     "fume_yards.share_rescue_account",
     "return.visit_freight_court"
   ],
@@ -192,8 +201,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "a27ca5ff719f0135fbf917b8b19c281ef56026b59b377427b6041b440ed685f5",
-      "state_id": "84d40821a66276557215a737cf1f067ce8c9ec7f69f3d57ddaa06f9c88d5eb86"
+      "final_receipt": "acddb36282f8678d48211adbcf0c2130a63b0fd0ad5dc8b5ee734032fd84fb6b",
+      "state_id": "9a8b45ea97be20c18c57bb0d4cde9fd938b2810c1136d7400ea51c86360a2322"
     },
     {
       "label": "preset:rook",
@@ -203,8 +212,8 @@
         "seed": 71
       },
       "depth": 0,
-      "final_receipt": "ea44ea36e5b2732a50cf844c7d280a75e9b1bd1c7552c907f28922e8cdcc43c1",
-      "state_id": "1d3e6be3336bf6b8c0287c343c02819cb0da6a5b51c5b15d13215ca0d7ebc29b"
+      "final_receipt": "fa334650666877078dceac0e3087908c0da1523f7514d03dbc094a2a5a1ff01f",
+      "state_id": "8663a4bef1acda0974f162e3667d083afa7e6bc62b06f6b9b883dbc2de2c1bbc"
     },
     {
       "label": "scenario:m1-outcome-hold-market",
@@ -214,8 +223,8 @@
         "seed": 71
       },
       "depth": 7,
-      "final_receipt": "cc30c70b4432e36ecd7597bb83eb77011f214dd98ea12859c62b7a30881b5fde",
-      "state_id": "2c7b3cf96f05615d26c1c5e6d0e3d574b3949c13b11ad8fa0bc0ffe92c7ce7f5"
+      "final_receipt": "2e03fe30b3bbe42b46c2fdb6f02456643b59c39af37cb1ed164fdf6bba3f6d13",
+      "state_id": "4dcf7cc389932f6363ef4ee10f1d4259ba320323fbe597b0c5010ee438346824"
     },
     {
       "label": "trace:m2-fume-staffing-workshop-ready",
@@ -253,8 +262,8 @@
         "seed": 71
       },
       "depth": 22,
-      "final_receipt": "5baffede881962105e8d34d28ce840c4125d8fff66b759d816e1217d5a6c016b",
-      "state_id": "4aeadd943901959ce92968354e0d60b6d4eb5ae2d741d109ece7f54aa18f0f02"
+      "final_receipt": "3622e2f18551d7414b25b11dafc0bd014832fddd99685772972a87e519968875",
+      "state_id": "a7702089fef96bc7db3465666062d18692a8c6fca8f7e9c5726e284870da70a8"
     },
     {
       "label": "trace:m2-fume-staffing-freight-court",
@@ -292,9 +301,48 @@
         "seed": 71
       },
       "depth": 25,
-      "final_receipt": "cf06fcff77eeb550d1e4b61a2c8a93fade1ec39a1cac92b3dedc8c52dbd35710",
-      "state_id": "f2238f585f0c359642ed2149a3a0bded088ad1841633c7cd7226deb1d833e859"
+      "final_receipt": "dc31f7ccdfb40dd9a0c19c132d9604b38b941c4d95f0734ed18d5cc5cf1c0ab3",
+      "state_id": "00079e8e10f6433f4d856d705e9a91fe8148d87fcd14eaf97d8e09792bfce53d"
+    },
+    {
+      "label": "trace:m2-fume-staffing-court-trade",
+      "start": {
+        "kind": "character_creation",
+        "selection": {
+          "name": "Crew comparison",
+          "choices": [
+            {
+              "slot_id": "lineage",
+              "choice_id": "fenborn"
+            },
+            {
+              "slot_id": "origin",
+              "choice_id": "lowsail"
+            },
+            {
+              "slot_id": "calling",
+              "choice_id": "ledger-clerk"
+            },
+            {
+              "slot_id": "value",
+              "choice_id": "order"
+            },
+            {
+              "slot_id": "burden",
+              "choice_id": "indebted"
+            },
+            {
+              "slot_id": "history",
+              "choice_id": "saved-worker"
+            }
+          ]
+        },
+        "seed": 71
+      },
+      "depth": 21,
+      "final_receipt": "53b657323017fd830f71789221c906edb24dbf64e7b73edf2b1f4dd856a0c81f",
+      "state_id": "7c61d1171d7c6b208e7f97bec7b3163411d0bece0e9bc15ba07731a8c5a4b05b"
     }
   ],
-  "execution_receipt": "3f78abc0a4bb7f0cbf4c3d8cba8eb93c2518c5d7d809c5a2b5ecd687a77c993b"
+  "execution_receipt": "e89278082b87d8d090995aca9c57030142f005d8eeb01aacbf66eada375b4b93"
 }

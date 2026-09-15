@@ -1341,6 +1341,134 @@
           "text": "Oren's patched stand holds sorted goods above flooded stalls; the old market crossing remains lost."
         },
         {
+          "id": "fume_yards_court_sale_stable_market",
+          "priority": 340,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "all",
+                "conditions": [
+                  {
+                    "kind": "location_flag",
+                    "location": "lowsail.return",
+                    "flag": "market_stable"
+                  },
+                  {
+                    "kind": "world_flag",
+                    "flag": "flow_split"
+                  }
+                ]
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled beside calm water; both shores still receive a share."
+        },
+        {
+          "id": "fume_yards_court_sale_upland_dry",
+          "priority": 340,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "upland_dry"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled in dry Lowsail; the upland works still lack water."
+        },
+        {
+          "id": "fume_yards_court_sale_moved_market",
+          "priority": 340,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_moved"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled uphill beside families carrying stock from the empty stalls."
+        },
+        {
+          "id": "fume_yards_court_sale_free_ferry",
+          "priority": 340,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "ferry_free"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled beside the open channel; the ferry toll remains undecided."
+        },
+        {
+          "id": "fume_yards_court_sale_ferry_launched",
+          "priority": 350,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "world_flag",
+                "flag": "ending_freedom"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled beside the free ferry carrying people between both shores."
+        },
+        {
+          "id": "fume_yards_court_sale_flooded_market",
+          "priority": 340,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "location_flag",
+                "location": "lowsail.return",
+                "flag": "market_flooded"
+              },
+              {
+                "kind": "location_flag",
+                "location": "fume_yards.freight_court",
+                "flag": "fume_yards.court_filter_sold"
+              }
+            ]
+          },
+          "text": "Daro's filter claim is settled above flooded stalls; the old market crossing remains lost."
+        },
+        {
           "id": "fume_yards_sale_stable_market",
           "priority": 320,
           "condition": {
@@ -9388,6 +9516,49 @@
       "name": "Fume Yards Freight Court",
       "description": "A crew board hangs above an empty freight cradle. Safe work and paid filter claims start here.",
       "description_variants": [
+        {
+          "id": "daro_filter_sold",
+          "priority": 80,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_filter_sold"
+          },
+          "text": "Daro's paid filter claim is settled; the cradle is clear and his cage is closed."
+        },
+        {
+          "id": "daro_at_cradle",
+          "priority": 70,
+          "condition": {
+            "kind": "all",
+            "conditions": [
+              {
+                "kind": "npc_at_location",
+                "npc": "fume_yards.daro_venn",
+                "location": "fume_yards.freight_court"
+              },
+              {
+                "kind": "not",
+                "condition": {
+                  "kind": "location_flag",
+                  "location": "fume_yards.freight_court",
+                  "flag": "fume_yards.court_filter_sold"
+                }
+              }
+            ]
+          },
+          "text": "Daro waits at the cradle to inspect your filter claim."
+        },
+        {
+          "id": "daro_returned",
+          "priority": 60,
+          "condition": {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_daro_returned"
+          },
+          "text": "Daro returned to the cage; your unsold filter remains yours."
+        },
         {
           "id": "board_read",
           "priority": 20,
@@ -23669,6 +23840,303 @@
           },
           "flag": "fume_yards.freight_cradle_checked",
           "value": true
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.call_daro_to_court",
+      "label": "Call Daro",
+      "category": "Talk",
+      "result": "Daro leaves his cage to inspect your filter claim at the Court cradle.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.ash_beds"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.filter",
+            "count": 1
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.freight_cradle_checked"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.filter_sold"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_daro_called"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_daro_called",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.court_filter_claim",
+          "subject": "Daro came to the Freight Court to inspect the player's filter claim.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.sell_filter_to_daro",
+      "label": "Sell Filter to Daro",
+      "category": "Trade",
+      "result": "Daro accepts the filter for four coins and returns to his cage.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.freight_court"
+          },
+          {
+            "kind": "has_item",
+            "item": "fume_yards.filter",
+            "count": 1
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.freight_cradle_checked"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_daro_called"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "lowsail.return",
+              "flag": "fume_yards.filter_sold"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_filter_sold"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "apply_recipe",
+          "recipe": "fume_yards.sell_filter"
+        },
+        {
+          "kind": "adjust_resource",
+          "resource": "coin",
+          "amount": 4
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "lowsail.return"
+          },
+          "flag": "fume_yards.filter_sold",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_filter_sold",
+          "value": true
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_daro_returned",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.court_filter_bought",
+          "subject": "Daro bought the player's filter at the Freight Court cradle.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.court_filter_returned",
+          "subject": "Daro returned to his cage after the paid Court handover.",
+          "provenance": {
+            "kind": "witnessed"
+          }
+        },
+        {
+          "kind": "advance_time",
+          "ticks": 1
+        }
+      ],
+      "parameters": [],
+      "meaningful": true,
+      "movement": false
+    },
+    {
+      "id": "fume_yards.return_daro_to_cage",
+      "label": "Return Daro",
+      "category": "Travel",
+      "result": "Daro returns to the cage; the Court claim remains unsold.",
+      "locations": [
+        "fume_yards.freight_court"
+      ],
+      "condition": {
+        "kind": "all",
+        "conditions": [
+          {
+            "kind": "npc_at_location",
+            "npc": "fume_yards.daro_venn",
+            "location": "fume_yards.freight_court"
+          },
+          {
+            "kind": "location_flag",
+            "location": "fume_yards.freight_court",
+            "flag": "fume_yards.court_daro_called"
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_filter_sold"
+            }
+          },
+          {
+            "kind": "not",
+            "condition": {
+              "kind": "location_flag",
+              "location": "fume_yards.freight_court",
+              "flag": "fume_yards.court_daro_returned"
+            }
+          }
+        ]
+      },
+      "effects": [
+        {
+          "kind": "move_npc",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.ash_beds"
+          }
+        },
+        {
+          "kind": "set_location_flag",
+          "location": {
+            "kind": "literal",
+            "value": "fume_yards.freight_court"
+          },
+          "flag": "fume_yards.court_daro_returned",
+          "value": true
+        },
+        {
+          "kind": "add_npc_memory",
+          "npc": {
+            "kind": "literal",
+            "value": "fume_yards.daro_venn"
+          },
+          "memory_id": "fume_yards.court_claim_cancelled",
+          "subject": "Daro returned to his cage without buying the player's filter.",
+          "provenance": {
+            "kind": "witnessed"
+          }
         },
         {
           "kind": "advance_time",

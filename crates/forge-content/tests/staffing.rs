@@ -20,6 +20,9 @@ const ASSIGN: &str = "fume_yards.assign_brann_salvage";
 const COURT_CALL: &str = "fume_yards.call_brann_to_court";
 const COURT_ASSIGN: &str = "fume_yards.assign_court_salvage";
 const COURT_BACK: &str = "fume_yards.return_brann_from_court";
+const COURT_DARO_CALL: &str = "fume_yards.call_daro_to_court";
+const COURT_DARO_SALE: &str = "fume_yards.sell_filter_to_daro";
+const COURT_DARO_BACK: &str = "fume_yards.return_daro_to_cage";
 const LIFT: &str = "fume_yards.recover_staffed_filter";
 const BACK: &str = "fume_yards.return_with_brann";
 const ACCOUNT: &str = "fume_yards.rescue_account_heard";
@@ -228,6 +231,12 @@ fn ordinary20(content: &CompiledContent) -> GameState {
             ("wait_tide", None),
         ],
     )
+}
+fn court_trade_ready(content: &CompiledContent) -> GameState {
+    let state = staffed20(content);
+    let state = travel(state, content, WORK);
+    let state = travel(state, content, COURT);
+    act(state, content, "fume_yards.inspect_freight_cradle")
 }
 fn surge(state: &GameState) -> Vec<(u64, bool)> {
     state
@@ -768,6 +777,65 @@ fn freight_court_return_can_cancel_branns_call_without_spending_the_rack_assignm
     );
     assert!(!legal(&state, &content).contains(COURT_ASSIGN));
     assert!(legal(&state, &content).contains(ASSIGN));
+}
+
+#[test]
+fn freight_court_daro_claim_pays_once_and_returns_him_to_the_cage() {
+    let content = content();
+    let mut state = court_trade_ready(&content);
+
+    assert_eq!(state.world.current_location, COURT);
+    assert_eq!(state.world.npcs[DARO].location, ASH);
+    assert_eq!(state.character.inventory[FILTER], 1);
+    assert!(legal(&state, &content).contains(COURT_DARO_CALL));
+
+    state = act(state, &content, COURT_DARO_CALL);
+    assert_eq!(state.world.npcs[DARO].location, COURT);
+    assert_eq!(state.world.time, 24);
+    assert_eq!(
+        state.world.npcs[DARO].memories["fume_yards.court_filter_claim"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(legal(&state, &content).contains(COURT_DARO_SALE));
+    assert!(legal(&state, &content).contains(COURT_DARO_BACK));
+
+    let state = act(state, &content, COURT_DARO_SALE);
+    assert_eq!(state.world.time, 25);
+    assert_eq!(state.character.resources["coin"], 14);
+    assert_eq!(state.character.inventory.get(FILTER), None);
+    assert_eq!(state.world.npcs[DARO].location, ASH);
+    assert!(flag(&state, COURT, "fume_yards.court_filter_sold"));
+    assert!(flag(&state, RETURN, "fume_yards.filter_sold"));
+    assert_eq!(
+        state.world.npcs[DARO].memories["fume_yards.court_filter_bought"].provenance,
+        KnowledgeProvenance::Witnessed
+    );
+    assert!(!legal(&state, &content).contains(COURT_DARO_SALE));
+    assert!(!legal(&state, &content).contains(COURT_DARO_BACK));
+
+    let state = act(state, &content, "world.enter_aftermath");
+    let text = content.observe(&state).unwrap().text;
+    assert!(text.contains("Daro's filter claim is settled"), "{text}");
+    assert!(!text.contains("Oren remembers buying"), "{text}");
+}
+
+#[test]
+fn freight_court_daro_claim_can_cancel_without_spending_the_filter() {
+    let content = content();
+    let mut state = court_trade_ready(&content);
+    state = act(state, &content, COURT_DARO_CALL);
+    state = act(state, &content, COURT_DARO_BACK);
+
+    assert_eq!(state.world.npcs[DARO].location, ASH);
+    assert_eq!(state.character.inventory[FILTER], 1);
+    assert_eq!(state.character.resources["coin"], 10);
+    assert!(flag(&state, COURT, "fume_yards.court_daro_returned"));
+    assert!(!flag(&state, COURT, "fume_yards.court_filter_sold"));
+    assert!(!legal(&state, &content).contains(COURT_DARO_CALL));
+    assert!(!legal(&state, &content).contains(COURT_DARO_SALE));
+
+    let state = act(state, &content, "world.enter_aftermath");
+    assert!(legal(&state, &content).contains("return.sell_filter"));
 }
 
 #[test]
