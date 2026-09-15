@@ -43,6 +43,10 @@ const WATER: &[Action] = &[
     ("return.draw_clean_water", None),
 ];
 fn start<'a>(content: &'a CompiledContent) -> Session<'a> {
+    start_with(content, "wanted")
+}
+
+fn start_with<'a>(content: &'a CompiledContent, burden: &str) -> Session<'a> {
     let selection = CharacterSelection {
         name: "Cold shift comparison".into(),
         choices: [
@@ -50,7 +54,7 @@ fn start<'a>(content: &'a CompiledContent) -> Session<'a> {
             ("origin", "lowsail"),
             ("calling", "ledger-clerk"),
             ("value", "order"),
-            ("burden", "wanted"),
+            ("burden", burden),
             ("history", "stole-permit"),
         ]
         .into_iter()
@@ -114,6 +118,153 @@ fn checkpoint<'a>(session: &Session<'a>, content: &'a CompiledContent) -> Sessio
         *session.state()
     );
     resumed
+}
+
+#[test]
+fn cold_shift_custom_reaction_survives_public_trace_checkpoints() {
+    let content = parse_and_compile_production(SOURCE).unwrap();
+    let mut wanted = start_with(&content, "wanted");
+    let mut indebted = start_with(&content, "indebted");
+
+    for &action in PREFIX {
+        record(&mut wanted, &content, action);
+        record(&mut indebted, &content, action);
+        wanted = checkpoint(&wanted, &content);
+        indebted = checkpoint(&indebted, &content);
+    }
+
+    let test_wanted = select(&wanted, &content, ("fume_yards.test_unfired_charge", None));
+    let test_indebted = select(
+        &indebted,
+        &content,
+        ("fume_yards.test_unfired_charge", None),
+    );
+    wanted.record(&test_wanted).unwrap();
+    indebted.record(&test_indebted).unwrap();
+    wanted = checkpoint(&wanted, &content);
+    indebted = checkpoint(&indebted, &content);
+    assert_eq!(
+        wanted.trace().steps.last().unwrap().observation.text,
+        indebted.trace().steps.last().unwrap().observation.text
+    );
+
+    let report_wanted = select(&wanted, &content, ("fume_yards.report_test", None));
+    let report_indebted = select(&indebted, &content, ("fume_yards.report_test", None));
+    let wanted_report = wanted.record(&report_wanted).unwrap();
+    let indebted_report = indebted.record(&report_indebted).unwrap();
+    assert!(
+        wanted_report
+            .observation
+            .text
+            .contains("council ink and wanted face trouble Brann")
+    );
+    assert!(
+        !indebted_report
+            .observation
+            .text
+            .contains("council ink and wanted face trouble Brann")
+    );
+    wanted = checkpoint(&wanted, &content);
+    indebted = checkpoint(&indebted, &content);
+    assert_eq!(
+        wanted.trace().steps.last().unwrap().observation.text,
+        wanted_report.observation.text
+    );
+    assert_eq!(
+        indebted.trace().steps.last().unwrap().observation.text,
+        indebted_report.observation.text
+    );
+    assert_eq!(
+        wanted_report.observation.world_time,
+        indebted_report.observation.world_time
+    );
+    assert_source(&wanted);
+    assert_source(&indebted);
+
+    let shape = |session: &Session<'_>| {
+        enumerate_legal_actions(session.state(), &content)
+            .unwrap()
+            .into_iter()
+            .map(|action| (action.definition_id, action.parameters))
+            .collect::<Vec<_>>()
+    };
+    assert_eq!(shape(&wanted), shape(&indebted));
+
+    let shift_wanted = select(&wanted, &content, ("fume_yards.delegate_cold_shift", None));
+    let shift_indebted = select(
+        &indebted,
+        &content,
+        ("fume_yards.delegate_cold_shift", None),
+    );
+    wanted.record(&shift_wanted).unwrap();
+    indebted.record(&shift_indebted).unwrap();
+    wanted = checkpoint(&wanted, &content);
+    indebted = checkpoint(&indebted, &content);
+    reject_stale(&mut wanted, &shift_wanted);
+    reject_stale(&mut indebted, &shift_indebted);
+
+    let assert_shift_endpoint = |session: &Session<'_>| {
+        assert_eq!(session.state().world.time, 17);
+        assert_eq!(
+            session.state().character.resources,
+            BTreeMap::from([("coin".into(), 13), ("stamina".into(), 3)])
+        );
+        assert_eq!(
+            session.state().character.inventory,
+            BTreeMap::from([("rope".into(), 1), ("fume_yards.repair_lot".into(), 1)])
+        );
+        assert_eq!(session.state().world.npcs[NESSA].location, W);
+        assert_eq!(session.state().world.npcs[BRANN].location, W);
+        assert!(
+            session.state().world.npcs[BRANN]
+                .memories
+                .contains_key("fume_yards.cold_shift_completed")
+        );
+        assert_eq!(session.state().entropy.cursor, 0);
+    };
+    assert_shift_endpoint(&wanted);
+    assert_shift_endpoint(&indebted);
+    assert_eq!(
+        wanted.state().character.resources,
+        indebted.state().character.resources
+    );
+    assert_eq!(
+        wanted.state().character.inventory,
+        indebted.state().character.inventory
+    );
+    assert_eq!(
+        wanted.state().world.npcs[NESSA].location,
+        indebted.state().world.npcs[NESSA].location
+    );
+    assert_eq!(
+        wanted.state().world.npcs[BRANN].location,
+        indebted.state().world.npcs[BRANN].location
+    );
+
+    let return_wanted = select(&wanted, &content, ("fume_yards.return_brann_to_kiln", None));
+    let return_indebted = select(
+        &indebted,
+        &content,
+        ("fume_yards.return_brann_to_kiln", None),
+    );
+    wanted.record(&return_wanted).unwrap();
+    indebted.record(&return_indebted).unwrap();
+    wanted = checkpoint(&wanted, &content);
+    indebted = checkpoint(&indebted, &content);
+    assert_eq!(wanted.state().world.time, 18);
+    assert_eq!(indebted.state().world.time, 18);
+    assert_eq!(wanted.state().world.npcs[BRANN].location, K);
+    assert_eq!(indebted.state().world.npcs[BRANN].location, K);
+    assert!(
+        wanted.state().world.npcs[BRANN]
+            .memories
+            .contains_key("fume_yards.returned_from_cold_shift")
+    );
+    assert!(
+        indebted.state().world.npcs[BRANN]
+            .memories
+            .contains_key("fume_yards.returned_from_cold_shift")
+    );
 }
 
 fn reject_stale(session: &mut Session<'_>, action: &CanonicalAction) {
